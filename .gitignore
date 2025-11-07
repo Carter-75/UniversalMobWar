@@ -1,0 +1,54 @@
+# Gradle
+.gradle/
+build/
+out/
+classes/
+
+# Fabric/Loom
+.fabric/
+run/
+runs/
+remappedSrc/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Logs
+*.log
+
+# Minecraft client/server
+run/
+logs/
+
+# Don't ignore gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Don't ignore important files
+!gradlew
+!gradlew.bat
+

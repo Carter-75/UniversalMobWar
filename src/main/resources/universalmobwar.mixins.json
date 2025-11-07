@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "mod.universalmobwar.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"GameRulesAccessor$BooleanRuleInvoker",
+		"GameRulesAccessor$GameRulesInvoker",
+		"MobEntityAccessor",
+		"MobRevengeBlockerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
+
