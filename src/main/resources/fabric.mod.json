@@ -1,9 +1,9 @@
 {
 	"schemaVersion": 1,
 	"id": "universalmobwar",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"name": "Universal Mob War",
-	"description": "Every living mob attacks the nearest different-type living mob; includes Survival players. Toggle same-species aggression with gamerules.",
+	"description": "Mobs attack each other and evolve! Features: alliance system, mob leveling with equipment, customizable range, player immunity, and more. Total chaos with progression!",
 	"authors": ["Carter"],
 	"contact": {
 		"sources": "https://github.com/yourusername/universal-mob-war"

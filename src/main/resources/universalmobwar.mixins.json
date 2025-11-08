@@ -5,9 +5,12 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"GameRulesAccessor$BooleanRuleInvoker",
+		"GameRulesAccessor$IntRuleInvoker",
 		"GameRulesAccessor$GameRulesInvoker",
 		"MobEntityAccessor",
-		"MobRevengeBlockerMixin"
+		"MobRevengeBlockerMixin",
+		"MobDeathTrackerMixin",
+		"NeutralMobBehaviorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

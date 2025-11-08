@@ -13,9 +13,9 @@ public final class TargetingUtil {
 
 	private TargetingUtil() {}
 
-	public static LivingEntity findNearestValidTarget(MobEntity self, double range, boolean ignoreSameSpecies) {
+	public static LivingEntity findNearestValidTarget(MobEntity self, double range, boolean ignoreSameSpecies, boolean targetPlayers) {
 		Box box = self.getBoundingBox().expand(range, range, range);
-		Predicate<LivingEntity> filter = target -> isValidTarget(self, target, ignoreSameSpecies);
+		Predicate<LivingEntity> filter = target -> isValidTarget(self, target, ignoreSameSpecies, targetPlayers);
 
 		List<LivingEntity> list = self.getWorld().getEntitiesByClass(LivingEntity.class, box, filter::test);
 		if (list.isEmpty()) return null;
@@ -24,16 +24,17 @@ public final class TargetingUtil {
 		return list.getFirst();
 	}
 
-	public static boolean isValidTarget(MobEntity self, LivingEntity target, boolean ignoreSameSpecies) {
+	public static boolean isValidTarget(MobEntity self, LivingEntity target, boolean ignoreSameSpecies, boolean targetPlayers) {
 		if (target == null || target == self) return false;
 		if (!target.isAlive()) return false;
 
 		// Basic visibility helps reduce erratic chasing; remove if you want through-walls aggro.
 		if (!self.canSee(target)) return false;
 
-		// Players: only Survival-like
+		// Players: check if player targeting is enabled
 		if (target instanceof ServerPlayerEntity player) {
 			if (player.isSpectator() || player.isCreative()) return false;
+			if (!targetPlayers) return false; // New: respect player immunity toggle
 		}
 
 		// Same-species filter (default ON)

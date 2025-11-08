@@ -1,152 +1,377 @@
-# Universal Mob War (Fabric 1.21.1)
+# Universal Mob War v2.0 - Evolution Update (Fabric 1.21.1)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
+![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
 
 ## 🎯 What This Mod Does
 
-**Transform Minecraft into total chaos!** Every mob attacks the nearest DIFFERENT species, including players!
+**Transform Minecraft into an evolving battlefield!** Every mob attacks different species and gains power from their victories!
 
-- Zombies attack skeletons, creepers, cows, sheep, **YOU**, etc.
-- Creepers attack zombies, endermen, chickens, **YOU**, etc.
-- Animals attack each other AND hostile mobs
-- Everyone attacks **YOU** if you're in Survival mode!
+### Core Features:
+- **Mob Evolution System** - Mobs gain levels, stats, weapons, and armor from kills
+- **Alliance System** - Mobs fighting the same enemy become temporary allies
+- **Complete Customization** - 7+ gamerules to fine-tune the chaos
+- **Player Immunity Option** - Watch the war unfold without being targeted
+- **Range Control** - Scale detection range from 0.01x to 100x
+- **Neutral Mob Control** - Make passive mobs join the fight
 
-This mod makes every living mob automatically attempt to attack the nearest living mob of a different mob type, including all modded/custom mobs, without modifying individual mob AI files.
+**Works on Fabric 1.21.1, singleplayer or multiplayer. Compatible with ALL modded mobs!**
 
-**Works on Fabric 1.21.1, singleplayer or multiplayer.**
+---
+
+## 🆕 What's New in v2.0
+
+### Evolution System
+- Mobs gain **levels** and **kills** that persist
+- +0.5 hearts health per level
+- +10% damage per level  
+- +0.5% speed per level
+- Progressive armor & knockback resistance
+- **Automatic Equipment**: High-level mobs get swords and armor (wood → iron → diamond → netherite!)
+- Max level: 100
+
+### Alliance System
+- Mobs attacking the same target become allies
+- Allies help defend each other
+- Mobs prioritize continuing their current fight
+- Alliances expire after 60 seconds
+- **Creative Mode Safe**: No alliances form when creative players are involved
+
+### New Commands
+- `/mobwar help` - Show all commands
+- `/mobwar stats` - View nearby mob statistics and levels
+- `/mobwar reset` - Clear all mob targets (OP only)
+- `/mobwar reload` - Reload configuration (OP only)
+
+### Configuration File
+- JSON config file: `config/universalmobwar.json`
+- Set default gamerule values
+- Exclude specific mob types
+- Control visual settings
+- Auto-generates on first run
 
 ---
 
 ## 📋 Key Features
 
+✅ **Evolution System** - Mobs level up and get stronger  
+✅ **Alliance System** - Temporary teamwork based on shared targets  
 ✅ **Works with ALL mobs** (vanilla, modded, custom)  
-✅ **Chat message on join** explains commands  
-✅ **Icon included** for CurseForge/Modrinth  
-✅ **Prevents same-species retaliation** (default)  
-✅ **Fully toggleable** with gamerules  
-✅ **Performance optimized**  
-✅ **No vanilla mob behavior broken** — only overrides target selection logic  
+✅ **7 Customizable Gamerules** - Control every aspect  
+✅ **Player Immunity Toggle** - Spectate without danger  
+✅ **Range Multiplier** - 0.01x to 100x detection range  
+✅ **Neutral Mob Control** - Force passive mobs to fight  
+✅ **Config File** - Persistent settings and exclusions  
+✅ **Performance Optimized** - Minimal overhead  
+✅ **Creative Mode Protection** - No evolution/alliances when killed by creative players  
 
 ---
 
 ## 🎮 Installation
 
-**✅ Build successful!** The mod JAR is ready at: `build/libs/universal-mob-war-1.0.0.jar`
+**✅ Build successful!** The mod JAR is ready at: `build/libs/universal-mob-war-2.0.0.jar`
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft 1.21.1
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.106.1 or higher)
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.102.0 or higher)
 3. Download or build the mod JAR
 4. Place the `.jar` file in your `mods` folder
 5. Launch Minecraft!
 
-**When you join a world, you'll see a colorful welcome message in chat explaining all available commands.**
+**When you join a world, you'll see a colorful welcome message with quick command access.**
 
 ---
 
-## ⚙️ Game Rules (In-Game Commands)
+## ⚙️ Game Rules (In-Game Configuration)
 
 ### 1. universalMobWarEnabled
-
 **Default**: `true`
 
-Turn the entire mod ON or OFF. When disabled, it's like the mod isn't installed.
+Turn the entire mod ON or OFF.
 
 ```bash
-# Enable the mod (default)
-/gamerule universalMobWarEnabled true
-
-# Disable the mod completely
-/gamerule universalMobWarEnabled false
+/gamerule universalMobWarEnabled true   # Enable (default)
+/gamerule universalMobWarEnabled false  # Disable completely
 ```
 
 ### 2. universalMobWarIgnoreSame
-
 **Default**: `true`
 
-Controls same-species targeting behavior.
-
-| Value | Behavior |
-|-------|----------|
-| `true` (default) | Only attack different mob types. Same-type mobs are always ignored. |
-| `false` | **TOTAL CHAOS!** Mobs attack ANY living mob, including same-species. |
+Controls same-species targeting.
 
 ```bash
-# Default: Mobs ignore their own species
-/gamerule universalMobWarIgnoreSame true
+/gamerule universalMobWarIgnoreSame true   # Only attack different types (default)
+/gamerule universalMobWarIgnoreSame false  # TOTAL CHAOS! Same-species fights!
+```
 
-# Chaos mode: Allow same-species combat
+### 3. universalMobWarTargetPlayers ⭐ NEW
+**Default**: `true`
+
+Control whether mobs target players.
+
+```bash
+/gamerule universalMobWarTargetPlayers true   # Mobs attack players (default)
+/gamerule universalMobWarTargetPlayers false  # Player immunity - spectate safely!
+```
+
+### 4. universalMobWarRangeMultiplier ⭐ NEW
+**Default**: `100` (1.0x)  
+**Range**: 1 to 10000 (0.01x to 100.0x)
+
+Multiplies mob detection range.
+
+```bash
+/gamerule universalMobWarRangeMultiplier 100    # Normal range (1.0x)
+/gamerule universalMobWarRangeMultiplier 50     # Half range (0.5x) - local battles
+/gamerule universalMobWarRangeMultiplier 300    # Triple range (3.0x) - massive wars
+/gamerule universalMobWarRangeMultiplier 10000  # Maximum range (100.0x) - chaos mode
+```
+
+### 5. universalMobWarNeutralAggressive ⭐ NEW
+**Default**: `false`
+
+Forces neutral mobs (Endermen, Zombie Piglins, Wolves, etc.) to always be aggressive.
+
+```bash
+/gamerule universalMobWarNeutralAggressive false  # Normal behavior (default)
+/gamerule universalMobWarNeutralAggressive true   # Neutral mobs always attack
+```
+
+### 6. universalMobWarAlliances ⭐ NEW
+**Default**: `true`
+
+Enable/disable the alliance system.
+
+```bash
+/gamerule universalMobWarAlliances true   # Mobs form alliances (default)
+/gamerule universalMobWarAlliances false  # Every mob for themselves
+```
+
+### 7. universalMobWarEvolution ⭐ NEW
+**Default**: `true`
+
+Enable/disable mob leveling and equipment.
+
+```bash
+/gamerule universalMobWarEvolution true   # Mobs evolve (default)
+/gamerule universalMobWarEvolution false  # No leveling system
+```
+
+---
+
+## 🎲 How It Works
+
+### Targeting Rules
+
+A mob will target another entity if:
+- The entity is **living** (has health)
+- It's **visible** (can be seen)
+- It's **in range** (scaled by range multiplier)
+- It's a **different mob type** (unless ignoreSame is false)
+- It's a **survival player** (unless targetPlayers is false)
+
+Automatically ignores:
+- Creative/spectator players
+- Non-living entities (armor stands, boats, minecarts, etc.)
+- Itself
+- Same-type mobs (by default)
+
+### Evolution System
+
+**How Mobs Level Up:**
+- Mobs gain 1 kill point per mob killed
+- Every 3 kills = 1 level (configurable)
+- Maximum level: 100
+
+**Stat Bonuses Per Level:**
+- Health: +0.5 hearts (1 HP)
+- Damage: +0.1 points (+10%)
+- Speed: +0.005 (+0.5%)
+- Armor: +0.1 points
+- Knockback Resistance: +1%
+
+**Equipment Progression:**
+| Level | Equipment |
+|-------|-----------|
+| 5-9   | Nothing yet |
+| 10-19 | Wooden Sword |
+| 20-29 | Stone Sword + Leather Armor |
+| 30-39 | Iron Sword + Chainmail Armor |
+| 40-49 | Diamond Sword + Iron Armor |
+| 50-59 | Diamond Sword + Diamond Armor |
+| 60+   | Netherite Sword + Netherite Armor |
+
+**Evolution persists** - Mob data is saved with the entity!
+
+### Alliance System
+
+**How Alliances Form:**
+- Mobs attacking the **same target** become allies
+- Alliances update every 2 seconds during combat
+- Alliance range: 32 blocks (default)
+
+**Alliance Benefits:**
+- Mobs prioritize helping allied mobs under attack
+- Prevents friendly fire targeting
+- Coordinated attacks on common enemies
+
+**Alliance Expiration:**
+- Alliances last 60 seconds after last common target
+- Automatically cleaned up to prevent memory leaks
+
+**Combat Priority System:**
+1. Continue attacking current target (if valid and recently engaged)
+2. Help allied mob being attacked (within range)
+3. Find nearest valid target
+
+---
+
+## 💻 Commands
+
+### Player Commands
+
+```bash
+/mobwar help           # Show all commands and gamerules
+/mobwar stats          # Display nearby mob statistics
+```
+
+### Operator Commands
+
+```bash
+/mobwar reset          # Clear all mob targets in the world
+/mobwar reload         # Reload configuration file
+```
+
+---
+
+## 🔧 Configuration File
+
+Located at: `config/universalmobwar.json`
+
+**Auto-generates on first run with defaults.**
+
+### Example Configuration:
+
+```json
+{
+  "modEnabled": true,
+  "ignoreSameSpecies": true,
+  "targetPlayers": true,
+  "neutralMobsAlwaysAggressive": false,
+  "allianceSystemEnabled": true,
+  "evolutionSystemEnabled": true,
+  "rangeMultiplier": 1.0,
+  
+  "maxLevel": 100,
+  "killsPerLevel": 3,
+  "giveEquipmentToMobs": true,
+  
+  "allianceDurationTicks": 1200,
+  "allianceRange": 16.0,
+  
+  "excludedMobs": [],
+  
+  "showTargetLines": true,
+  "showHealthBars": true,
+  "showMobLabels": true,
+  "showLevelParticles": true
+}
+```
+
+### Configuration Options:
+
+- **excludedMobs**: List of entity IDs to exclude (e.g., `["minecraft:villager", "minecraft:iron_golem"]`)
+- **maxLevel**: Maximum mob level (default: 100)
+- **killsPerLevel**: Kills needed per level (default: 3)
+- **giveEquipmentToMobs**: Auto-equip high-level mobs (default: true)
+- **allianceDurationTicks**: How long alliances last (default: 1200 = 60 seconds)
+- **Visual settings**: Control spectator mode enhancements
+
+---
+
+## 🔄 Behavior Examples
+
+### Default Mode (All Systems Enabled)
+
+- Zombies attack skeletons, creepers, cows, **YOU**, etc.
+- A zombie kills a cow → gains 1 kill point
+- After 3 kills → zombie reaches Level 1 (gains +0.5 hearts, +0.1 damage, etc.)
+- Two zombies attack the same skeleton → they become allies for 60 seconds
+- The zombies will help defend each other against threats
+- At Level 10+ → zombie gets a wooden sword
+- At Level 50+ → zombie gets diamond sword and diamond armor!
+
+### Player Immunity Mode
+
+```bash
+/gamerule universalMobWarTargetPlayers false
+```
+
+- Mobs completely ignore players (even Survival mode)
+- Perfect for spectating or building during chaos
+- Mobs still fight each other and evolve normally
+
+### Chaos Mode
+
+```bash
 /gamerule universalMobWarIgnoreSame false
 ```
 
-**The toggle can be changed at any time without reloading.**
+- Same-species mobs attack each other!
+- Zombies fight zombies, skeletons fight skeletons
+- **Ultimate chaos** - everyone vs everyone
+
+### Ranged War Mode
+
+```bash
+/gamerule universalMobWarRangeMultiplier 500
+```
+
+- 5x detection range (5.0x)
+- Mobs detect targets from much further away
+- Creates large-scale battlefield scenarios
+
+### Silent Hills Mode
+
+```bash
+/gamerule universalMobWarRangeMultiplier 20
+/gamerule universalMobWarNeutralAggressive true
+```
+
+- Very short range (0.2x) - only close encounters
+- Even neutral mobs are aggressive
+- Tense, dangerous atmosphere
 
 ---
 
-## 🎲 Target Rules
+## 🛡️ Creative Mode Protection
 
-A mob will only target another entity if:
+**Important**: Creative mode players are fully protected from triggering unintended behavior:
 
-- The entity is a **living mob** (has health)
-- **AND** it is not the same mob type (default mode)
-- Also will attack **players** if they're in Survival mode
+✅ Mobs killed by creative players **do not** grant evolution XP  
+✅ Alliances **do not form** when targeting creative players  
+✅ Only **Survival mode** interactions count for progression  
 
-Because of this, the mod automatically ignores all non-living entities, including:
-
-- Armor stands
-- Boats
-- Minecarts
-- Item frames / paintings
-- Projectiles (arrows, tridents, etc.)
-- Dropped items
-- Anything without health
-
-**No special exclusions required.**
+This prevents accidental progression manipulation during building or testing.
 
 ---
 
-## 🔄 Default Behavior (universalMobWarIgnoreSame = true)
+## 🔍 Compatibility
 
-Each mob constantly looks for the nearest living mob of a different type.
+**Works with:**
+- ✅ All vanilla Minecraft mobs
+- ✅ Modded mobs from other Fabric mods
+- ✅ Custom mobs from datapacks
+- ✅ Servers and singleplayer
+- ✅ All mob types (hostile, passive, neutral, boss)
 
-- **If found** → the mob attacks that target
-- **If no valid different-type mob is nearby** → the mob returns to normal vanilla behavior (wandering, idling, etc.)
+**Respects:**
+- Boss-specific mechanics (Ender Dragon, Wither, etc.)
+- Mod-specific AI behaviors
+- Custom mob attributes
 
-### Same-Species Interaction (Default)
-
-While `universalMobWarIgnoreSame = true` (default):
-
-- Mobs **do not** target or retaliate against mobs of the same mob type
-- If damaged by a same-species mob, they:
-  - Take damage normally
-  - But **do NOT** switch targets or become hostile toward that mob
-
-This rule applies:
-- During combat
-- During idle/normal behavior
-- Always, unless the toggle is changed
-
-### Behavior Summary Table
-
-| Situation | Result (Default Mode) |
-|-----------|----------------------|
-| Different-type mob in range | Mob attacks it |
-| Only same-type mobs nearby | Mob ignores them |
-| Same-type mob hits it | Mob does **not** retaliate, still takes damage |
-| No valid targets around | Mob behaves normally but still won't attack same-type mobs |
-
----
-
-## 🔧 Compatibility
-
-Works with:
-
-- ✅ Vanilla mobs
-- ✅ Fabric mod mobs
-- ✅ Datapack/custom mobs
-
-Works on **servers or singleplayer worlds**.
-
-**Does not remove base AI** — only overrides target selection logic, so mobs still have their unique behaviors (boss mechanics, etc.).
+**Does not:**
+- Break vanilla mob behaviors
+- Modify base mob AI (only adds targeting goals)
+- Cause compatibility issues with other mods
 
 ---
 
@@ -160,9 +385,7 @@ gradlew clean build
 ./gradlew clean build
 ```
 
-**Output JAR**: `build/libs/universal-mob-war-1.0.0.jar`
-
-Put the JAR in your `mods/` folder with Fabric Loader and Fabric API for 1.21.1.
+**Output JAR**: `build/libs/universal-mob-war-2.0.0.jar`
 
 ---
 
@@ -171,22 +394,33 @@ Put the JAR in your `mods/` folder with Fabric Loader and Fabric API for 1.21.1.
 ```
 universal-mob-war/
 ├─ build.gradle
-├─ gradle.properties
 ├─ settings.gradle
+├─ gradle.properties
 ├─ src/
 │  └─ main/
-│     ├─ java/
-│     │  └─ mod/
-│     │     └─ universalmobwar/
-│     │        ├─ UniversalMobWarMod.java
-│     │        ├─ goal/
-│     │        │  └─ UniversalTargetGoal.java
-│     │        ├─ util/
-│     │        │  └─ TargetingUtil.java
-│     │        └─ mixin/
-│     │           ├─ MobRevengeBlockerMixin.java
-│     │           ├─ MobEntityAccessor.java
-│     │           └─ GameRulesAccessor.java
+│     ├─ java/mod/universalmobwar/
+│     │  ├─ UniversalMobWarMod.java          # Main mod class
+│     │  ├─ command/
+│     │  │  └─ MobWarCommand.java            # /mobwar commands
+│     │  ├─ config/
+│     │  │  └─ ModConfig.java                # Config system
+│     │  ├─ data/
+│     │  │  └─ MobWarData.java               # Mob evolution data
+│     │  ├─ goal/
+│     │  │  └─ UniversalTargetGoal.java      # Enhanced targeting AI
+│     │  ├─ system/
+│     │  │  ├─ AllianceSystem.java           # Alliance management
+│     │  │  └─ EvolutionSystem.java          # Leveling & equipment
+│     │  ├─ util/
+│     │  │  └─ TargetingUtil.java            # Targeting helpers
+│     │  ├─ client/
+│     │  │  └─ MobWarVisuals.java            # Visual enhancements
+│     │  └─ mixin/
+│     │     ├─ GameRulesAccessor.java        # Gamerule registration
+│     │     ├─ MobEntityAccessor.java        # Goal selector access
+│     │     ├─ MobRevengeBlockerMixin.java   # Same-species blocking
+│     │     ├─ MobDeathTrackerMixin.java     # Kill tracking
+│     │     └─ NeutralMobBehaviorMixin.java  # Neutral mob control
 │     └─ resources/
 │        ├─ fabric.mod.json
 │        ├─ universalmobwar.mixins.json
@@ -199,31 +433,60 @@ universal-mob-war/
 
 - **Namespace**: `mod.universalmobwar`
 - **Minecraft Version**: 1.21.1
-- **Fabric Loader**: 0.16.7+
-- **Fabric API**: 0.106.1+1.21.1
+- **Fabric Loader**: 0.16.5+
+- **Fabric API**: 0.102.0+1.21.1
 - **Java**: 21
 
-### Fixed Bugs
-
-✓ Fixed Mixin parameter type error (was PlayerEntity, now Entity)  
-✓ All mobs now target ALL living entities, not just players  
-✓ Same-species retaliation properly blocked  
-✓ Accessor mixins properly configured  
-✓ GameRules registration working correctly  
+### System Details:
+- Evolution data stored in entity NBT
+- Alliances tracked with UUID maps and timestamps
+- Gamerules use Fabric's game rule system
+- Commands registered via Fabric Command API v2
+- Configuration uses JSON with Gson
+- Mixins target LivingEntity, MobEntity, and GameRules
 
 ---
 
 ## 📜 License
 
-MIT License - See project for details.
+MIT License - Free to use, modify, and distribute.
 
 ---
 
 ## 🤝 Credits
 
-Created by **Carter**
+**Created by Carter**
+
+Special thanks to the Fabric community for excellent documentation and tools!
 
 ---
 
-**Enjoy the chaos!** 🗡️⚔️🛡️
+## 🎮 Tips & Tricks
 
+### Survival Strategy
+
+1. **Watch for High-Level Mobs**: Mobs with weapons/armor are dangerous!
+2. **Use Alliances**: Lure mobs to fight your enemies
+3. **Player Immunity**: Toggle off to safely build shelters
+4. **Scout with Stats**: Use `/mobwar stats` to check threat levels
+5. **Emergency Reset**: `/mobwar reset` if things get too chaotic
+
+### Server Recommendations
+
+- Default settings work great for most servers
+- Consider `targetPlayers false` for creative build servers
+- Use `rangeMultiplier 50` (0.5x) for performance on large servers
+- Exclude peaceful mobs if you want them safe: add to config `excludedMobs`
+
+### Content Creation
+
+- Perfect for challenging Let's Plays
+- Great for PvE server events
+- Use evolution system for progressive difficulty
+- Spectator mode with player immunity for cinematic shots
+
+---
+
+**Enjoy the evolution of chaos!** 🗡️⚔️🛡️
+
+*Have fun watching mobs become warriors and conquerors!*

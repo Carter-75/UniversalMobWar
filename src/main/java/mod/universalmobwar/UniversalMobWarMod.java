@@ -1,9 +1,12 @@
 package mod.universalmobwar;
 
+import mod.universalmobwar.command.MobWarCommand;
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.ai.goal.GoalSelector;
@@ -25,22 +28,80 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	// Gamerule: true = ignore same-species (default). false = chaos (same-species allowed).
 	public static GameRules.Key<GameRules.BooleanRule> IGNORE_SAME_SPECIES_RULE;
+	
+	// Gamerule: true = target players (default). false = mobs ignore players.
+	public static GameRules.Key<GameRules.BooleanRule> TARGET_PLAYERS_RULE;
+	
+	// Gamerule: true = neutral mobs always aggressive. false = normal behavior.
+	public static GameRules.Key<GameRules.BooleanRule> NEUTRAL_MOBS_AGGRESSIVE_RULE;
+	
+	// Gamerule: true = alliance system enabled (default). false = no alliances.
+	public static GameRules.Key<GameRules.BooleanRule> ALLIANCE_SYSTEM_RULE;
+	
+	// Gamerule: true = evolution system enabled (default). false = no leveling.
+	public static GameRules.Key<GameRules.BooleanRule> EVOLUTION_SYSTEM_RULE;
+	
+	// Gamerule: Range multiplier (0.01 to 100.0)
+	public static GameRules.Key<GameRules.IntRule> RANGE_MULTIPLIER_RULE;
 
 	@Override
 	public void onInitialize() {
+		// Load config
+		ModConfig config = ModConfig.getInstance();
+		
 		// Register gamerule to enable/disable the entire mod (default: ON)
 		MOD_ENABLED_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
 			"universalMobWarEnabled",
 			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(true, (server, rule) -> {})
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.modEnabled, (server, rule) -> {})
 		);
 
 		// Register gamerule for same-species targeting (default: ON = ignore same species)
 		IGNORE_SAME_SPECIES_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
 			"universalMobWarIgnoreSame",
 			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(true, (server, rule) -> {}) // default ON = ignore same-species
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.ignoreSameSpecies, (server, rule) -> {})
 		);
+		
+		// Register gamerule for targeting players
+		TARGET_PLAYERS_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			"universalMobWarTargetPlayers",
+			GameRules.Category.MOBS,
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.targetPlayers, (server, rule) -> {})
+		);
+		
+		// Register gamerule for neutral mob behavior
+		NEUTRAL_MOBS_AGGRESSIVE_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			"universalMobWarNeutralAggressive",
+			GameRules.Category.MOBS,
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.neutralMobsAlwaysAggressive, (server, rule) -> {})
+		);
+		
+		// Register gamerule for alliance system
+		ALLIANCE_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			"universalMobWarAlliances",
+			GameRules.Category.MOBS,
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.allianceSystemEnabled, (server, rule) -> {})
+		);
+		
+		// Register gamerule for evolution system
+		EVOLUTION_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			"universalMobWarEvolution",
+			GameRules.Category.MOBS,
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.evolutionSystemEnabled, (server, rule) -> {})
+		);
+		
+		// Register gamerule for range multiplier (stored as int, divided by 100 to get actual value)
+		// Range: 1 to 10000 (represents 0.01 to 100.0)
+		int defaultRange = (int)(config.rangeMultiplier * 100);
+		RANGE_MULTIPLIER_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			"universalMobWarRangeMultiplier",
+			GameRules.Category.MOBS,
+			GameRulesAccessor.IntRuleInvoker.invokeCreate(defaultRange, (server, rule) -> {})
+		);
+		
+		// Register commands
+		CommandRegistrationCallback.EVENT.register(MobWarCommand::register);
 
 		// Send welcome message to players when they join
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -51,46 +112,113 @@ public class UniversalMobWarMod implements ModInitializer {
 			);
 			handler.player.sendMessage(
 				Text.literal("    UNIVERSAL MOB WAR").styled(style -> style.withColor(Formatting.RED).withBold(true))
-					.append(Text.literal(" - Active!").styled(style -> style.withColor(Formatting.YELLOW))),
+					.append(Text.literal(" v2.0 - EVOLUTION UPDATE!").styled(style -> style.withColor(Formatting.YELLOW))),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
 				false
 			);
+			
 			handler.player.sendMessage(
-				Text.literal("Every mob attacks different species (including YOU!)").styled(style -> style.withColor(Formatting.WHITE)),
-				false
-			);
-			handler.player.sendMessage(Text.literal(""), false);
-			handler.player.sendMessage(
-				Text.literal("Available Commands:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)),
+				Text.literal("⚔ NEW FEATURES:").styled(style -> style.withColor(Formatting.RED).withBold(true)),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("/gamerule universalMobWarEnabled <true|false>").styled(style -> style.withColor(Formatting.GREEN))),
+					.append(Text.literal("Evolution System").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Mobs level up, gain stats & equipment!").styled(style -> style.withColor(Formatting.WHITE))),
 				false
 			);
-			handler.player.sendMessage(
-				Text.literal("    ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("└─ Enable/disable the entire mod (default: true)").styled(style -> style.withColor(Formatting.DARK_GRAY))),
-				false
-			);
-			handler.player.sendMessage(Text.literal(""), false);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("/gamerule universalMobWarIgnoreSame <true|false>").styled(style -> style.withColor(Formatting.GREEN))),
+					.append(Text.literal("Alliance System").styled(style -> style.withColor(Formatting.AQUA)))
+					.append(Text.literal(" - Mobs team up against common enemies!").styled(style -> style.withColor(Formatting.WHITE))),
 				false
 			);
 			handler.player.sendMessage(
-				Text.literal("    ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("└─ true = ignore same species (default)").styled(style -> style.withColor(Formatting.DARK_GRAY))),
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
+					.append(Text.literal("Player Immunity").styled(style -> style.withColor(Formatting.GREEN)))
+					.append(Text.literal(" - Toggle to spectate safely!").styled(style -> style.withColor(Formatting.WHITE))),
 				false
 			);
 			handler.player.sendMessage(
-				Text.literal("    ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("└─ false = TOTAL CHAOS! Same species fight!").styled(style -> style.withColor(Formatting.RED))),
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
+					.append(Text.literal("Range Control").styled(style -> style.withColor(Formatting.LIGHT_PURPLE)))
+					.append(Text.literal(" - 0.01x to 100x detection range!").styled(style -> style.withColor(Formatting.WHITE))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
+					.append(Text.literal("Neutral Mob Control").styled(style -> style.withColor(Formatting.GOLD)))
+					.append(Text.literal(" - Force passive mobs to fight!").styled(style -> style.withColor(Formatting.WHITE))),
+				false
+			);
+			
+			handler.player.sendMessage(Text.literal(""), false);
+			handler.player.sendMessage(
+				Text.literal("📋 Quick Commands:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
+					.append(Text.literal("/mobwar help").styled(style -> style.withColor(Formatting.GREEN)))
+					.append(Text.literal(" - Full command list").styled(style -> style.withColor(Formatting.DARK_GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
+					.append(Text.literal("/mobwar stats").styled(style -> style.withColor(Formatting.GREEN)))
+					.append(Text.literal(" - View nearby mob levels").styled(style -> style.withColor(Formatting.DARK_GRAY))),
+				false
+			);
+			
+			handler.player.sendMessage(Text.literal(""), false);
+			handler.player.sendMessage(
+				Text.literal("⚙ Key Game Rules (use /gamerule):").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
+					.append(Text.literal("universalMobWarEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Turn mod on/off").styled(style -> style.withColor(Formatting.GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
+					.append(Text.literal("universalMobWarTargetPlayers").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Player immunity toggle").styled(style -> style.withColor(Formatting.GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
+					.append(Text.literal("universalMobWarRangeMultiplier").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Scale range (1-10000)").styled(style -> style.withColor(Formatting.GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
+					.append(Text.literal("universalMobWarEvolution").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Enable leveling system").styled(style -> style.withColor(Formatting.GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
+					.append(Text.literal("universalMobWarAlliances").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Enable alliance system").styled(style -> style.withColor(Formatting.GRAY))),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("    Type /mobwar help for all 7 game rules!").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true)),
+				false
+			);
+			
+			handler.player.sendMessage(
+				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
+				false
+			);
+			handler.player.sendMessage(
+				Text.literal("    Watch mobs evolve into warriors! Good luck!").styled(style -> style.withColor(Formatting.WHITE).withItalic(true)),
 				false
 			);
 			handler.player.sendMessage(
@@ -105,6 +233,10 @@ public class UniversalMobWarMod implements ModInitializer {
 
 			// Check if the mod is enabled
 			if (!world.getGameRules().getBoolean(MOD_ENABLED_RULE)) return;
+			
+			// Check if this mob type is excluded
+			String mobId = mob.getType().getTranslationKey();
+			if (ModConfig.getInstance().isMobExcluded(mobId)) return;
 
 			GoalSelector targetSelector = ((MobEntityAccessor) mob).getTargetSelector();
 
@@ -116,7 +248,12 @@ public class UniversalMobWarMod implements ModInitializer {
 				// Priority 2 so it competes well with vanilla targeting without breaking boss-specific logic.
 				targetSelector.add(2, new UniversalTargetGoal(mob, 
 					() -> world.getGameRules().getBoolean(MOD_ENABLED_RULE),
-					() -> world.getGameRules().getBoolean(IGNORE_SAME_SPECIES_RULE)
+					() -> world.getGameRules().getBoolean(IGNORE_SAME_SPECIES_RULE),
+					() -> world.getGameRules().getBoolean(TARGET_PLAYERS_RULE),
+					() -> world.getGameRules().getBoolean(NEUTRAL_MOBS_AGGRESSIVE_RULE),
+					() -> world.getGameRules().getBoolean(ALLIANCE_SYSTEM_RULE),
+					() -> world.getGameRules().getBoolean(EVOLUTION_SYSTEM_RULE),
+					() -> world.getGameRules().getInt(RANGE_MULTIPLIER_RULE) / 100.0
 				));
 			}
 		});

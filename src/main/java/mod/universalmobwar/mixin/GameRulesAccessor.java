@@ -16,6 +16,14 @@ public class GameRulesAccessor {
 		}
 	}
 	
+	@Mixin(GameRules.IntRule.class)
+	public interface IntRuleInvoker {
+		@Invoker("create")
+		static GameRules.Type<GameRules.IntRule> invokeCreate(int initialValue, BiConsumer<MinecraftServer, GameRules.IntRule> changeCallback) {
+			throw new AssertionError();
+		}
+	}
+	
 	@Mixin(GameRules.class)
 	public interface GameRulesInvoker {
 		@Invoker("register")
