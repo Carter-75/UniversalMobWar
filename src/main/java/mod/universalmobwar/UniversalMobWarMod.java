@@ -2,6 +2,7 @@ package mod.universalmobwar;
 
 import mod.universalmobwar.command.MobWarCommand;
 import mod.universalmobwar.config.ModConfig;
+import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
@@ -9,11 +10,19 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.SpawnEggItem;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +31,23 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	public static final String MODID = "universalmobwar";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
+
+	// Mob Warlord Boss Entity
+	public static final EntityType<MobWarlordEntity> MOB_WARLORD = Registry.register(
+		Registries.ENTITY_TYPE,
+		Identifier.of(MODID, "mob_warlord"),
+		EntityType.Builder.create(MobWarlordEntity::new, SpawnGroup.MONSTER)
+			.dimensions(1.2f, 3.6f) // 3x the size of a witch
+			.maxTrackingRange(64)
+			.build()
+	);
+	
+	// Mob Warlord Spawn Egg (same colors as witch egg)
+	public static final Item MOB_WARLORD_SPAWN_EGG = Registry.register(
+		Registries.ITEM,
+		Identifier.of(MODID, "mob_warlord_spawn_egg"),
+		new SpawnEggItem(MOB_WARLORD, 0x334E4C, 0x51A03E, new Item.Settings())
+	);
 
 	// Gamerule: true = mod is active (default). false = mod is completely disabled.
 	public static GameRules.Key<GameRules.BooleanRule> MOD_ENABLED_RULE;
@@ -48,6 +74,9 @@ public class UniversalMobWarMod implements ModInitializer {
 	public void onInitialize() {
 		// Load config
 		ModConfig config = ModConfig.getInstance();
+		
+		// Register Mob Warlord attributes
+		FabricDefaultAttributeRegistry.register(MOB_WARLORD, MobWarlordEntity.createMobWarlordAttributes());
 		
 		// Register gamerule to enable/disable the entire mod (default: ON)
 		MOD_ENABLED_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(

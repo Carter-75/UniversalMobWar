@@ -10,7 +10,9 @@
 		"MobEntityAccessor",
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
-		"NeutralMobBehaviorMixin"
+		"NeutralMobBehaviorMixin",
+		"WarlordMinionProtectionMixin",
+		"WarlordDamageProtectionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

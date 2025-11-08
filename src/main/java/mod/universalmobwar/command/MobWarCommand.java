@@ -6,8 +6,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
 import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -79,6 +77,20 @@ public class MobWarCommand {
                 .styled(style -> style.withColor(Formatting.GREEN))
                 .append(Text.literal(" - Reload config file (OP)")
                     .styled(style -> style.withColor(Formatting.GRAY))), false);
+        
+        source.sendFeedback(() -> Text.literal(""), false);
+        source.sendFeedback(() -> 
+            Text.literal("Boss:").styled(style -> style.withColor(Formatting.DARK_PURPLE).withBold(true)), false);
+        
+        source.sendFeedback(() -> 
+            Text.literal("  • /summon universalmobwar:mob_warlord")
+                .styled(style -> style.withColor(Formatting.LIGHT_PURPLE))
+                .append(Text.literal(" - Summon the Mob Warlord boss")
+                    .styled(style -> style.withColor(Formatting.GRAY))), false);
+        
+        source.sendFeedback(() -> 
+            Text.literal("  • Or use Mob Warlord Spawn Egg")
+                .styled(style -> style.withColor(Formatting.LIGHT_PURPLE)), false);
         
         source.sendFeedback(() -> Text.literal(""), false);
         source.sendFeedback(() -> 

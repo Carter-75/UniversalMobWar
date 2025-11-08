@@ -1,0 +1,103 @@
+package mod.universalmobwar.mixin;
+
+import mod.universalmobwar.entity.MobWarlordEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.nbt.NbtCompound;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.UUID;
+
+/**
+ * Prevents warlord minions from attacking or damaging their master or fellow minions.
+ */
+@Mixin(MobEntity.class)
+public abstract class WarlordMinionProtectionMixin {
+    
+    @Inject(method = "setTarget", at = @At("HEAD"), cancellable = true)
+    private void universalmobwar$preventMinionInfighting(LivingEntity target, CallbackInfo ci) {
+        MobEntity self = (MobEntity)(Object)this;
+        
+        if (target == null) return;
+        
+        // Check if this mob is a minion
+        NbtCompound selfNbt = new NbtCompound();
+        self.writeNbt(selfNbt);
+        
+        if (!selfNbt.containsUuid("WarlordMaster")) return;
+        
+        UUID masterUuid = selfNbt.getUuid("WarlordMaster");
+        
+        // Don't target the warlord master
+        if (target instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
+            ci.cancel();
+            return;
+        }
+        
+        // Don't target fellow minions
+        if (target instanceof MobEntity targetMob) {
+            NbtCompound targetNbt = new NbtCompound();
+            targetMob.writeNbt(targetNbt);
+            
+            if (targetNbt.containsUuid("WarlordMaster")) {
+                UUID targetMasterUuid = targetNbt.getUuid("WarlordMaster");
+                
+                // Same master = fellow minion
+                if (targetMasterUuid.equals(masterUuid)) {
+                    ci.cancel();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Prevents minions from damaging their warlord or fellow minions.
+ */
+@Mixin(LivingEntity.class)
+abstract class WarlordDamageProtectionMixin {
+    
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    private void universalmobwar$preventMinionDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        LivingEntity victim = (LivingEntity)(Object)this;
+        Entity attacker = source.getAttacker();
+        
+        if (attacker == null || !(attacker instanceof MobEntity attackerMob)) return;
+        
+        // Check if attacker is a minion
+        NbtCompound attackerNbt = new NbtCompound();
+        attackerMob.writeNbt(attackerNbt);
+        
+        if (!attackerNbt.containsUuid("WarlordMaster")) return;
+        
+        UUID masterUuid = attackerNbt.getUuid("WarlordMaster");
+        
+        // Prevent damage to warlord master
+        if (victim instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
+            cir.setReturnValue(false);
+            return;
+        }
+        
+        // Prevent damage to fellow minions
+        if (victim instanceof MobEntity victimMob) {
+            NbtCompound victimNbt = new NbtCompound();
+            victimMob.writeNbt(victimNbt);
+            
+            if (victimNbt.containsUuid("WarlordMaster")) {
+                UUID victimMasterUuid = victimNbt.getUuid("WarlordMaster");
+                
+                if (victimMasterUuid.equals(masterUuid)) {
+                    cir.setReturnValue(false);
+                }
+            }
+        }
+    }
+}
+
