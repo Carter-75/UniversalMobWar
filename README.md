@@ -9,6 +9,7 @@
 ### Core Features:
 - **Mob Evolution System** - Mobs gain levels, stats, weapons, and armor from kills
 - **Alliance System** - Mobs fighting the same enemy become temporary allies
+- **MOB WARLORD BOSS** - Epic boss that commands an army of 20 mobs!
 - **Complete Customization** - 7+ gamerules to fine-tune the chaos
 - **Player Immunity Option** - Watch the war unfold without being targeted
 - **Range Control** - Scale detection range from 0.01x to 100x
@@ -60,12 +61,35 @@
 - Control visual settings
 - Auto-generates on first run
 
+### 👑 MOB WARLORD BOSS
+**The ultimate challenge!** A giant witch that summons and commands armies.
+
+**Boss Stats:**
+- **1500 HP** (750 hearts!)
+- **Normal Speed** (0.35) - Can chase you down!
+- **20 Minion Army** - Zombies, Skeletons, Creepers, and more
+- **Dual Combat** - Melee + Potion throws
+- **500 XP Drop** - Endgame rewards
+
+**Special Rules:**
+- Minions **never attack the Warlord** (total loyalty)
+- Minions **never attack each other** (perfect coordination)
+- Works regardless of gamerules (always cooperative)
+- All minions die when Warlord is defeated
+
+**How to Summon:**
+```
+/summon universalmobwar:mob_warlord
+```
+Or use the **Mob Warlord Spawn Egg** (witch egg colors)!
+
 ---
 
 ## 📋 Key Features
 
 ✅ **Evolution System** - Mobs level up and get stronger  
 ✅ **Alliance System** - Temporary teamwork based on shared targets  
+✅ **Mob Warlord Boss** - Epic endgame boss with 750 hearts and 20 minions  
 ✅ **Works with ALL mobs** (vanilla, modded, custom)  
 ✅ **7 Customizable Gamerules** - Control every aspect  
 ✅ **Player Immunity Toggle** - Spectate without danger  
@@ -272,6 +296,14 @@ Automatically ignores:
 /mobwar reload         # Reload configuration file
 ```
 
+### Boss Commands
+
+```bash
+/summon universalmobwar:mob_warlord    # Summon the Mob Warlord boss
+```
+
+Or use the **Mob Warlord Spawn Egg** from the creative inventory!
+
 ---
 
 ## 🔧 Configuration File
@@ -447,6 +479,8 @@ universal-mob-war/
 │     │  │  └─ ModConfig.java                # Config system
 │     │  ├─ data/
 │     │  │  └─ MobWarData.java               # Mob evolution data
+│     │  ├─ entity/
+│     │  │  └─ MobWarlordEntity.java         # Boss entity (1500 HP, 20 minions!)
 │     │  ├─ goal/
 │     │  │  └─ UniversalTargetGoal.java      # Enhanced targeting AI
 │     │  ├─ system/
@@ -461,7 +495,9 @@ universal-mob-war/
 │     │     ├─ MobEntityAccessor.java        # Goal selector access
 │     │     ├─ MobRevengeBlockerMixin.java   # Same-species blocking
 │     │     ├─ MobDeathTrackerMixin.java     # Kill tracking
-│     │     └─ NeutralMobBehaviorMixin.java  # Neutral mob control
+│     │     ├─ NeutralMobBehaviorMixin.java  # Neutral mob control
+│     │     ├─ WarlordMinionProtectionMixin.java  # Boss minion protection
+│     │     └─ WarlordDamageProtectionMixin.java  # Boss damage prevention
 │     └─ resources/
 │        ├─ fabric.mod.json
 │        ├─ universalmobwar.mixins.json
@@ -481,6 +517,8 @@ universal-mob-war/
 ### System Details:
 - Evolution data stored in entity NBT
 - Alliances tracked with UUID maps and timestamps
+- Boss uses custom entity with spawn egg registration
+- Minion protection via dual mixins (targeting + damage)
 - Gamerules use Fabric's game rule system
 - Commands registered via Fabric Command API v2
 - Configuration uses JSON with Gson
