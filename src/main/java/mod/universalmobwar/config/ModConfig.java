@@ -31,9 +31,12 @@ public class ModConfig {
     public int killsPerLevel = 3;
     public boolean giveEquipmentToMobs = true;
     
-    // Alliance system settings
-    public int allianceDurationTicks = 1200; // 60 seconds
+    // Alliance system settings (two-tier system)
+    public int allianceDurationTicks = 100; // 5 seconds (weak alliances)
+    public int sameSpeciesAllianceDurationTicks = 400; // 20 seconds (strong alliances)
     public double allianceRange = 16.0;
+    public double allianceBreakChance = 0.3; // 30% chance (weak alliances)
+    public double sameSpeciesAllianceBreakChance = 0.05; // 5% chance (strong alliances)
     
     // Mob exclusions (entity type IDs)
     public List<String> excludedMobs = new ArrayList<>();

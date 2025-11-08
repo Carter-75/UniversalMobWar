@@ -24,17 +24,17 @@ public class MobWarVisuals {
         }
         
         // Format: [Lv.5] Zombie ⚔
-        Text levelText = Text.literal("[Lv." + level + "] ")
+        net.minecraft.text.MutableText levelText = Text.literal("[Lv." + level + "] ")
             .styled(style -> style.withColor(getLevelColor(level)).withBold(true));
         
-        Text nameText = mob.getDisplayName().copy();
+        levelText.append(mob.getDisplayName());
         
         // Add weapon indicator if mob has weapon
         if (!mob.getMainHandStack().isEmpty()) {
-            nameText.append(Text.literal(" ⚔").styled(style -> style.withColor(Formatting.GOLD)));
+            levelText.append(Text.literal(" ⚔").styled(style -> style.withColor(Formatting.GOLD)));
         }
         
-        return levelText.append(nameText);
+        return levelText;
     }
     
     /**

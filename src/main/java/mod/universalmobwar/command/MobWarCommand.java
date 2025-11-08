@@ -195,19 +195,18 @@ public class MobWarCommand {
         ServerCommandSource source = context.getSource();
         ServerWorld world = source.getWorld();
         
-        List<MobEntity> allMobs = world.getEntitiesByClass(
-            MobEntity.class,
-            world.getBoundingBox(),
-            mob -> true
-        );
-        
-        for (MobEntity mob : allMobs) {
-            mob.setTarget(null);
+        // Get all mob entities in the world
+        int count = 0;
+        for (net.minecraft.entity.Entity entity : world.iterateEntities()) {
+            if (entity instanceof MobEntity mob) {
+                mob.setTarget(null);
+                count++;
+            }
         }
         
-        int count = allMobs.size();
+        int finalCount = count;
         source.sendFeedback(() -> 
-            Text.literal("Reset targets for " + count + " mobs.")
+            Text.literal("Reset targets for " + finalCount + " mobs.")
                 .styled(style -> style.withColor(Formatting.GREEN)), true);
         
         return count;

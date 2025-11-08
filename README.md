@@ -29,12 +29,23 @@
 - **Automatic Equipment**: High-level mobs get swords and armor (wood → iron → diamond → netherite!)
 - Max level: 100
 
-### Alliance System
-- Mobs attacking the same target become allies
-- Allies help defend each other
-- Mobs prioritize continuing their current fight
-- Alliances expire after 60 seconds
-- **Creative Mode Safe**: No alliances form when creative players are involved
+### Alliance System (Two-Tier Bonding)
+**Strong Alliances (Same Species):**
+- Zombies trust other zombies, skeletons trust other skeletons, etc.
+- Only when same-species combat is DISABLED (default mode)
+- 95% chance to form alliance, 20% chance to ignore help
+- Duration: 20 seconds, Range: 80%
+- Will help allies even with different targets
+
+**Weak Alliances (Different Species):**
+- Cross-species alliances are temporary and unreliable
+- 30% chance to refuse, 70% chance to ignore help
+- Duration: 5 seconds, Range: 50%
+- Only helps when fighting the exact same target
+
+**Chaos Mode Behavior:**
+- When same-species combat is ENABLED, all alliances are weak
+- No species loyalty when betrayal is possible
 
 ### New Commands
 - `/mobwar help` - Show all commands
@@ -204,22 +215,43 @@ Automatically ignores:
 ### Alliance System
 
 **How Alliances Form:**
-- Mobs attacking the **same target** become allies
+- Mobs attacking the **same target** MAY become allies (not guaranteed)
+- Alliance range: 16 blocks
 - Alliances update every 2 seconds during combat
-- Alliance range: 32 blocks (default)
+- Two tiers: **Strong** (same species) and **Weak** (different species)
 
-**Alliance Benefits:**
-- Mobs prioritize helping allied mobs under attack
-- Prevents friendly fire targeting
-- Coordinated attacks on common enemies
+**Strong Alliances (Same Species):**
+- **Requirements**: Both mobs must be same type AND same-species combat must be DISABLED
+- **Formation**: 95% success rate (only 5% refuse)
+- **Duration**: 20 seconds maximum
+- **Help Behavior**: 80% chance to help, 80% search range
+- **Coordination**: Will help allies even with different targets
+- **Examples**: Zombie + Zombie, Skeleton + Skeleton, Creeper + Creeper
+
+**Weak Alliances (Different Species):**
+- **Formation**: 70% success rate (30% refuse, plus 30% per-ally refuse)
+- **Duration**: 5 seconds maximum
+- **Help Behavior**: 30% chance to help (70% ignore), 50% search range
+- **Coordination**: Only helps when both fighting the exact same target
+- **Examples**: Zombie + Skeleton, Creeper + Spider, any cross-species
+
+**Chaos Mode (Same-Species Combat Enabled):**
+- When `/gamerule universalMobWarIgnoreSame false`
+- ALL alliances become weak (including same-species)
+- No special bonding when species can betray each other
+- Same stats as weak alliances above
 
 **Alliance Expiration:**
-- Alliances last 60 seconds after last common target
+- Alliances break **IMMEDIATELY** when target dies
+- Alliances break **IMMEDIATELY** when target changes
+- Time-based expiration: 5s (weak) or 20s (strong)
 - Automatically cleaned up to prevent memory leaks
 
 **Combat Priority System:**
-1. Continue attacking current target (if valid and recently engaged)
-2. Help allied mob being attacked (within range)
+1. Continue attacking current target (HIGHEST priority - always)
+2. Help allied mob (varies by alliance strength):
+   - Strong: 80% chance, wider range, any target
+   - Weak: 30% chance, narrow range, same target only
 3. Find nearest valid target
 
 ---
@@ -264,8 +296,11 @@ Located at: `config/universalmobwar.json`
   "killsPerLevel": 3,
   "giveEquipmentToMobs": true,
   
-  "allianceDurationTicks": 1200,
+  "allianceDurationTicks": 100,
+  "sameSpeciesAllianceDurationTicks": 400,
   "allianceRange": 16.0,
+  "allianceBreakChance": 0.3,
+  "sameSpeciesAllianceBreakChance": 0.05,
   
   "excludedMobs": [],
   
@@ -282,7 +317,10 @@ Located at: `config/universalmobwar.json`
 - **maxLevel**: Maximum mob level (default: 100)
 - **killsPerLevel**: Kills needed per level (default: 3)
 - **giveEquipmentToMobs**: Auto-equip high-level mobs (default: true)
-- **allianceDurationTicks**: How long alliances last (default: 1200 = 60 seconds)
+- **allianceDurationTicks**: Weak alliance duration (default: 100 = 5 seconds)
+- **sameSpeciesAllianceDurationTicks**: Strong alliance duration (default: 400 = 20 seconds)
+- **allianceBreakChance**: Weak alliance refuse chance (default: 0.3 = 30%)
+- **sameSpeciesAllianceBreakChance**: Strong alliance refuse chance (default: 0.05 = 5%)
 - **Visual settings**: Control spectator mode enhancements
 
 ---
@@ -294,8 +332,11 @@ Located at: `config/universalmobwar.json`
 - Zombies attack skeletons, creepers, cows, **YOU**, etc.
 - A zombie kills a cow → gains 1 kill point
 - After 3 kills → zombie reaches Level 1 (gains +0.5 hearts, +0.1 damage, etc.)
-- Two zombies attack the same skeleton → they become allies for 60 seconds
-- The zombies will help defend each other against threats
+- **Two zombies attack same skeleton** → STRONG alliance (95% success, 20 sec duration)
+  - They trust each other and actively coordinate attacks
+- **Zombie + Skeleton attack same creeper** → weak alliance (70% success, 5 sec duration)
+  - They might cooperate but mostly focus on their own fight
+- Alliances break instantly when target dies or if they switch targets
 - At Level 10+ → zombie gets a wooden sword
 - At Level 50+ → zombie gets diamond sword and diamond armor!
 
@@ -344,13 +385,13 @@ Located at: `config/universalmobwar.json`
 
 ## 🛡️ Creative Mode Protection
 
-**Important**: Creative mode players are fully protected from triggering unintended behavior:
+**Important**: Creative mode players don't trigger evolution progression:
 
 ✅ Mobs killed by creative players **do not** grant evolution XP  
-✅ Alliances **do not form** when targeting creative players  
-✅ Only **Survival mode** interactions count for progression  
+✅ Only **Survival mode** kills count for mob leveling  
+✅ Alliances form normally regardless of player mode
 
-This prevents accidental progression manipulation during building or testing.
+This prevents accidental evolution manipulation during building or testing.
 
 ---
 

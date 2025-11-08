@@ -9,8 +9,7 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-
-import java.util.UUID;
+import net.minecraft.util.Identifier;
 
 /**
  * Handles mob evolution and power scaling based on kills.
@@ -18,11 +17,11 @@ import java.util.UUID;
  */
 public class EvolutionSystem {
     
-    private static final UUID HEALTH_MODIFIER_UUID = UUID.fromString("8e5a3f1c-7d2b-4e9a-9f3c-1a2b3c4d5e6f");
-    private static final UUID DAMAGE_MODIFIER_UUID = UUID.fromString("7d4c2b1a-6e3f-4c8d-9a2b-1f3e5d7c9b1a");
-    private static final UUID SPEED_MODIFIER_UUID = UUID.fromString("6c3a1f9e-5d2b-4a7c-8e1f-2d4c6a8b0d2e");
-    private static final UUID ARMOR_MODIFIER_UUID = UUID.fromString("5b2c9f7e-4a1d-3c6b-7f9e-1c3d5b7a9c1b");
-    private static final UUID KNOCKBACK_MODIFIER_UUID = UUID.fromString("4a1e8d6c-3b9f-2d5a-6c8e-9b1d3f5a7c9d");
+    private static final Identifier HEALTH_MODIFIER_ID = Identifier.of("universalmobwar", "health_bonus");
+    private static final Identifier DAMAGE_MODIFIER_ID = Identifier.of("universalmobwar", "damage_bonus");
+    private static final Identifier SPEED_MODIFIER_ID = Identifier.of("universalmobwar", "speed_bonus");
+    private static final Identifier ARMOR_MODIFIER_ID = Identifier.of("universalmobwar", "armor_bonus");
+    private static final Identifier KNOCKBACK_MODIFIER_ID = Identifier.of("universalmobwar", "knockback_bonus");
     
     /**
      * Called when a mob kills another mob. Increases kill count and levels up if needed.
@@ -52,11 +51,10 @@ public class EvolutionSystem {
         // Health bonus
         EntityAttributeInstance health = mob.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH);
         if (health != null) {
-            health.removeModifier(HEALTH_MODIFIER_UUID);
+            health.removeModifier(HEALTH_MODIFIER_ID);
             if (level > 0) {
                 EntityAttributeModifier modifier = new EntityAttributeModifier(
-                    HEALTH_MODIFIER_UUID,
-                    "mob_war_health_bonus",
+                    HEALTH_MODIFIER_ID,
                     data.getHealthBonus(),
                     EntityAttributeModifier.Operation.ADD_VALUE
                 );
@@ -68,11 +66,10 @@ public class EvolutionSystem {
         // Damage bonus
         EntityAttributeInstance damage = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE);
         if (damage != null) {
-            damage.removeModifier(DAMAGE_MODIFIER_UUID);
+            damage.removeModifier(DAMAGE_MODIFIER_ID);
             if (level > 0) {
                 EntityAttributeModifier modifier = new EntityAttributeModifier(
-                    DAMAGE_MODIFIER_UUID,
-                    "mob_war_damage_bonus",
+                    DAMAGE_MODIFIER_ID,
                     data.getDamageBonus(),
                     EntityAttributeModifier.Operation.ADD_VALUE
                 );
@@ -83,11 +80,10 @@ public class EvolutionSystem {
         // Speed bonus
         EntityAttributeInstance speed = mob.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
         if (speed != null) {
-            speed.removeModifier(SPEED_MODIFIER_UUID);
+            speed.removeModifier(SPEED_MODIFIER_ID);
             if (level > 0) {
                 EntityAttributeModifier modifier = new EntityAttributeModifier(
-                    SPEED_MODIFIER_UUID,
-                    "mob_war_speed_bonus",
+                    SPEED_MODIFIER_ID,
                     data.getSpeedBonus(),
                     EntityAttributeModifier.Operation.ADD_VALUE
                 );
@@ -98,11 +94,10 @@ public class EvolutionSystem {
         // Armor bonus
         EntityAttributeInstance armor = mob.getAttributeInstance(EntityAttributes.GENERIC_ARMOR);
         if (armor != null) {
-            armor.removeModifier(ARMOR_MODIFIER_UUID);
+            armor.removeModifier(ARMOR_MODIFIER_ID);
             if (level > 0) {
                 EntityAttributeModifier modifier = new EntityAttributeModifier(
-                    ARMOR_MODIFIER_UUID,
-                    "mob_war_armor_bonus",
+                    ARMOR_MODIFIER_ID,
                     data.getArmorBonus(),
                     EntityAttributeModifier.Operation.ADD_VALUE
                 );
@@ -113,11 +108,10 @@ public class EvolutionSystem {
         // Knockback resistance bonus
         EntityAttributeInstance knockback = mob.getAttributeInstance(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE);
         if (knockback != null) {
-            knockback.removeModifier(KNOCKBACK_MODIFIER_UUID);
+            knockback.removeModifier(KNOCKBACK_MODIFIER_ID);
             if (level > 0) {
                 EntityAttributeModifier modifier = new EntityAttributeModifier(
-                    KNOCKBACK_MODIFIER_UUID,
-                    "mob_war_knockback_bonus",
+                    KNOCKBACK_MODIFIER_ID,
                     data.getKnockbackResistanceBonus(),
                     EntityAttributeModifier.Operation.ADD_VALUE
                 );
