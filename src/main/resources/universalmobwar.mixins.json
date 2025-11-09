@@ -11,6 +11,7 @@
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
 		"NeutralMobBehaviorMixin",
+		"UniversalSummonerTrackingMixin",
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin"
 	],

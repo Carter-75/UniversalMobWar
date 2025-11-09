@@ -2,10 +2,12 @@ package mod.universalmobwar.entity;
 
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.util.SummonerTracker;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.damage.DamageSource;
@@ -74,6 +76,8 @@ public class MobWarlordEntity extends HostileEntity {
             BossBar.Color.PURPLE,
             BossBar.Style.NOTCHED_10
         );
+        // FIX: Start with summon cooldown at 0 so boss summons immediately after initialization
+        this.summonCooldown = 0;
     }
     
     @Override
@@ -94,8 +98,9 @@ public class MobWarlordEntity extends HostileEntity {
         this.goalSelector.add(3, new LookAroundGoal(this));
         
         // Targeting priorities (context-aware based on raid status):
-        // 1. Protect minions - attack anyone who hurts them (HIGHEST PRIORITY)
-        // 2. Revenge - attack anyone who attacks the warlord (except minions - friendly fire forgiven)
+        // 0. Protect minions - attack anyone who hurts them (HIGHEST PRIORITY)
+        // 1. Revenge - attack anyone who attacks the warlord (except minions - friendly fire forgiven)
+        // 2. AGGRESSIVE: Target ANY hostile/neutral mob that's angry at ANYTHING (NEW!)
         // 3. RAID MODE: Villagers (priority 2) → Iron Golems (priority 3) → Players (priority 5)
         // 3. NORMAL MODE: Players (priority 3) → Other mobs (priority 4)
         this.targetSelector.add(0, new ProtectMinionsGoal(this));
@@ -111,12 +116,32 @@ public class MobWarlordEntity extends HostileEntity {
             }
         });
         
-        // RAID-SPECIFIC TARGETING: Prioritize villagers and iron golems
-        this.targetSelector.add(2, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
-        this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
+        // NEW: AGGRESSIVE TARGETING - Target angry neutral mobs (Endermen, Wolves, etc.)
+        this.targetSelector.add(2, new ActiveTargetGoal<>(this, MobEntity.class, 5, true, false,
+            entity -> {
+                if (!(entity instanceof MobEntity mob)) return false;
+                if (isMinionOf(mob)) return false; // Never target own minions
+                
+                // Target neutral mobs that are already angry at something
+                if (entity instanceof Angerable angerable && angerable.getAngryAt() != null) {
+                    return true; // Target angry Endermen, Wolves, etc.
+                }
+                
+                // Target any hostile mob
+                if (entity instanceof HostileEntity) {
+                    return true;
+                }
+                
+                return false;
+            }
+        ));
         
-        // Players - lower priority in raids (5), higher in normal (3)
-        this.targetSelector.add(4, new ActiveTargetGoal<>(this, PlayerEntity.class, 10, true, false, 
+        // RAID-SPECIFIC TARGETING: Prioritize villagers and iron golems
+        this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
+        this.targetSelector.add(4, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
+        
+        // Players - lower priority in raids (6), higher in normal (5)
+        this.targetSelector.add(5, new ActiveTargetGoal<>(this, PlayerEntity.class, 10, true, false, 
             entity -> {
                 // In raids, only target players if they're interfering (attacking villagers/golems/minions)
                 if (isRaidBoss()) {
@@ -127,8 +152,8 @@ public class MobWarlordEntity extends HostileEntity {
             }
         ));
         
-        // Other mobs - avoid raid mobs when in raid
-        this.targetSelector.add(5, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
+        // Other mobs - avoid raid mobs when in raid (lower priority)
+        this.targetSelector.add(6, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
             entity -> {
                 if (!(entity instanceof MobEntity mob)) return false;
                 if (isMinionOf(mob)) return false; // Never target own minions
@@ -139,6 +164,24 @@ public class MobWarlordEntity extends HostileEntity {
                 }
                 
                 return true;
+            }
+        ));
+        
+        // ULTIMATE FALLBACK: Target ANY living entity nearby (except minions/self/other warlords)
+        // This ensures the boss ALWAYS has something to fight
+        this.targetSelector.add(7, new ActiveTargetGoal<>(this, LivingEntity.class, 10, true, false,
+            entity -> {
+                // Don't target ourselves
+                if (entity == this) return false;
+                
+                // Don't target our own minions
+                if (entity instanceof MobEntity mob && isMinionOf(mob)) return false;
+                
+                // Don't target other warlords (modded servers might have multiple)
+                if (entity instanceof MobWarlordEntity) return false;
+                
+                // Target EVERYTHING ELSE within range!
+                return entity.isAlive() && entity.squaredDistanceTo(this) <= 4096.0; // 64 block range
             }
         ));
     }
@@ -275,9 +318,30 @@ public class MobWarlordEntity extends HostileEntity {
                 (healthPercent < 0.5f && currentMinions < 15)
             );
             
+            // REVERTED: Boss should only summon when there's a target (combat situation)
             if (shouldSummon && this.getTarget() != null) {
-                summonMinions(healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1);
+                int toSummon = healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1;
+                UniversalMobWarMod.LOGGER.info("Mob Warlord summoning {} minions (current: {}, health: {}%, target: {})", 
+                    toSummon, currentMinions, (int)(healthPercent * 100), this.getTarget().getName().getString());
+                summonMinions(toSummon);
                 summonCooldown = SUMMON_COOLDOWN;
+            }
+        }
+        
+        // DEBUG: Log if boss has no target but should be looking for one
+        if (this.age % 100 == 0 && this.age > 60) { // Every 5 seconds
+            LivingEntity currentTarget = this.getTarget();
+            if (currentTarget == null && serverWorld != null) {
+                // Count nearby hostile entities
+                List<LivingEntity> nearbyHostiles = serverWorld.getEntitiesByClass(
+                    LivingEntity.class,
+                    this.getBoundingBox().expand(64.0),
+                    entity -> entity != this && entity.isAlive() && 
+                             !(entity instanceof MobWarlordEntity) &&
+                             !(entity instanceof MobEntity mob && isMinionOf(mob))
+                );
+                UniversalMobWarMod.LOGGER.warn("Mob Warlord has NO TARGET! {} potential targets nearby within 64 blocks", 
+                    nearbyHostiles.size());
             }
         }
         
@@ -295,6 +359,26 @@ public class MobWarlordEntity extends HostileEntity {
         // CRITICAL: Periodically validate minion targets (every 2 seconds)
         if (this.age % 40 == 0 && this.age > 60) {
             validateMinionTargets();
+        }
+        
+        // FIX: Make minions copy boss's target every 2 seconds for coordinated attacks
+        if (this.age % 40 == 0 && this.age > 60) {
+            LivingEntity bossTarget = this.getTarget();
+            if (bossTarget != null && bossTarget.isAlive() && serverWorld != null) {
+                for (UUID minionUuid : minionUuids) {
+                    try {
+                        Entity entity = serverWorld.getEntity(minionUuid);
+                        if (entity instanceof MobEntity minion && minion.isAlive()) {
+                            // Only set target if minion doesn't already have one
+                            if (minion.getTarget() == null || !minion.getTarget().isAlive()) {
+                                minion.setTarget(bossTarget);
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Skip problematic minions
+                    }
+                }
+            }
         }
     }
     
@@ -430,8 +514,8 @@ public class MobWarlordEntity extends HostileEntity {
                    mob.isAlive() && 
                    !isMinionOf(mob) &&
                    !(mob instanceof MobWarlordEntity) &&
-                   (mob instanceof HostileEntity || mob instanceof Angerable) && // Only hostile or neutral mobs
-                   !isRaidMob(mob) // Don't recruit raid mobs (they're our allies in raids)
+                   (mob instanceof HostileEntity || mob instanceof Angerable) // Only hostile or neutral mobs
+                   // FIX: Removed raid mob filter - boss should recruit ALL nearby mobs!
         );
         
         // Try to recruit 1-2 mobs
@@ -445,6 +529,9 @@ public class MobWarlordEntity extends HostileEntity {
                 // Add to minion tracking
                 MINION_TO_WARLORD.put(mob.getUuid(), this.getUuid());
                 minionUuids.add(mob.getUuid());
+                
+                // ALSO register with universal summoner tracker
+                SummonerTracker.registerSummoned(mob.getUuid(), this.getUuid());
                 
                 // Make minion persistent
                 mob.setPersistent();
@@ -527,6 +614,9 @@ public class MobWarlordEntity extends HostileEntity {
                     // AFTER spawning, register as minion in static map
                     MINION_TO_WARLORD.put(minion.getUuid(), this.getUuid());
                     minionUuids.add(minion.getUuid());
+                    
+                    // ALSO register with universal summoner tracker
+                    SummonerTracker.registerSummoned(minion.getUuid(), this.getUuid());
                     
                     // Special AI for creepers - make them avoid allies when exploding
                     if (minion instanceof net.minecraft.entity.mob.CreeperEntity creeper) {
@@ -771,8 +861,10 @@ public class MobWarlordEntity extends HostileEntity {
         
         // PRIORITY 0: SELF-HEALING - Boss heals itself when health is below 70%
         float healthPercent = this.getHealth() / this.getMaxHealth();
-        if (healthPercent < 0.7f) {
+        if (healthPercent < 0.7f) { // Changed back to 0.7 - boss should heal more often!
             // Throw a super healing potion at self
+            UniversalMobWarMod.LOGGER.info("Mob Warlord self-healing! Health: {}% ({}/{})", 
+                (int)(healthPercent * 100), (int)this.getHealth(), (int)this.getMaxHealth());
             throwSuperHealingPotion(this);
             attackCooldown = ATTACK_COOLDOWN / 2; // Shorter cooldown for self-healing
             return;

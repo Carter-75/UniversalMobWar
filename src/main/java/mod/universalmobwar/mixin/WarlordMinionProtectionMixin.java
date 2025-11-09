@@ -1,6 +1,7 @@
 package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.entity.MobWarlordEntity;
+import mod.universalmobwar.util.SummonerTracker;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,35 +12,51 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.UUID;
 
 /**
- * Prevents warlord minions from TARGETING their master or fellow minions.
- * NOTE: Minions CAN still damage each other (splash damage, AoE, etc.) but will NEVER retaliate.
- * This ensures friendly fire is possible but minions never intentionally attack each other.
+ * UNIVERSAL summoner-summoned protection system.
+ * Prevents ALL summoned mobs from targeting their summoners.
+ * Works for:
+ * - Warlord minions (can't target warlord or fellow minions)
+ * - Evoker's Vexes (can't target the evoker)
+ * - Illusioner's duplicates (can't target the illusioner)
+ * - Any modded mob that summons others
+ * 
+ * NOTE: Summoned mobs CAN still take splash damage/AoE damage but will NEVER retaliate.
  */
 @Mixin(MobEntity.class)
 public abstract class WarlordMinionProtectionMixin {
     
     @Inject(method = "setTarget", at = @At("HEAD"), cancellable = true)
-    private void universalmobwar$preventMinionTargeting(LivingEntity target, CallbackInfo ci) {
+    private void universalmobwar$preventSummonedTargeting(LivingEntity target, CallbackInfo ci) {
         MobEntity self = (MobEntity)(Object)this;
         
         if (target == null) return;
         
-        // Check if this mob is a minion using the static map
-        UUID masterUuid = MobWarlordEntity.getMasterUuid(self.getUuid());
-        if (masterUuid == null) return; // Not a minion
-        
-        // Don't target the warlord master (no retaliation)
-        if (target instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
-            ci.cancel();
-            return;
+        // === WARLORD MINION PROTECTION ===
+        // Check if this mob is a warlord minion using the static map
+        UUID warlordMasterUuid = MobWarlordEntity.getMasterUuid(self.getUuid());
+        if (warlordMasterUuid != null) {
+            // Don't target the warlord master (no retaliation)
+            if (target instanceof MobWarlordEntity warlord && warlord.getUuid().equals(warlordMasterUuid)) {
+                ci.cancel();
+                return;
+            }
+            
+            // Don't target fellow minions (no infighting, even if hit by splash damage)
+            if (target instanceof MobEntity) {
+                UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(target.getUuid());
+                if (targetMasterUuid != null && targetMasterUuid.equals(warlordMasterUuid)) {
+                    ci.cancel();
+                    return;
+                }
+            }
         }
         
-        // Don't target fellow minions (no infighting, even if hit by splash damage)
-        if (target instanceof MobEntity) {
-            UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(target.getUuid());
-            if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
-                ci.cancel();
-            }
+        // === UNIVERSAL SUMMONER PROTECTION ===
+        // Check if this mob was summoned by ANY mob (Evoker, Illusioner, modded mobs, etc.)
+        UUID summonerUuid = SummonerTracker.getSummoner(self.getUuid());
+        if (summonerUuid != null && target.getUuid().equals(summonerUuid)) {
+            // This summoned mob is trying to target its summoner - prevent it!
+            ci.cancel();
         }
     }
 }
