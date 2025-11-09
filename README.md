@@ -431,9 +431,36 @@ When players join, they see:
 
 ---
 
-## 📄 License
+## 📄 License & Usage Rights
 
-MIT License - Feel free to use in modpacks!
+**Copyright © 2024 Carter. All rights reserved.**
+
+### ✅ You MAY:
+- Use this mod in modpacks
+- Use this mod on servers (public or private)
+- Create videos/content featuring this mod
+
+### ❌ You MAY NOT:
+- Edit, modify, or decompile this mod
+- Claim this mod as your own
+- Redistribute or share the direct download link
+- Redistribute modified versions
+- Remove or alter credits
+
+### 📋 Attribution Requirements:
+If you use this mod in a modpack, server, or content, you **MUST**:
+1. Credit **Carter** as the original creator
+2. Include a link to this GitHub repository
+3. Clearly state that you did not create this mod
+
+**Example Attribution**:
+```
+Universal Mob War by Carter
+GitHub: [Link to this repository]
+Not created by [Your Name/Server Name]
+```
+
+**Violation of these terms may result in removal requests or DMCA takedowns.**
 
 ## 🐛 Bug Reports
 
