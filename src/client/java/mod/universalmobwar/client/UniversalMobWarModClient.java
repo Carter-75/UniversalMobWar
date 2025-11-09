@@ -6,16 +6,16 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
 /**
  * Client-side initialization for Universal Mob War.
- * Registers the custom witch renderer for the Mob Warlord.
+ * Registers the custom witch renderer for the Mob Warlord boss.
  */
 public class UniversalMobWarModClient implements ClientModInitializer {
     
     @Override
     public void onInitializeClient() {
-        // Register custom witch renderer for the boss
+        // Register custom witch renderer for the Mob Warlord
         EntityRendererRegistry.register(UniversalMobWarMod.MOB_WARLORD, MobWarlordRenderer::new);
         
-        UniversalMobWarMod.LOGGER.info("Universal Mob War client initialized - Witch renderer registered!");
+        UniversalMobWarMod.LOGGER.info("Universal Mob War client initialized - Custom witch renderer registered!");
     }
 }
 

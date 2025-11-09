@@ -50,10 +50,12 @@ public class MobWarlordEntity extends HostileEntity {
     private final Set<UUID> minionUuids = new HashSet<>();
     private int summonCooldown = 0;
     private int attackCooldown = 0;
+    private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
     
     private static final int MAX_MINIONS = 20;
     private static final int SUMMON_COOLDOWN = 100; // 5 seconds
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
+    private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
     
     public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -165,9 +167,13 @@ public class MobWarlordEntity extends HostileEntity {
         // Cooldowns
         if (summonCooldown > 0) summonCooldown--;
         if (attackCooldown > 0) attackCooldown--;
+        if (cleanupCooldown > 0) cleanupCooldown--;
         
-        // Clean up dead minions
-        cleanupDeadMinions();
+        // Clean up dead minions (only every 5 seconds to avoid lag with large modpacks)
+        if (cleanupCooldown == 0) {
+            cleanupDeadMinions();
+            cleanupCooldown = CLEANUP_COOLDOWN;
+        }
         
         // Auto-summon when low on minions or low health
         if (summonCooldown == 0) {
@@ -316,24 +322,41 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Cleans up dead or despawned minions.
+     * Only runs every 5 seconds to avoid performance issues with large modpacks.
      */
     private void cleanupDeadMinions() {
         if (this.getWorld() == null || !(this.getWorld() instanceof ServerWorld serverWorld)) return;
-        if (this.age < 2) return; // Skip during initialization
+        if (this.age < 60) return; // Skip during initialization (3 seconds)
         
         try {
-            minionUuids.removeIf(uuid -> {
-                Entity entity = serverWorld.getEntity(uuid);
-                boolean isDead = entity == null || !entity.isAlive();
-                
-                // Clean up from static map if dead
-                if (isDead) {
-                    MINION_TO_WARLORD.remove(uuid);
-                }
-                
-                return isDead;
-            });
+            // Performance optimization: Create a list to avoid concurrent modification
+            List<UUID> toRemove = new ArrayList<>();
             
+            // Limit how many we check at once for large modpacks
+            int checked = 0;
+            int maxChecks = 10; // Check max 10 minions per cleanup cycle
+            
+            for (UUID uuid : minionUuids) {
+                if (checked++ >= maxChecks) break;
+                
+                try {
+                    Entity entity = serverWorld.getEntity(uuid);
+                    boolean isDead = entity == null || !entity.isAlive();
+                    
+                    if (isDead) {
+                        toRemove.add(uuid);
+                        MINION_TO_WARLORD.remove(uuid);
+                    }
+                } catch (Exception e) {
+                    // Skip problematic UUIDs
+                    toRemove.add(uuid); // Remove problematic minions to prevent future errors
+                }
+            }
+            
+            // Remove all dead minions
+            minionUuids.removeAll(toRemove);
+            
+            // Update data tracker safely
             if (this.dataTracker != null) {
                 this.dataTracker.set(MINION_COUNT, minionUuids.size());
             }
@@ -614,12 +637,12 @@ public class MobWarlordEntity extends HostileEntity {
         
         @Override
         public boolean canStart() {
-            // Only check every 10 ticks for performance
+            // Only check every 20 ticks (1 second) for performance with large modpacks
             if (checkCooldown > 0) {
                 checkCooldown--;
                 return false;
             }
-            checkCooldown = 10;
+            checkCooldown = 20;
             
             // Don't override if warlord is already targeting someone attacking it
             if (this.warlord.getAttacker() != null) {
@@ -629,21 +652,32 @@ public class MobWarlordEntity extends HostileEntity {
             // Check if any minions are being attacked
             if (!(this.warlord.getWorld() instanceof ServerWorld serverWorld)) return false;
             
+            // Performance optimization: limit how many minions we check at once
+            int checkedCount = 0;
+            int maxChecks = 5; // Only check 5 minions per check cycle
+            
             for (UUID minionUuid : this.warlord.minionUuids) {
-                Entity entity = serverWorld.getEntity(minionUuid);
-                if (entity instanceof MobEntity minion && minion.isAlive()) {
-                    LivingEntity minionAttacker = minion.getAttacker();
-                    
-                    // Found someone attacking our minion!
-                    if (minionAttacker != null && minionAttacker.isAlive() && minionAttacker != this.warlord) {
-                        // Don't attack other minions
-                        if (minionAttacker instanceof MobEntity && this.warlord.isMinionOf((MobEntity) minionAttacker)) {
-                            continue;
-                        }
+                if (checkedCount++ >= maxChecks) break; // Stop after checking max minions
+                
+                try {
+                    Entity entity = serverWorld.getEntity(minionUuid);
+                    if (entity instanceof MobEntity minion && minion.isAlive()) {
+                        LivingEntity minionAttacker = minion.getAttacker();
                         
-                        this.attacker = minionAttacker;
-                        return true;
+                        // Found someone attacking our minion!
+                        if (minionAttacker != null && minionAttacker.isAlive() && minionAttacker != this.warlord) {
+                            // Don't attack other minions
+                            if (minionAttacker instanceof MobEntity && this.warlord.isMinionOf((MobEntity) minionAttacker)) {
+                                continue;
+                            }
+                            
+                            this.attacker = minionAttacker;
+                            return true;
+                        }
                     }
+                } catch (Exception e) {
+                    // Skip problematic minions
+                    continue;
                 }
             }
             
