@@ -12,7 +12,8 @@
 	"icon": "icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["mod.universalmobwar.UniversalMobWarMod"]
+		"main": ["mod.universalmobwar.UniversalMobWarMod"],
+		"client": ["mod.universalmobwar.client.UniversalMobWarModClient"]
 	},
 	"mixins": [
 		"universalmobwar.mixins.json"
