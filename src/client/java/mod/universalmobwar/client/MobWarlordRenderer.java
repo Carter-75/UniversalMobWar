@@ -16,12 +16,19 @@ public class MobWarlordRenderer extends MobEntityRenderer<MobWarlordEntity, Witc
     private static final Identifier TEXTURE = Identifier.ofVanilla("textures/entity/witch.png");
     
     public MobWarlordRenderer(EntityRendererFactory.Context context) {
-        super(context, new WitchEntityModel<>(context.getPart(EntityModelLayers.WITCH)), 0.5f);
+        super(context, new WitchEntityModel<>(context.getPart(EntityModelLayers.WITCH)), 0.5f * 2.0f); // Shadow radius 2x
     }
     
     @Override
     public Identifier getTexture(MobWarlordEntity entity) {
         return TEXTURE;
+    }
+    
+    @Override
+    protected void scale(MobWarlordEntity entity, net.minecraft.client.util.math.MatrixStack matrices, float amount) {
+        // Scale the model to 2x size
+        matrices.scale(2.0f, 2.0f, 2.0f);
+        super.scale(entity, matrices, amount);
     }
 }
 

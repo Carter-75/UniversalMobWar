@@ -43,20 +43,26 @@ import java.util.*;
 public class MobWarlordEntity extends HostileEntity {
     
     private static final TrackedData<Integer> MINION_COUNT = DataTracker.registerData(MobWarlordEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> IS_RAID_BOSS = DataTracker.registerData(MobWarlordEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     
     // Static map to track which mobs are minions of which warlord (thread-safe)
     private static final Map<UUID, UUID> MINION_TO_WARLORD = new java.util.concurrent.ConcurrentHashMap<>();
+    
+    // Track betrayers - minions that attacked other minions
+    private final Set<UUID> betrayers = new HashSet<>();
     
     private final ServerBossBar bossBar;
     private final Set<UUID> minionUuids = new HashSet<>();
     private int summonCooldown = 0;
     private int attackCooldown = 0;
     private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
+    private int particleCooldown = 0; // Cooldown for particle connections
     
     private static final int MAX_MINIONS = 20;
     private static final int SUMMON_COOLDOWN = 100; // 5 seconds
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
+    private static final int PARTICLE_COOLDOWN = 20; // 1 second - particle connections
     
     public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -121,6 +127,39 @@ public class MobWarlordEntity extends HostileEntity {
     protected void initDataTracker(DataTracker.Builder builder) {
         super.initDataTracker(builder);
         builder.add(MINION_COUNT, 0);
+        builder.add(IS_RAID_BOSS, false);
+    }
+    
+    /**
+     * Marks this warlord as spawned during a raid.
+     */
+    public void setRaidBoss(boolean isRaidBoss) {
+        this.dataTracker.set(IS_RAID_BOSS, isRaidBoss);
+    }
+    
+    /**
+     * Checks if this warlord was spawned during a raid.
+     */
+    public boolean isRaidBoss() {
+        return this.dataTracker.get(IS_RAID_BOSS);
+    }
+    
+    /**
+     * Marks a minion as a betrayer (attacked other minions).
+     */
+    public void markBetrayer(UUID minionUuid) {
+        if (minionUuids.contains(minionUuid)) {
+            betrayers.add(minionUuid);
+            // Remove from minion list so they can be targeted
+            MINION_TO_WARLORD.remove(minionUuid);
+        }
+    }
+    
+    /**
+     * Checks if a minion is a betrayer.
+     */
+    public boolean isBetrayer(UUID minionUuid) {
+        return betrayers.contains(minionUuid);
     }
     
     @Override
@@ -179,11 +218,18 @@ public class MobWarlordEntity extends HostileEntity {
         if (summonCooldown > 0) summonCooldown--;
         if (attackCooldown > 0) attackCooldown--;
         if (cleanupCooldown > 0) cleanupCooldown--;
+        if (particleCooldown > 0) particleCooldown--;
         
         // Clean up dead minions (only every 5 seconds to avoid lag with large modpacks)
         if (cleanupCooldown == 0) {
             cleanupDeadMinions();
             cleanupCooldown = CLEANUP_COOLDOWN;
+        }
+        
+        // Draw particle connections to minions (every 1 second for visibility)
+        if (particleCooldown == 0) {
+            drawParticleConnections();
+            particleCooldown = PARTICLE_COOLDOWN;
         }
         
         // Auto-summon when low on minions or low health
@@ -217,7 +263,7 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Validates all minion targets and clears invalid ones.
-     * This ensures minions never target each other or the warlord.
+     * Also detects betrayal (minions attacking other minions).
      */
     private void validateMinionTargets() {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
@@ -236,19 +282,94 @@ public class MobWarlordEntity extends HostileEntity {
                             invalidTarget = true;
                         }
                         
-                        // Check if targeting another minion (INVALID)
+                        // Check if targeting another minion (BETRAYAL DETECTION)
                         if (target instanceof MobEntity targetMob) {
                             UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
                             if (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid())) {
-                                invalidTarget = true;
+                                // BETRAYAL! Mark this minion as traitor
+                                markBetrayer(minionUuid);
+                                invalidTarget = false; // Allow targeting - they're now an enemy
+                                
+                                // Send message to nearby players
+                                serverWorld.getPlayers().forEach(player -> {
+                                    if (player.squaredDistanceTo(minion) <= 1024) { // 32 block range
+                                        player.sendMessage(
+                                            Text.literal("⚔ A minion has betrayed the Warlord! ⚔")
+                                                .styled(style -> style.withColor(Formatting.RED).withBold(true)),
+                                            true // Action bar
+                                        );
+                                    }
+                                });
                             }
                         }
                         
-                        // Clear invalid target
+                        // Clear invalid target (but not betrayers - they can fight)
                         if (invalidTarget) {
                             minion.setTarget(null);
                         }
                     }
+                }
+            }
+        } catch (Exception e) {
+            // Silently handle errors
+        }
+    }
+    
+    /**
+     * Draws particle connections from the warlord to all minions.
+     * Shows purple/dark purple lines so players can see who is allied.
+     */
+    private void drawParticleConnections() {
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        if (this.age < 60) return; // Wait for full initialization
+        
+        try {
+            Vec3d bossPos = this.getPos().add(0, this.getHeight() / 2, 0); // Center of boss
+            
+            // Limit particle draws for performance (max 10 per cycle)
+            int drawnCount = 0;
+            int maxDraws = 10;
+            
+            for (UUID minionUuid : minionUuids) {
+                if (drawnCount++ >= maxDraws) break;
+                
+                try {
+                    Entity entity = serverWorld.getEntity(minionUuid);
+                    if (entity instanceof MobEntity minion && minion.isAlive()) {
+                        Vec3d minionPos = minion.getPos().add(0, minion.getHeight() / 2, 0);
+                        
+                        // Check if betrayer - different color
+                        boolean isBetrayer = betrayers.contains(minionUuid);
+                        
+                        // Draw particle line from boss to minion
+                        Vec3d direction = minionPos.subtract(bossPos);
+                        double distance = direction.length();
+                        Vec3d step = direction.normalize().multiply(0.5); // Particle every 0.5 blocks
+                        
+                        int particleCount = Math.min((int)(distance / 0.5), 20); // Max 20 particles per connection
+                        for (int i = 0; i < particleCount; i++) {
+                            Vec3d particlePos = bossPos.add(step.multiply(i));
+                            
+                            // Choose particle type based on status
+                            if (isBetrayer) {
+                                // RED particles for betrayers
+                                serverWorld.spawnParticles(
+                                    ParticleTypes.ANGRY_VILLAGER,
+                                    particlePos.x, particlePos.y, particlePos.z,
+                                    1, 0, 0, 0, 0
+                                );
+                            } else {
+                                // PURPLE particles for loyal minions
+                                serverWorld.spawnParticles(
+                                    ParticleTypes.PORTAL,
+                                    particlePos.x, particlePos.y, particlePos.z,
+                                    1, 0, 0, 0, 0
+                                );
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip problematic minions
                 }
             }
         } catch (Exception e) {
@@ -805,6 +926,18 @@ public class MobWarlordEntity extends HostileEntity {
             minionArray[i++] = uuid.getLeastSignificantBits();
         }
         nbt.putLongArray("Minions", minionArray);
+        
+        // Save betrayers
+        long[] betrayerArray = new long[betrayers.size() * 2];
+        int j = 0;
+        for (UUID uuid : betrayers) {
+            betrayerArray[j++] = uuid.getMostSignificantBits();
+            betrayerArray[j++] = uuid.getLeastSignificantBits();
+        }
+        nbt.putLongArray("Betrayers", betrayerArray);
+        
+        // Save raid status
+        nbt.putBoolean("IsRaidBoss", this.isRaidBoss());
     }
     
     @Override
@@ -818,6 +951,21 @@ public class MobWarlordEntity extends HostileEntity {
                 UUID uuid = new UUID(minionArray[i], minionArray[i + 1]);
                 minionUuids.add(uuid);
             }
+        }
+        
+        // Load betrayers
+        if (nbt.contains("Betrayers")) {
+            long[] betrayerArray = nbt.getLongArray("Betrayers");
+            betrayers.clear();
+            for (int i = 0; i < betrayerArray.length; i += 2) {
+                UUID uuid = new UUID(betrayerArray[i], betrayerArray[i + 1]);
+                betrayers.add(uuid);
+            }
+        }
+        
+        // Load raid status
+        if (nbt.contains("IsRaidBoss")) {
+            this.setRaidBoss(nbt.getBoolean("IsRaidBoss"));
         }
     }
     
