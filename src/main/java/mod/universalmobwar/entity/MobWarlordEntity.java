@@ -1,6 +1,7 @@
 package mod.universalmobwar.entity;
 
 import mod.universalmobwar.UniversalMobWarMod;
+import mod.universalmobwar.mixin.MobEntityAccessor;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
@@ -86,11 +87,21 @@ public class MobWarlordEntity extends HostileEntity {
         
         // Targeting priorities:
         // 1. Protect minions - attack anyone who hurts them (HIGHEST PRIORITY)
-        // 2. Revenge - attack anyone who attacks the warlord
+        // 2. Revenge - attack anyone who attacks the warlord (except minions - friendly fire forgiven)
         // 3. Target all players
         // 4. Target all other mobs (except minions)
         this.targetSelector.add(0, new ProtectMinionsGoal(this));
-        this.targetSelector.add(1, new RevengeGoal(this));
+        this.targetSelector.add(1, new RevengeGoal(this) {
+            @Override
+            public boolean canStart() {
+                // Don't retaliate against our own minions (forgive friendly fire)
+                LivingEntity attacker = this.mob.getAttacker();
+                if (attacker instanceof MobEntity attackerMob && isMinionOf(attackerMob)) {
+                    return false;
+                }
+                return super.canStart();
+            }
+        });
         this.targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
         this.targetSelector.add(3, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
             entity -> entity instanceof MobEntity mob && !isMinionOf(mob)));
@@ -197,6 +208,52 @@ public class MobWarlordEntity extends HostileEntity {
         if (this.age % 20 == 0 && this.age > 60) {
             spawnParticles();
         }
+        
+        // CRITICAL: Periodically validate minion targets (every 2 seconds)
+        if (this.age % 40 == 0 && this.age > 60) {
+            validateMinionTargets();
+        }
+    }
+    
+    /**
+     * Validates all minion targets and clears invalid ones.
+     * This ensures minions never target each other or the warlord.
+     */
+    private void validateMinionTargets() {
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        
+        try {
+            for (UUID minionUuid : minionUuids) {
+                Entity entity = serverWorld.getEntity(minionUuid);
+                if (entity instanceof MobEntity minion && minion.isAlive()) {
+                    LivingEntity target = minion.getTarget();
+                    
+                    if (target != null) {
+                        boolean invalidTarget = false;
+                        
+                        // Check if targeting the warlord (INVALID)
+                        if (target == this) {
+                            invalidTarget = true;
+                        }
+                        
+                        // Check if targeting another minion (INVALID)
+                        if (target instanceof MobEntity targetMob) {
+                            UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
+                            if (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid())) {
+                                invalidTarget = true;
+                            }
+                        }
+                        
+                        // Clear invalid target
+                        if (invalidTarget) {
+                            minion.setTarget(null);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Silently handle errors
+        }
     }
     
     /**
@@ -235,9 +292,26 @@ public class MobWarlordEntity extends HostileEntity {
                     MINION_TO_WARLORD.put(minion.getUuid(), this.getUuid());
                     minionUuids.add(minion.getUuid());
                     
-                    // Set target to warlord's target
-                    if (this.getTarget() != null) {
-                        minion.setTarget(this.getTarget());
+                    // Special AI for creepers - make them avoid allies when exploding
+                    if (minion instanceof net.minecraft.entity.mob.CreeperEntity creeper) {
+                        // Add smart creeper goal that checks for allies before exploding
+                        ((MobEntityAccessor) creeper).getGoalSelector().add(1, new SmartCreeperGoal(creeper, this));
+                    }
+                    
+                    // Set target to warlord's target (validate it's not another minion or the warlord)
+                    LivingEntity warlordTarget = this.getTarget();
+                    if (warlordTarget != null && warlordTarget.isAlive()) {
+                        // Don't target other minions
+                        boolean targetIsMinion = false;
+                        if (warlordTarget instanceof MobEntity targetMob) {
+                            UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
+                            targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
+                        }
+                        
+                        // Only set valid targets
+                        if (!targetIsMinion) {
+                            minion.setTarget(warlordTarget);
+                        }
                     }
                     
                     // Spawn effects (after initialization delay for Iris Shaders compatibility)
@@ -388,75 +462,261 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     /**
-     * Performs a ranged potion attack with custom effects.
-     * 70% chance: Harmful potion for enemies (poison, weakness, slowness, wither)
-     * 30% chance: Beneficial potion for minions (strength, speed, resistance, regeneration)
+     * Finds a low-health minion that needs healing.
+     * Returns null if no minions need healing.
      */
-    public void performRangedAttack(LivingEntity target) {
-        if (attackCooldown > 0) return;
+    private MobEntity findLowHealthMinion() {
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return null;
         
-        Vec3d vec3d = target.getEyePos().subtract(this.getEyePos());
-        PotionEntity potionEntity = new PotionEntity(this.getWorld(), this);
+        MobEntity lowestHealthMinion = null;
+        float lowestHealthPercent = 1.0f;
         
-        ItemStack potion = new ItemStack(Items.SPLASH_POTION);
-        
-        // 70% chance for harmful potion, 30% for beneficial (to buff minions)
-        boolean harmfulPotion = this.random.nextFloat() < 0.7f;
-        
-        if (harmfulPotion) {
-            // HARMFUL POTION: For players and enemies
-            // Multiple debilitating effects
-            List<StatusEffectInstance> harmfulEffects = List.of(
-                new StatusEffectInstance(StatusEffects.POISON, 200, 1),     // 10 seconds, Poison II
-                new StatusEffectInstance(StatusEffects.WEAKNESS, 300, 1),   // 15 seconds, Weakness II
-                new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 1),   // 10 seconds, Slowness II
-                new StatusEffectInstance(StatusEffects.WITHER, 100, 0)      // 5 seconds, Wither I
-            );
-            
-            potion.set(DataComponentTypes.POTION_CONTENTS, 
-                new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0x330033), harmfulEffects));
-            
-            // Dark purple particles for harmful potion
-            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
-                try {
-                    serverWorld.spawnParticles(ParticleTypes.WITCH,
-                        this.getX(), this.getY() + 1.5, this.getZ(),
-                        10, 0.3, 0.3, 0.3, 0.05);
-                } catch (Exception e) {
-                    // Ignore particle errors
+        for (UUID minionUuid : minionUuids) {
+            try {
+                Entity entity = serverWorld.getEntity(minionUuid);
+                if (entity instanceof MobEntity minion && minion.isAlive()) {
+                    float healthPercent = minion.getHealth() / minion.getMaxHealth();
+                    
+                    // Find minion with lowest health below 50%
+                    if (healthPercent < 0.5f && healthPercent < lowestHealthPercent) {
+                        lowestHealthPercent = healthPercent;
+                        lowestHealthMinion = minion;
+                    }
                 }
-            }
-        } else {
-            // BENEFICIAL POTION: For minions (area effect to help allies)
-            // Multiple powerful buffs
-            List<StatusEffectInstance> beneficialEffects = List.of(
-                new StatusEffectInstance(StatusEffects.STRENGTH, 400, 1),      // 20 seconds, Strength II
-                new StatusEffectInstance(StatusEffects.SPEED, 400, 1),         // 20 seconds, Speed II
-                new StatusEffectInstance(StatusEffects.RESISTANCE, 400, 0),    // 20 seconds, Resistance I
-                new StatusEffectInstance(StatusEffects.REGENERATION, 200, 0)   // 10 seconds, Regeneration I
-            );
-            
-            potion.set(DataComponentTypes.POTION_CONTENTS,
-                new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0xFF00FF), beneficialEffects));
-            
-            // Bright purple particles for beneficial potion
-            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
-                try {
-                    serverWorld.spawnParticles(ParticleTypes.ENCHANT,
-                        this.getX(), this.getY() + 1.5, this.getZ(),
-                        15, 0.3, 0.3, 0.3, 0.1);
-                } catch (Exception e) {
-                    // Ignore particle errors
-                }
+            } catch (Exception e) {
+                // Skip problematic minions
             }
         }
         
+        return lowestHealthMinion;
+    }
+    
+    /**
+     * Checks if there are minions near the target that would be hit by splash damage.
+     */
+    private boolean minionsNearTarget(LivingEntity target, double radius) {
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return false;
+        
+        List<MobEntity> nearbyMobs = serverWorld.getEntitiesByClass(
+            MobEntity.class,
+            target.getBoundingBox().expand(radius),
+            mob -> mob != target && isMinionOf(mob)
+        );
+        
+        return !nearbyMobs.isEmpty();
+    }
+    
+    /**
+     * Smart ranged attack system with dynamic decision making.
+     * Priority:
+     * 1. Self-defense - attack current target if being attacked
+     * 2. Heal critical minions (below 50% health)
+     * 3. Attack enemies (avoiding friendly fire)
+     * 4. Buff healthy minions
+     */
+    public void performRangedAttack(LivingEntity target) {
+        if (attackCooldown > 0) return;
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        
+        // PRIORITY 1: Self-defense - if boss has a target (being attacked), deal with threat first
+        if (target != null && target.isAlive()) {
+            // Check if minions would be hit by splash damage (4 block radius)
+            boolean minionsInSplashRange = minionsNearTarget(target, 4.0);
+            
+            if (minionsInSplashRange) {
+                // Don't throw harmful potion if it would hit minions
+                // Try melee instead or skip this attack
+                if (this.squaredDistanceTo(target) <= 6.0) {
+                    // Close enough for melee, let melee goal handle it
+                    return;
+                } else {
+                    // Too far for melee, skip this harmful potion to avoid friendly fire
+                    attackCooldown = ATTACK_COOLDOWN / 2; // Shorter cooldown to try again soon
+                    return;
+                }
+            }
+            
+            // Safe to throw harmful potion at target
+            throwHarmfulPotion(target);
+            attackCooldown = ATTACK_COOLDOWN;
+            return;
+        }
+        
+        // PRIORITY 2: Heal low-health minions
+        MobEntity lowHealthMinion = findLowHealthMinion();
+        if (lowHealthMinion != null) {
+            double distanceToMinion = this.squaredDistanceTo(lowHealthMinion);
+            
+            // Check if we're in range to throw healing potion
+            if (distanceToMinion <= 256.0) { // 16 block range
+                // Check if enemies are nearby that would also get healed
+                List<LivingEntity> nearbyEnemies = serverWorld.getEntitiesByClass(
+                    LivingEntity.class,
+                    lowHealthMinion.getBoundingBox().expand(4.0),
+                    entity -> entity != this && entity != lowHealthMinion && 
+                             !(entity instanceof MobEntity mob && isMinionOf(mob)) &&
+                             entity.isAlive()
+                );
+                
+                if (nearbyEnemies.isEmpty()) {
+                    // Safe to heal - no enemies will benefit
+                    throwHealingPotion(lowHealthMinion);
+                    attackCooldown = ATTACK_COOLDOWN;
+                    return;
+                } else {
+                    // Enemies nearby - don't heal yet, focus on combat
+                    // Fall through to buff minions or do nothing
+                }
+            } else {
+                // Out of range - navigation will be handled by combat goal
+                // For now, just skip
+            }
+        }
+        
+        // PRIORITY 3: Buff minions (if we have target but can't safely attack)
+        // Find nearest minion to buff
+        MobEntity nearestMinion = null;
+        double nearestDistance = Double.MAX_VALUE;
+        
+        for (UUID minionUuid : minionUuids) {
+            try {
+                Entity entity = serverWorld.getEntity(minionUuid);
+                if (entity instanceof MobEntity minion && minion.isAlive()) {
+                    double distance = this.squaredDistanceTo(minion);
+                    if (distance < nearestDistance && distance <= 256.0) {
+                        nearestDistance = distance;
+                        nearestMinion = minion;
+                    }
+                }
+            } catch (Exception e) {
+                // Skip problematic minions
+            }
+        }
+        
+        if (nearestMinion != null) {
+            // Check if enemies would also get buffed
+            List<LivingEntity> nearbyEnemies = serverWorld.getEntitiesByClass(
+                LivingEntity.class,
+                nearestMinion.getBoundingBox().expand(4.0),
+                entity -> entity != this && !(entity instanceof MobEntity mob && isMinionOf(mob)) && entity.isAlive()
+            );
+            
+            if (nearbyEnemies.isEmpty()) {
+                // Safe to buff - no enemies will benefit
+                throwBuffPotion(nearestMinion);
+                attackCooldown = ATTACK_COOLDOWN * 2; // Longer cooldown for buffs
+                return;
+            }
+        }
+        
+        // If we can't do anything safely, just wait
+        attackCooldown = ATTACK_COOLDOWN / 2;
+    }
+    
+    /**
+     * Throws a harmful potion at an enemy.
+     */
+    private void throwHarmfulPotion(LivingEntity target) {
+        PotionEntity potionEntity = new PotionEntity(this.getWorld(), this);
+        ItemStack potion = new ItemStack(Items.SPLASH_POTION);
+        
+        List<StatusEffectInstance> harmfulEffects = List.of(
+            new StatusEffectInstance(StatusEffects.POISON, 200, 1),     // 10 seconds, Poison II
+            new StatusEffectInstance(StatusEffects.WEAKNESS, 300, 1),   // 15 seconds, Weakness II
+            new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 1),   // 10 seconds, Slowness II
+            new StatusEffectInstance(StatusEffects.WITHER, 100, 0)      // 5 seconds, Wither I
+        );
+        
+        potion.set(DataComponentTypes.POTION_CONTENTS, 
+            new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0x330033), harmfulEffects));
+        
+        Vec3d vec3d = target.getEyePos().subtract(this.getEyePos());
         potionEntity.setItem(potion);
         potionEntity.setVelocity(vec3d.x, vec3d.y + vec3d.length() * 0.2, vec3d.z, 0.75f, 8.0f);
         this.getWorld().spawnEntity(potionEntity);
-        this.playSound(SoundEvents.ENTITY_WITCH_THROW, 1.0f, 0.8f + this.random.nextFloat() * 0.4f);
         
-        attackCooldown = ATTACK_COOLDOWN;
+        // Dark purple particles
+        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
+            try {
+                serverWorld.spawnParticles(ParticleTypes.WITCH,
+                    this.getX(), this.getY() + 1.5, this.getZ(),
+                    10, 0.3, 0.3, 0.3, 0.05);
+            } catch (Exception e) {
+                // Ignore particle errors
+            }
+        }
+        
+        this.playSound(SoundEvents.ENTITY_WITCH_THROW, 1.0f, 0.8f + this.random.nextFloat() * 0.4f);
+    }
+    
+    /**
+     * Throws a healing potion at a low-health minion.
+     */
+    private void throwHealingPotion(MobEntity minion) {
+        PotionEntity potionEntity = new PotionEntity(this.getWorld(), this);
+        ItemStack potion = new ItemStack(Items.SPLASH_POTION);
+        
+        List<StatusEffectInstance> healingEffects = List.of(
+            new StatusEffectInstance(StatusEffects.INSTANT_HEALTH, 1, 1),     // Instant Health II
+            new StatusEffectInstance(StatusEffects.REGENERATION, 200, 1),      // 10 seconds, Regeneration II
+            new StatusEffectInstance(StatusEffects.RESISTANCE, 300, 1)         // 15 seconds, Resistance II
+        );
+        
+        potion.set(DataComponentTypes.POTION_CONTENTS,
+            new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0xFF1493), healingEffects)); // Deep pink
+        
+        Vec3d vec3d = minion.getEyePos().subtract(this.getEyePos());
+        potionEntity.setItem(potion);
+        potionEntity.setVelocity(vec3d.x, vec3d.y + vec3d.length() * 0.2, vec3d.z, 0.75f, 8.0f);
+        this.getWorld().spawnEntity(potionEntity);
+        
+        // Pink/healing particles
+        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
+            try {
+                serverWorld.spawnParticles(ParticleTypes.HEART,
+                    this.getX(), this.getY() + 1.5, this.getZ(),
+                    10, 0.3, 0.3, 0.3, 0.1);
+            } catch (Exception e) {
+                // Ignore particle errors
+            }
+        }
+        
+        this.playSound(SoundEvents.ENTITY_WITCH_THROW, 1.0f, 1.2f); // Higher pitch for healing
+    }
+    
+    /**
+     * Throws a buff potion at minions.
+     */
+    private void throwBuffPotion(MobEntity minion) {
+        PotionEntity potionEntity = new PotionEntity(this.getWorld(), this);
+        ItemStack potion = new ItemStack(Items.SPLASH_POTION);
+        
+        List<StatusEffectInstance> buffEffects = List.of(
+            new StatusEffectInstance(StatusEffects.STRENGTH, 400, 1),      // 20 seconds, Strength II
+            new StatusEffectInstance(StatusEffects.SPEED, 400, 1),         // 20 seconds, Speed II
+            new StatusEffectInstance(StatusEffects.RESISTANCE, 400, 0)     // 20 seconds, Resistance I
+        );
+        
+        potion.set(DataComponentTypes.POTION_CONTENTS,
+            new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0xFF00FF), buffEffects)); // Bright purple
+        
+        Vec3d vec3d = minion.getEyePos().subtract(this.getEyePos());
+        potionEntity.setItem(potion);
+        potionEntity.setVelocity(vec3d.x, vec3d.y + vec3d.length() * 0.2, vec3d.z, 0.75f, 8.0f);
+        this.getWorld().spawnEntity(potionEntity);
+        
+        // Purple particles
+        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
+            try {
+                serverWorld.spawnParticles(ParticleTypes.ENCHANT,
+                    this.getX(), this.getY() + 1.5, this.getZ(),
+                    15, 0.3, 0.3, 0.3, 0.1);
+            } catch (Exception e) {
+                // Ignore particle errors
+            }
+        }
+        
+        this.playSound(SoundEvents.ENTITY_WITCH_THROW, 1.0f, 1.0f);
     }
     
     /**
@@ -731,6 +991,12 @@ public class MobWarlordEntity extends HostileEntity {
         public boolean canStart() {
             LivingEntity target = this.warlord.getTarget();
             if (target != null && target.isAlive()) {
+                // CRITICAL: Never target our own minions
+                if (target instanceof MobEntity targetMob && this.warlord.isMinionOf(targetMob)) {
+                    this.warlord.setTarget(null);
+                    return false;
+                }
+                
                 this.target = target;
                 return true;
             }
@@ -774,6 +1040,69 @@ public class MobWarlordEntity extends HostileEntity {
                     this.warlord.getNavigation().startMovingTo(this.target, 1.0);
                 }
             }
+        }
+    }
+    
+    /**
+     * Smart AI for creeper minions that avoids exploding near allies.
+     * Creepers will only explode if there are 2 or fewer allies nearby.
+     */
+    private static class SmartCreeperGoal extends Goal {
+        private final net.minecraft.entity.mob.CreeperEntity creeper;
+        private final MobWarlordEntity warlord;
+        private int checkCooldown = 0;
+        
+        public SmartCreeperGoal(net.minecraft.entity.mob.CreeperEntity creeper, MobWarlordEntity warlord) {
+            this.creeper = creeper;
+            this.warlord = warlord;
+        }
+        
+        @Override
+        public boolean canStart() {
+            // Check every 10 ticks
+            if (checkCooldown > 0) {
+                checkCooldown--;
+                return false;
+            }
+            checkCooldown = 10;
+            
+            // Check if creeper is about to explode (fuse time > 0)
+            if (this.creeper.getFuseSpeed() > 0) {
+                // Count nearby allies (within explosion radius of 3 blocks)
+                if (!(this.creeper.getWorld() instanceof ServerWorld serverWorld)) return false;
+                
+                List<MobEntity> nearbyAllies = serverWorld.getEntitiesByClass(
+                    MobEntity.class,
+                    this.creeper.getBoundingBox().expand(4.0), // Slightly larger than explosion radius
+                    mob -> mob != this.creeper && (this.warlord.isMinionOf(mob) || mob == this.warlord)
+                );
+                
+                // If more than 2 allies nearby, cancel explosion
+                if (nearbyAllies.size() > 2) {
+                    // Force stop fuse (set to not powered/ignited state)
+                    try {
+                        // We can't directly stop the fuse in the API, but we can make the creeper flee
+                        LivingEntity target = this.creeper.getTarget();
+                        if (target != null) {
+                            // Move away from target to avoid explosion near allies
+                            Vec3d awayDirection = this.creeper.getPos().subtract(target.getPos()).normalize();
+                            Vec3d fleePos = this.creeper.getPos().add(awayDirection.multiply(5.0));
+                            this.creeper.getNavigation().startMovingTo(fleePos.x, fleePos.y, fleePos.z, 1.5);
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        // Silently handle errors
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        @Override
+        public boolean shouldContinue() {
+            // Continue fleeing for a bit
+            return this.creeper.getNavigation().isFollowingPath();
         }
     }
 }

@@ -1,6 +1,7 @@
 package mod.universalmobwar.goal;
 
 import mod.universalmobwar.data.MobWarData;
+import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.system.EvolutionSystem;
 import mod.universalmobwar.util.TargetingUtil;
@@ -11,6 +12,7 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
 
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
@@ -63,6 +65,29 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		if (!(mob.getWorld() instanceof ServerWorld serverWorld)) return false;
 		if (!mob.isAlive()) return false;
 
+		// CRITICAL: Check if this mob is a warlord minion
+		UUID masterUuid = MobWarlordEntity.getMasterUuid(mob.getUuid());
+		if (masterUuid != null) {
+			// This is a minion - clear any invalid targets
+			LivingEntity currentTarget = mob.getTarget();
+			if (currentTarget != null) {
+				// Don't target the warlord master
+				if (currentTarget instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
+					mob.setTarget(null);
+					return false;
+				}
+				
+				// Don't target fellow minions (same master)
+				if (currentTarget instanceof MobEntity targetMob) {
+					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
+					if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
+						mob.setTarget(null);
+						return false;
+					}
+				}
+			}
+		}
+
 		// Priority 1: If we already have a living target that's still valid, stick with it
 		LivingEntity currentTarget = mob.getTarget();
 		if (currentTarget != null && currentTarget.isAlive()) {
@@ -102,6 +127,27 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	@Override
 	public void start() {
 		if (this.candidate != null) {
+			// CRITICAL: Double-check if this mob is a warlord minion before setting target
+			UUID masterUuid = MobWarlordEntity.getMasterUuid(mob.getUuid());
+			if (masterUuid != null) {
+				// This is a minion - validate the candidate
+				
+				// Don't target the warlord master
+				if (this.candidate instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
+					this.candidate = null;
+					return;
+				}
+				
+				// Don't target fellow minions (same master)
+				if (this.candidate instanceof MobEntity targetMob) {
+					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
+					if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
+						this.candidate = null;
+						return;
+					}
+				}
+			}
+			
 			mob.setTarget(this.candidate);
 			
 			// Track target change
