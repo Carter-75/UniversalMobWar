@@ -8,6 +8,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.LocalDifficulty;
+import net.minecraft.world.ServerWorldAccess;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,7 +30,7 @@ public abstract class UniversalSummonerTrackingMixin {
      */
     @Inject(method = "initialize", at = @At("RETURN"))
     private void universalmobwar$trackSummonedMob(
-        ServerWorld world, 
+        ServerWorldAccess world, 
         LocalDifficulty difficulty, 
         SpawnReason spawnReason, 
         EntityData entityData,
@@ -37,13 +38,14 @@ public abstract class UniversalSummonerTrackingMixin {
     ) {
         MobEntity self = (MobEntity)(Object)this;
         
-        // Only track if this mob was summoned
-        if (spawnReason == SpawnReason.MOB_SUMMONED || spawnReason == SpawnReason.EVENT) {
+        // Only track if this mob was summoned AND we're in a ServerWorld
+        if ((spawnReason == SpawnReason.MOB_SUMMONED || spawnReason == SpawnReason.EVENT) 
+            && world instanceof ServerWorld serverWorld) {
             // Try to find the summoner by looking for nearby mobs that could have summoned this one
             // Common summoners: Evoker, Illusioner, Warlord, etc.
             
             // Look for potential summoners within 16 blocks
-            MobEntity closestSummoner = world.getEntitiesByClass(
+            MobEntity closestSummoner = serverWorld.getEntitiesByClass(
                 MobEntity.class,
                 self.getBoundingBox().expand(16.0),
                 entity -> entity != self && 
