@@ -9,6 +9,7 @@ import mod.universalmobwar.mixin.MobEntityAccessor;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.EntityType;
@@ -16,6 +17,7 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroups;
 import net.minecraft.item.SpawnEggItem;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -32,12 +34,12 @@ public class UniversalMobWarMod implements ModInitializer {
 	public static final String MODID = "universalmobwar";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
 
-	// Mob Warlord Boss Entity
+	// Mob Warlord Boss Entity (extends WitchEntity for proper rendering)
 	public static final EntityType<MobWarlordEntity> MOB_WARLORD = Registry.register(
 		Registries.ENTITY_TYPE,
 		Identifier.of(MODID, "mob_warlord"),
 		EntityType.Builder.create(MobWarlordEntity::new, SpawnGroup.MONSTER)
-			.dimensions(1.2f, 3.6f) // 3x the size of a witch
+			.dimensions(0.6f * 2.0f, 1.95f * 2.0f) // 2x witch size (witch is 0.6 x 1.95)
 			.maxTrackingRange(64)
 			.build()
 	);
@@ -77,6 +79,11 @@ public class UniversalMobWarMod implements ModInitializer {
 		
 		// Register Mob Warlord attributes
 		FabricDefaultAttributeRegistry.register(MOB_WARLORD, MobWarlordEntity.createMobWarlordAttributes());
+		
+		// Add spawn egg to creative inventory
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(content -> {
+			content.add(MOB_WARLORD_SPAWN_EGG);
+		});
 		
 		// Register gamerule to enable/disable the entire mod (default: ON)
 		MOD_ENABLED_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(

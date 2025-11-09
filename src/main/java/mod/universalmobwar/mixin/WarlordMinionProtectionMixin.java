@@ -5,7 +5,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.nbt.NbtCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,13 +25,9 @@ public abstract class WarlordMinionProtectionMixin {
         
         if (target == null) return;
         
-        // Check if this mob is a minion
-        NbtCompound selfNbt = new NbtCompound();
-        self.writeNbt(selfNbt);
-        
-        if (!selfNbt.containsUuid("WarlordMaster")) return;
-        
-        UUID masterUuid = selfNbt.getUuid("WarlordMaster");
+        // Check if this mob is a minion using the static map
+        UUID masterUuid = MobWarlordEntity.getMasterUuid(self.getUuid());
+        if (masterUuid == null) return; // Not a minion
         
         // Don't target the warlord master
         if (target instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
@@ -40,19 +35,11 @@ public abstract class WarlordMinionProtectionMixin {
             return;
         }
         
-        // Don't target fellow minions
-        if (target instanceof MobEntity targetMob) {
-            NbtCompound targetNbt = new NbtCompound();
-            targetMob.writeNbt(targetNbt);
-            
-            if (targetNbt.containsUuid("WarlordMaster")) {
-                UUID targetMasterUuid = targetNbt.getUuid("WarlordMaster");
-                
-                // Same master = fellow minion
-                if (targetMasterUuid.equals(masterUuid)) {
-                    ci.cancel();
-                    return;
-                }
+        // Don't target fellow minions (same master)
+        if (target instanceof MobEntity) {
+            UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(target.getUuid());
+            if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
+                ci.cancel();
             }
         }
     }
@@ -71,13 +58,9 @@ abstract class WarlordDamageProtectionMixin {
         
         if (attacker == null || !(attacker instanceof MobEntity attackerMob)) return;
         
-        // Check if attacker is a minion
-        NbtCompound attackerNbt = new NbtCompound();
-        attackerMob.writeNbt(attackerNbt);
-        
-        if (!attackerNbt.containsUuid("WarlordMaster")) return;
-        
-        UUID masterUuid = attackerNbt.getUuid("WarlordMaster");
+        // Check if attacker is a minion using the static map
+        UUID masterUuid = MobWarlordEntity.getMasterUuid(attackerMob.getUuid());
+        if (masterUuid == null) return; // Not a minion
         
         // Prevent damage to warlord master
         if (victim instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
@@ -85,17 +68,11 @@ abstract class WarlordDamageProtectionMixin {
             return;
         }
         
-        // Prevent damage to fellow minions
-        if (victim instanceof MobEntity victimMob) {
-            NbtCompound victimNbt = new NbtCompound();
-            victimMob.writeNbt(victimNbt);
-            
-            if (victimNbt.containsUuid("WarlordMaster")) {
-                UUID victimMasterUuid = victimNbt.getUuid("WarlordMaster");
-                
-                if (victimMasterUuid.equals(masterUuid)) {
-                    cir.setReturnValue(false);
-                }
+        // Prevent damage to fellow minions (same master)
+        if (victim instanceof MobEntity) {
+            UUID victimMasterUuid = MobWarlordEntity.getMasterUuid(victim.getUuid());
+            if (victimMasterUuid != null && victimMasterUuid.equals(masterUuid)) {
+                cir.setReturnValue(false);
             }
         }
     }
