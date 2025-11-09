@@ -1,364 +1,269 @@
-# Universal Mob War v2.0 - Evolution Update (Fabric 1.21.1)
+# Universal Mob War v2.0 - Evolution Update
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
 
-## 🎯 What This Mod Does
+**Transform Minecraft into an evolving battlefield where mobs fight each other, level up, and form alliances!**
 
-**Transform Minecraft into an evolving battlefield!** Every mob attacks different species and gains power from their victories!
+Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (tested with 400+ mods).
 
-### Core Features:
-- **Mob Evolution System** - Mobs gain levels, stats, weapons, and armor from kills
-- **Alliance System** - Mobs fighting the same enemy become temporary allies
-- **MOB WARLORD BOSS** - Epic 2x-sized witch boss with custom potions, 27 summonable mobs, and protective AI!
-- **Complete Customization** - 7+ gamerules to fine-tune the chaos
-- **Player Immunity Option** - Watch the war unfold without being targeted
-- **Range Control** - Scale detection range from 0.01x to 100x
-- **Neutral Mob Control** - Make passive mobs join the fight
+---
 
-**Works on Fabric 1.21.1, singleplayer or multiplayer. Compatible with ALL modded mobs!**
+## 📋 Key Features
+
+### ⚔️ Combat & Evolution
+- **Universal Mob Combat** - All mobs attack different species automatically
+- **Evolution System** - Mobs gain levels, stats, weapons, and armor from kills (max level 100)
+- **Alliance System** - Two-tier system: strong same-species alliances, weak cross-species alliances
+- **Betrayal Detection** - Minions who attack allies are marked as traitors
+
+### 👑 Mob Warlord Boss
+- **Epic Boss Fight** - 2x-sized giant witch with 1500 HP (750 hearts!)
+- **27 Summonable Mobs** - Commands an army of up to 20 minions
+- **Smart AI** - Heals low-health minions, avoids friendly fire, prioritizes threats
+- **3 Potion Types** - Harmful, healing, and buff potions with custom effects
+- **Particle Connections** - Purple lines to loyal minions, red lines to betrayers
+- **Raid Integration** - 1.5% chance to spawn in final raid wave (can be forced with command)
+
+### 🎮 Customization
+- **7 Game Rules** - Fine-tune every aspect of the combat
+- **Range Control** - Scale mob detection from 0.01x to 100x
+- **Player Immunity** - Toggle to spectate without being targeted
+- **Config File** - Persistent settings and mob exclusions
+- **Creative Mode Protection** - Creative players don't trigger evolution/alliances
 
 ---
 
 ## 🆕 What's New in v2.0
 
-### Evolution System
-- Mobs gain **levels** and **kills** that persist
-- +0.5 hearts health per level
-- +10% damage per level  
-- +0.5% speed per level
-- Progressive armor & knockback resistance
-- **Automatic Equipment**: High-level mobs get swords and armor (wood → iron → diamond → netherite!)
-- Max level: 100
+### Mob Warlord Boss
+- Giant witch boss (actually 2x size!) with boss bar
+- Smart combat AI: heals minions, avoids friendly fire, buffs allies
+- Summons 27 different mob types (including Vexes!)
+- Custom potions: harmful (debuffs), healing (Instant Health II + buffs), support (Strength/Speed/Resistance)
+- Particle connections showing loyalty (purple) vs betrayal (red)
+- Smart creeper AI - creepers flee if 3+ allies nearby to avoid friendly fire
+- **Raid spawning** - 1.5% chance on final wave OR force with `/mobwar raid forceboss`
+- **Context-aware targeting**:
+  - **In raids**: Targets villagers → iron golems → players (only if interfering)
+  - **Normal spawn**: Targets players → all other mobs
+  - Avoids attacking raid mobs (pillagers, vindicators, etc.) when spawned in raids
 
-### Alliance System (Two-Tier Bonding)
-**Strong Alliances (Same Species):**
-- Zombies trust other zombies, skeletons trust other skeletons, etc.
-- Only when same-species combat is DISABLED (default mode)
-- 95% chance to form alliance, 20% chance to ignore help
-- Duration: 20 seconds, Range: 80%
+### Betrayal System
+- Automatic detection when minions attack each other
+- Betrayers lose protection - boss and loyal minions can target them
+- Visual indicator: red angry particle connections instead of purple
+- Action bar message: "⚔ A minion has betrayed the Warlord! ⚔"
+- Status persists through saves
+
+### Alliance System (Two-Tier)
+**Strong Alliances (Same Species)**:
+- 95% formation chance, lasts 20 seconds
+- 20% chance to ignore help requests
+- 80% detection range
 - Will help allies even with different targets
+- Only when `universalMobWarIgnoreSame` is true (default)
 
-**Weak Alliances (Different Species):**
-- Cross-species alliances are temporary and unreliable
-- 30% chance to refuse, 70% chance to ignore help
-- Duration: 5 seconds, Range: 50%
-- Only helps when fighting the exact same target
+**Weak Alliances (Different Species)**:
+- 70% formation chance, lasts 5 seconds
+- 70% chance to ignore help requests
+- 50% detection range
+- Only helps when fighting same target
 
-**Chaos Mode Behavior:**
-- When same-species combat is ENABLED, all alliances are weak
-- No species loyalty when betrayal is possible
+**Chaos Mode** (when `universalMobWarIgnoreSame` is false):
+- All alliances become weak, even same-species
+- Total warfare with minimal coordination
 
-### New Commands
-- `/mobwar help` - Show all commands
-- `/mobwar stats` - View nearby mob statistics and levels
-- `/mobwar reset` - Clear all mob targets (OP only)
-- `/mobwar reload` - Reload configuration (OP only)
+### Evolution System
+- Mobs gain XP and levels from kills (max level 100)
+- **Stat Bonuses per Level**:
+  - +0.5 hearts health
+  - +10% attack damage
+  - +0.5% movement speed
+  - Progressive armor and knockback resistance
+- **Automatic Equipment**:
+  - Level 10+: Weapons (wood → stone → iron → diamond → netherite)
+  - Level 20+: Armor sets (leather → chainmail → iron → diamond → netherite)
+- **Creative Mode Protection**: No evolution XP when killed by creative players
 
-### Configuration File
-- JSON config file: `config/universalmobwar.json`
-- Set default gamerule values
-- Exclude specific mob types
-- Control visual settings
-- Auto-generates on first run
+---
 
-### 👑 MOB WARLORD BOSS
-**The ultimate challenge!** A giant witch (2x normal size) that summons and commands massive armies.
+## 🎮 Commands
 
-**Boss Stats:**
-- **1500 HP** (750 hearts!)
-- **2x Witch Size** (1.2m wide x 3.9m tall)
-- **Speed**: 0.35 (fast, can chase you down!)
-- **20 Minion Army** - 27 different mob types can be summoned
-- **Boss Bar**: Purple bar showing "🔮 Mob Warlord 🔮" with health
-- **500 XP Drop** - Massive endgame rewards
-- **Fire Immune** - Cannot burn
-- **Never Despawns** - Stays until defeated
+### Basic Commands
+```
+/mobwar help                    - Show all commands
+/mobwar stats                   - View nearby mob levels
+/mobwar reset                   - Clear all mob targets (OP)
+/mobwar reload                  - Reload config file (OP)
+```
 
-**🎯 Combat Abilities:**
+### Boss Summoning
+```
+/mobwar summon warlord          - Summon Mob Warlord at your location (OP)
+/summon universalmobwar:mob_warlord  - Alternative summon command
+```
+
+### Raid Boss (NEW!)
+```
+/mobwar raid forceboss          - Guarantee boss spawn in next raid (OP)
+```
+Use this command, then start a raid. The boss will spawn on the final wave with a dramatic announcement!
+
+---
+
+## ⚙️ Game Rules
+
+Use `/gamerule <name> <value>` to configure:
+
+| Game Rule | Default | Description |
+|-----------|---------|-------------|
+| `universalMobWarEnabled` | true | Master toggle for entire mod |
+| `universalMobWarIgnoreSame` | true | If true, same-species don't fight (strong alliances) |
+| `universalMobWarTargetPlayers` | true | If false, mobs ignore players (spectator mode) |
+| `universalMobWarNeutralAggressive` | false | Make neutral mobs (endermen, iron golems) always hostile |
+| `universalMobWarAlliances` | true | Enable alliance system |
+| `universalMobWarEvolution` | true | Enable mob leveling and equipment |
+| `universalMobWarRangeMultiplier` | 100 | Detection range multiplier (1-10000 = 0.01x to 100x) |
+
+### Examples
+```
+/gamerule universalMobWarIgnoreSame false    # Enable chaos mode (same-species can fight)
+/gamerule universalMobWarTargetPlayers false # Player immunity (spectate safely)
+/gamerule universalMobWarRangeMultiplier 500 # 5x detection range
+```
+
+---
+
+## 🔮 Mob Warlord Boss Details
+
+### Stats
+- **Health**: 1500 HP (750 hearts!)
+- **Size**: 2x witch (2.4m wide × 7.2m tall)
+- **Speed**: 0.35 (fast!)
+- **Damage**: 12 hearts melee + custom potions
+- **Armor**: 10 points
+- **Knockback Resistance**: 80%
+- **XP Drop**: 500 (massive!)
+- **Max Minions**: 20 simultaneously
+
+### Combat Abilities
 
 **Melee Attack** (Close Range):
 - 12 hearts damage + powerful knockback
-- Purple witch particles + dragon breath particles on hit
-- Magical sound effects
+- Purple witch particles + dragon breath particles
 
-**Custom Potion Attacks** (Long Range):
-- **70% Chance - Harmful Potion** (Dark Purple):
-  - Poison II (10 seconds)
-  - Weakness II (15 seconds)
-  - Slowness II (10 seconds)
-  - Wither I (5 seconds)
+**Custom Potions** (Long Range):
+- **Harmful Potion** (70% chance) - Dark purple:
+  - Poison II (10 sec), Weakness II (15 sec), Slowness II (10 sec), Wither I (5 sec)
+- **Healing Potion** - Deep pink with hearts:
+  - Instant Health II, Regeneration II (10 sec), Resistance II (15 sec)
+  - Only used on minions below 50% health when safe
+- **Buff Potion** (30% chance) - Bright purple:
+  - Strength II (20 sec), Speed II (20 sec), Resistance I (20 sec)
+  - Used to support minions when combat is safe
 
-- **30% Chance - Beneficial Potion** (Bright Purple):
-  - Buffs nearby minions with:
-  - Strength II (20 seconds)
-  - Speed II (20 seconds)
-  - Resistance I (20 seconds)
-  - Regeneration I (10 seconds)
+**Smart AI Priority System**:
+1. **Self-Defense** - Attacks threats first
+2. **Heal Minions** - Throws healing potions to injured minions (<50% HP)
+3. **Attack Enemies** - Avoids friendly fire by checking splash radius
+4. **Buff Minions** - Strengthens army when safe
 
-**👹 Summonable Minions (27 Types):**
+**Minion Protection**:
+- Attacks anyone who hurts its minions
+- Forgives friendly fire from minions
+- Targets betrayers who attack other minions
+- Coordinated assault: all minions target boss's current target
 
-**Hostile Mobs (22):**
+### Summonable Mobs (27 Types)
+
+**Hostile Mobs (22)**:
 - Undead: Zombie, Skeleton, Husk, Stray, Drowned, Wither Skeleton
 - Common: Creeper, Spider, Cave Spider
-- Magical: Witch, Blaze, Enderman, **Vex** ⭐, Evoker
+- Magical: Witch, Blaze, Enderman, **Vex**, Evoker
 - Nether: Zombified Piglin, Piglin, Piglin Brute, Hoglin
 - Illagers: Vindicator, Pillager, Ravager
 
 **Neutral Mobs (5)** - Only if `universalMobWarNeutralAggressive` is enabled:
 - Iron Golem, Wolf, Polar Bear, Panda, Bee
 
-**🛡️ Boss Behavior:**
-- **Protects Minions**: Targets anyone who attacks its army (with angry particles + roar!)
-- **Self-Defense**: Attacks anyone who hits the boss
-- **Strategic**: Summons more minions when hurt (1-3 at once)
-- **Buff Support**: Throws beneficial potions to strengthen minions
-- **Total Loyalty**: Minions never attack the Warlord or each other (regardless of gamerules)
-- **Coordinated**: All minions automatically target the boss's current target
-- **Death Effect**: All minions die instantly when Warlord is defeated
+**Special Minion Behavior**:
+- **Smart Creepers**: Flee if 3+ allies nearby to avoid mass friendly fire
+- **Total Loyalty**: Never attack boss or each other (regardless of gamerules)
+- **Betrayal System**: If a minion attacks another, they become a traitor (red particles)
+- **Death Link**: All minions die instantly when boss is defeated
 
-**How to Summon:**
-```
-/mobwar summon warlord
-```
-Or:
-```
-/summon universalmobwar:mob_warlord
-```
-Or use the **Mob Warlord Spawn Egg** from Creative Inventory (Spawn Eggs tab - witch colors: dark green with bright green spots)!
+### Particle Connections
+- 💜 **Purple Portal Particles**: Loyal minions
+- 🔴 **Red Angry Particles**: Betrayers
+- Updates every second
+- Makes it easy to see who's allied to the boss
 
----
+### Raid Boss Behavior
 
-## 📋 Key Features
+**When Spawned in Raid** (1.5% chance on final wave):
+- Targets villagers (highest priority)
+- Targets iron golems (second priority)
+- Avoids targeting other raid mobs (pillagers, vindicators, ravagers, witches, vexes)
+- Only attacks players if they interfere (attack villagers/golems/minions)
+- Dramatic spawn message: "💀 THE MOB WARLORD HAS JOINED THE RAID! 💀"
+- Wither spawn sound plays for all players
 
-✅ **Evolution System** - Mobs level up and get stronger  
-✅ **Alliance System** - Temporary teamwork based on shared targets  
-✅ **Mob Warlord Boss** - Epic boss (2x witch size) with custom potions, 27 summonable mobs, and minion protection  
-✅ **Boss Protection AI** - Warlord defends its army with angry particles and roars  
-✅ **Custom Potions** - Boss throws harmful potions at enemies and beneficial potions to buff minions  
-✅ **Works with ALL mobs** (vanilla, modded, custom)  
-✅ **7 Customizable Gamerules** - Control every aspect  
-✅ **Player Immunity Toggle** - Spectate without danger  
-✅ **Range Multiplier** - 0.01x to 100x detection range  
-✅ **Neutral Mob Control** - Force passive mobs to fight  
-✅ **Config File** - Persistent settings and exclusions  
-✅ **Performance Optimized** - Minimal overhead  
-✅ **Creative Mode Protection** - No evolution/alliances when killed by creative players  
+**When Summoned Normally**:
+- Targets players actively
+- Targets all mobs (except minions)
+- Full alliance system for summoned minions
+- Slight preference for raid-type mobs as summons
+
+### How to Get Spawn Egg
+Look in Creative Inventory → Spawn Eggs tab → **Mob Warlord Spawn Egg** (witch colors: dark green with bright green spots)
 
 ---
 
-## 🎮 Installation
+## 📊 Alliance System Details
 
-**✅ Build successful!** The mod JAR is ready at: `build/libs/universal-mob-war-2.0.0.jar`
+### Combat Priority (All Mobs)
+1. **Continue Attacking Current Target** - Commitment to current fight
+2. **Help Allied Mobs** - When allies are being attacked
+3. **Find Nearest Valid Target** - Based on species compatibility
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) for Minecraft 1.21.1
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.102.0 or higher)
-3. Download or build the mod JAR
-4. Place the `.jar` file in your `mods` folder
-5. Launch Minecraft!
+### Alliance Formation
+- Mobs attacking the **same target** become temporary allies
+- Alliance strength depends on species compatibility and gamerules
+- Alliances break when target dies or changes
+- Random chance to refuse alliance (varies by type)
 
-**When you join a world, you'll see a colorful welcome message with quick command access.**
+### Alliance Behavior
 
----
+**Strong Alliances** (same-species, ignore-same ON):
+- Duration: 20 seconds
+- Formation: 95% chance
+- Help Response: 80% chance, even with different targets
+- Detection Range: 80% of normal
+- Break Chance: 5% per check
+- Examples: Zombies help zombies, skeletons help skeletons
 
-## ⚙️ Game Rules (In-Game Configuration)
+**Weak Alliances** (different-species OR chaos mode):
+- Duration: 5 seconds
+- Formation: 70% chance
+- Help Response: 30% chance, only for same target
+- Detection Range: 50% of normal
+- Break Chance: 30% per check
+- Examples: Zombie + skeleton, any combo in chaos mode
 
-### 1. universalMobWarEnabled
-**Default**: `true`
-
-Turn the entire mod ON or OFF.
-
-```bash
-/gamerule universalMobWarEnabled true   # Enable (default)
-/gamerule universalMobWarEnabled false  # Disable completely
-```
-
-### 2. universalMobWarIgnoreSame
-**Default**: `true`
-
-Controls same-species targeting.
-
-```bash
-/gamerule universalMobWarIgnoreSame true   # Only attack different types (default)
-/gamerule universalMobWarIgnoreSame false  # TOTAL CHAOS! Same-species fights!
-```
-
-### 3. universalMobWarTargetPlayers ⭐ NEW
-**Default**: `true`
-
-Control whether mobs target players.
-
-```bash
-/gamerule universalMobWarTargetPlayers true   # Mobs attack players (default)
-/gamerule universalMobWarTargetPlayers false  # Player immunity - spectate safely!
-```
-
-### 4. universalMobWarRangeMultiplier ⭐ NEW
-**Default**: `100` (1.0x)  
-**Range**: 1 to 10000 (0.01x to 100.0x)
-
-Multiplies mob detection range.
-
-```bash
-/gamerule universalMobWarRangeMultiplier 100    # Normal range (1.0x)
-/gamerule universalMobWarRangeMultiplier 50     # Half range (0.5x) - local battles
-/gamerule universalMobWarRangeMultiplier 300    # Triple range (3.0x) - massive wars
-/gamerule universalMobWarRangeMultiplier 10000  # Maximum range (100.0x) - chaos mode
-```
-
-### 5. universalMobWarNeutralAggressive ⭐ NEW
-**Default**: `false`
-
-Forces neutral mobs (Endermen, Zombie Piglins, Wolves, etc.) to always be aggressive.
-
-```bash
-/gamerule universalMobWarNeutralAggressive false  # Normal behavior (default)
-/gamerule universalMobWarNeutralAggressive true   # Neutral mobs always attack
-```
-
-### 6. universalMobWarAlliances ⭐ NEW
-**Default**: `true`
-
-Enable/disable the alliance system.
-
-```bash
-/gamerule universalMobWarAlliances true   # Mobs form alliances (default)
-/gamerule universalMobWarAlliances false  # Every mob for themselves
-```
-
-### 7. universalMobWarEvolution ⭐ NEW
-**Default**: `true`
-
-Enable/disable mob leveling and equipment.
-
-```bash
-/gamerule universalMobWarEvolution true   # Mobs evolve (default)
-/gamerule universalMobWarEvolution false  # No leveling system
-```
+### Chaos Mode (`universalMobWarIgnoreSame false`)
+- Same-species can fight each other
+- ALL alliances become weak
+- No species loyalty
+- Total warfare with minimal coordination
+- Still avoids attacking Mob Warlord minions (unless betrayed)
 
 ---
 
-## 🎲 How It Works
-
-### Targeting Rules
-
-A mob will target another entity if:
-- The entity is **living** (has health)
-- It's **visible** (can be seen)
-- It's **in range** (scaled by range multiplier)
-- It's a **different mob type** (unless ignoreSame is false)
-- It's a **survival player** (unless targetPlayers is false)
-
-Automatically ignores:
-- Creative/spectator players
-- Non-living entities (armor stands, boats, minecarts, etc.)
-- Itself
-- Same-type mobs (by default)
-
-### Evolution System
-
-**How Mobs Level Up:**
-- Mobs gain 1 kill point per mob killed
-- Every 3 kills = 1 level (configurable)
-- Maximum level: 100
-
-**Stat Bonuses Per Level:**
-- Health: +0.5 hearts (1 HP)
-- Damage: +0.1 points (+10%)
-- Speed: +0.005 (+0.5%)
-- Armor: +0.1 points
-- Knockback Resistance: +1%
-
-**Equipment Progression:**
-| Level | Equipment |
-|-------|-----------|
-| 5-9   | Nothing yet |
-| 10-19 | Wooden Sword |
-| 20-29 | Stone Sword + Leather Armor |
-| 30-39 | Iron Sword + Chainmail Armor |
-| 40-49 | Diamond Sword + Iron Armor |
-| 50-59 | Diamond Sword + Diamond Armor |
-| 60+   | Netherite Sword + Netherite Armor |
-
-**Evolution persists** - Mob data is saved with the entity!
-
-### Alliance System
-
-**How Alliances Form:**
-- Mobs attacking the **same target** MAY become allies (not guaranteed)
-- Alliance range: 16 blocks
-- Alliances update every 2 seconds during combat
-- Two tiers: **Strong** (same species) and **Weak** (different species)
-
-**Strong Alliances (Same Species):**
-- **Requirements**: Both mobs must be same type AND same-species combat must be DISABLED
-- **Formation**: 95% success rate (only 5% refuse)
-- **Duration**: 20 seconds maximum
-- **Help Behavior**: 80% chance to help, 80% search range
-- **Coordination**: Will help allies even with different targets
-- **Examples**: Zombie + Zombie, Skeleton + Skeleton, Creeper + Creeper
-
-**Weak Alliances (Different Species):**
-- **Formation**: 70% success rate (30% refuse, plus 30% per-ally refuse)
-- **Duration**: 5 seconds maximum
-- **Help Behavior**: 30% chance to help (70% ignore), 50% search range
-- **Coordination**: Only helps when both fighting the exact same target
-- **Examples**: Zombie + Skeleton, Creeper + Spider, any cross-species
-
-**Chaos Mode (Same-Species Combat Enabled):**
-- When `/gamerule universalMobWarIgnoreSame false`
-- ALL alliances become weak (including same-species)
-- No special bonding when species can betray each other
-- Same stats as weak alliances above
-
-**Alliance Expiration:**
-- Alliances break **IMMEDIATELY** when target dies
-- Alliances break **IMMEDIATELY** when target changes
-- Time-based expiration: 5s (weak) or 20s (strong)
-- Automatically cleaned up to prevent memory leaks
-
-**Combat Priority System:**
-1. Continue attacking current target (HIGHEST priority - always)
-2. Help allied mob (varies by alliance strength):
-   - Strong: 80% chance, wider range, any target
-   - Weak: 30% chance, narrow range, same target only
-3. Find nearest valid target
-
----
-
-## 💻 Commands
-
-### Player Commands
-
-```bash
-/mobwar help           # Show all commands and gamerules
-/mobwar stats          # Display nearby mob statistics
-```
-
-### Operator Commands
-
-```bash
-/mobwar reset          # Clear all mob targets in the world
-/mobwar reload         # Reload configuration file
-```
-
-### Boss Commands
-
-```bash
-/summon universalmobwar:mob_warlord    # Summon the Mob Warlord boss
-```
-
-Or use the **Mob Warlord Spawn Egg** from the creative inventory!
-
----
-
-## 🔧 Configuration File
+## 📝 Configuration File
 
 Located at: `config/universalmobwar.json`
 
-**Auto-generates on first run with defaults.**
-
-### Example Configuration:
-
+**Default Configuration**:
 ```json
 {
   "modEnabled": true,
@@ -388,232 +293,156 @@ Located at: `config/universalmobwar.json`
 }
 ```
 
-### Configuration Options:
+**Customization Options**:
+- `excludedMobs` - List of entity IDs to exclude (e.g., `["minecraft:villager", "minecraft:allay"]`)
+- `maxLevel` - Maximum mob level (default: 100)
+- `killsPerLevel` - Kills required per level (default: 3)
+- `allianceRange` - Range for alliance detection (default: 16 blocks)
+- Visual settings for spectator mode enhancements
 
-- **excludedMobs**: List of entity IDs to exclude (e.g., `["minecraft:villager", "minecraft:iron_golem"]`)
-- **maxLevel**: Maximum mob level (default: 100)
-- **killsPerLevel**: Kills needed per level (default: 3)
-- **giveEquipmentToMobs**: Auto-equip high-level mobs (default: true)
-- **allianceDurationTicks**: Weak alliance duration (default: 100 = 5 seconds)
-- **sameSpeciesAllianceDurationTicks**: Strong alliance duration (default: 400 = 20 seconds)
-- **allianceBreakChance**: Weak alliance refuse chance (default: 0.3 = 30%)
-- **sameSpeciesAllianceBreakChance**: Strong alliance refuse chance (default: 0.05 = 5%)
-- **Visual settings**: Control spectator mode enhancements
+Use `/mobwar reload` after editing the config file.
 
 ---
 
-## 🔄 Behavior Examples
+## 🎯 Testing the Raid Boss
 
-### Default Mode (All Systems Enabled)
+### Method 1: Guaranteed Spawn
+```
+1. /mobwar raid forceboss
+2. Find or create a village
+3. Get Bad Omen effect (kill a raid captain - pillager with banner)
+4. Enter the village to trigger raid
+5. Fight through waves 1-6
+6. Boss spawns on final wave with announcement!
+```
 
-- Zombies attack skeletons, creepers, cows, **YOU**, etc.
-- A zombie kills a cow → gains 1 kill point
-- After 3 kills → zombie reaches Level 1 (gains +0.5 hearts, +0.1 damage, etc.)
-- **Two zombies attack same skeleton** → STRONG alliance (95% success, 20 sec duration)
-  - They trust each other and actively coordinate attacks
-- **Zombie + Skeleton attack same creeper** → weak alliance (70% success, 5 sec duration)
-  - They might cooperate but mostly focus on their own fight
-- Alliances break instantly when target dies or if they switch targets
-- At Level 10+ → zombie gets a wooden sword
-- At Level 50+ → zombie gets diamond sword and diamond armor!
+### Method 2: Natural Spawn (1.5% chance)
+```
+1. Start any raid normally
+2. Reach final wave (wave 6+)
+3. 1.5% chance boss will spawn
+4. Very rare - use forceboss for testing!
+```
 
-### Player Immunity Mode
+---
 
-```bash
+## 💡 Tips & Strategies
+
+### Surviving the Mob Warlord
+- **Stay Mobile**: Boss has long range attacks
+- **Prioritize Minions**: Reduce the army size first
+- **Watch for Betrayers**: Red particle connections = friendly fire opportunity
+- **Interrupt Healing**: Stop boss from healing minions
+- **Bring Milk**: Clear debuff potions (Poison, Weakness, Slowness, Wither)
+- **In Raids**: Boss will ignore you if you don't attack villagers/golems
+
+### Spectator Mode (Safe Observation)
+```
 /gamerule universalMobWarTargetPlayers false
 ```
+Mobs will ignore you - perfect for watching the chaos!
 
-- Mobs completely ignore players (even Survival mode)
-- Perfect for spectating or building during chaos
-- Mobs still fight each other and evolve normally
-
-### Chaos Mode
-
-```bash
+### Maximum Chaos
+```
 /gamerule universalMobWarIgnoreSame false
-```
-
-- Same-species mobs attack each other!
-- Zombies fight zombies, skeletons fight skeletons
-- **Ultimate chaos** - everyone vs everyone
-
-### Ranged War Mode
-
-```bash
-/gamerule universalMobWarRangeMultiplier 500
-```
-
-- 5x detection range (5.0x)
-- Mobs detect targets from much further away
-- Creates large-scale battlefield scenarios
-
-### Silent Hills Mode
-
-```bash
-/gamerule universalMobWarRangeMultiplier 20
 /gamerule universalMobWarNeutralAggressive true
+/gamerule universalMobWarRangeMultiplier 1000
 ```
+Everything fights everything at 10x detection range!
 
-- Very short range (0.2x) - only close encounters
-- Even neutral mobs are aggressive
-- Tense, dangerous atmosphere
-
----
-
-## 🛡️ Creative Mode Protection
-
-**Important**: Creative mode players don't trigger evolution progression:
-
-✅ Mobs killed by creative players **do not** grant evolution XP  
-✅ Only **Survival mode** kills count for mob leveling  
-✅ Alliances form normally regardless of player mode
-
-This prevents accidental evolution manipulation during building or testing.
-
----
-
-## 🔍 Compatibility
-
-**Works with:**
-- ✅ All vanilla Minecraft mobs
-- ✅ Modded mobs from other Fabric mods
-- ✅ Custom mobs from datapacks
-- ✅ Servers and singleplayer
-- ✅ All mob types (hostile, passive, neutral, boss)
-
-**Respects:**
-- Boss-specific mechanics (Ender Dragon, Wither, etc.)
-- Mod-specific AI behaviors
-- Custom mob attributes
-
-**Does not:**
-- Break vanilla mob behaviors
-- Modify base mob AI (only adds targeting goals)
-- Cause compatibility issues with other mods
-
----
-
-## 🔨 Building from Source
-
-```bash
-# Windows
-gradlew clean build
-
-# Linux/macOS
-./gradlew clean build
+### Peaceful Evolution
 ```
-
-**Output JAR**: `build/libs/universal-mob-war-2.0.0.jar`
+/gamerule universalMobWarTargetPlayers false
+/gamerule universalMobWarIgnoreSame true
+```
+Mobs fight each other but leave you alone. Watch them evolve naturally!
 
 ---
 
-## 📁 Project Structure
+## 🔧 Technical Details
 
+### Compatibility
+- **Fabric 1.21.1** (Loader ≥0.16.7)
+- **Fabric API** ≥0.106.1+1.21.1
+- Works with **all vanilla mobs**
+- Works with **all modded mobs** (automatically detected)
+- Tested with **400+ mod modpacks**
+- Compatible with **Iris Shaders**
+
+### Performance
+- Optimized for large modpacks
+- Entity lookups limited to 10 per cycle
+- Particle rendering throttled
+- All operations have cooldowns
+- No significant performance impact
+
+### Data Persistence
+- Mob levels and kills saved in entity NBT data
+- Alliance timestamps tracked per session
+- Boss minion relationships saved
+- Betrayer status persists through saves
+- Config file for default settings
+
+---
+
+## 📦 Installation
+
+1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api)
+3. Download `universal-mob-war-2.0.0.jar`
+4. Place in `mods` folder
+5. Launch game!
+
+Config file will be auto-generated at `config/universalmobwar.json`
+
+---
+
+## 🎮 Welcome Message
+
+When players join, they see:
 ```
-universal-mob-war/
-├─ build.gradle
-├─ settings.gradle
-├─ gradle.properties
-├─ src/
-│  └─ main/
-│     ├─ java/mod/universalmobwar/
-│     │  ├─ UniversalMobWarMod.java          # Main mod class
-│     │  ├─ command/
-│     │  │  └─ MobWarCommand.java            # /mobwar commands
-│     │  ├─ config/
-│     │  │  └─ ModConfig.java                # Config system
-│     │  ├─ data/
-│     │  │  └─ MobWarData.java               # Mob evolution data
-│     │  ├─ entity/
-│     │  │  └─ MobWarlordEntity.java         # Boss entity (2x witch, custom potions, 27 mobs, protective AI!)
-│     │  ├─ goal/
-│     │  │  └─ UniversalTargetGoal.java      # Enhanced targeting AI
-│     │  ├─ system/
-│     │  │  ├─ AllianceSystem.java           # Alliance management
-│     │  │  └─ EvolutionSystem.java          # Leveling & equipment
-│     │  ├─ util/
-│     │  │  └─ TargetingUtil.java            # Targeting helpers
-│     │  ├─ client/
-│     │  │  └─ MobWarVisuals.java            # Visual enhancements
-│     │  └─ mixin/
-│     │     ├─ GameRulesAccessor.java        # Gamerule registration
-│     │     ├─ MobEntityAccessor.java        # Goal selector access
-│     │     ├─ MobRevengeBlockerMixin.java   # Same-species blocking
-│     │     ├─ MobDeathTrackerMixin.java     # Kill tracking
-│     │     ├─ NeutralMobBehaviorMixin.java  # Neutral mob control
-│     │     ├─ WarlordMinionProtectionMixin.java  # Boss minion protection
-│     │     └─ WarlordDamageProtectionMixin.java  # Boss damage prevention
-│     └─ resources/
-│        ├─ fabric.mod.json
-│        ├─ universalmobwar.mixins.json
-│        └─ icon.png
+═══════════════════════════════════════════════════
+    UNIVERSAL MOB WAR v2.0 - EVOLUTION UPDATE!
+═══════════════════════════════════════════════════
+
+⚔ NEW FEATURES:
+  • Evolution System - Mobs level up, gain stats & equipment!
+  • Alliance System - Mobs team up against common enemies!
+  • Player Immunity - Toggle to spectate safely!
+  • Range Control - 0.01x to 100x detection range!
+  • Neutral Mob Control - Force passive mobs to fight!
+
+📋 Quick Commands:
+  • /mobwar help - Full command list
+  • /mobwar stats - View nearby mob levels
+
+⚙ Key Game Rules (use /gamerule):
+  • universalMobWarEnabled - Turn mod on/off
+  • universalMobWarTargetPlayers - Player immunity toggle
+  • universalMobWarRangeMultiplier - Scale range (1-10000)
+  • universalMobWarEvolution - Enable leveling system
+  • universalMobWarAlliances - Enable alliance system
+    Type /mobwar help for all 7 game rules!
+
+═══════════════════════════════════════════════════
+    Watch mobs evolve into warriors! Good luck!
+═══════════════════════════════════════════════════
 ```
 
 ---
 
-## 🔍 Technical Details
+## 📄 License
 
-- **Namespace**: `mod.universalmobwar`
-- **Minecraft Version**: 1.21.1
-- **Fabric Loader**: 0.16.5+
-- **Fabric API**: 0.102.0+1.21.1
-- **Java**: 21
+MIT License - Feel free to use in modpacks!
 
-### System Details:
-- Evolution data stored in entity NBT
-- Alliances tracked with UUID maps and timestamps
-- Boss extends WitchEntity (2x size) for proper rendering and shader compatibility
-- Boss uses custom potion system with beneficial/harmful effects
-- Boss has ProtectMinionsGoal AI that targets attackers of its army
-- Minion protection via dual mixins (targeting + damage) with static UUID map
-- Minion loyalty tracked with thread-safe ConcurrentHashMap
-- Gamerules use Fabric's game rule system
-- Commands registered via Fabric Command API v2
-- Configuration uses JSON with Gson
-- Mixins target LivingEntity, MobEntity, and GameRules
+## 🐛 Bug Reports
+
+Report issues with:
+- Minecraft version
+- Fabric Loader version
+- Other mods installed
+- Steps to reproduce
 
 ---
 
-## 📜 License
-
-MIT License - Free to use, modify, and distribute.
-
----
-
-## 🤝 Credits
-
-**Created by Carter**
-
-Special thanks to the Fabric community for excellent documentation and tools!
-
----
-
-## 🎮 Tips & Tricks
-
-### Survival Strategy
-
-1. **Watch for High-Level Mobs**: Mobs with weapons/armor are dangerous!
-2. **Use Alliances**: Lure mobs to fight your enemies
-3. **Player Immunity**: Toggle off to safely build shelters
-4. **Scout with Stats**: Use `/mobwar stats` to check threat levels
-5. **Emergency Reset**: `/mobwar reset` if things get too chaotic
-
-### Server Recommendations
-
-- Default settings work great for most servers
-- Consider `targetPlayers false` for creative build servers
-- Use `rangeMultiplier 50` (0.5x) for performance on large servers
-- Exclude peaceful mobs if you want them safe: add to config `excludedMobs`
-
-### Content Creation
-
-- Perfect for challenging Let's Plays
-- Great for PvE server events
-- Use evolution system for progressive difficulty
-- Spectator mode with player immunity for cinematic shots
-
----
-
-**Enjoy the evolution of chaos!** 🗡️⚔️🛡️
-
-*Have fun watching mobs become warriors and conquerors!*
+**Enjoy the chaos!** 🎉

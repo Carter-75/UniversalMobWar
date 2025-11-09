@@ -3,9 +3,12 @@ package mod.universalmobwar.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
+import mod.universalmobwar.entity.MobWarlordEntity;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -13,6 +16,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
 
@@ -33,6 +37,14 @@ public class MobWarCommand {
             .then(CommandManager.literal("reload")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(MobWarCommand::executeReload))
+            .then(CommandManager.literal("summon")
+                .requires(source -> source.hasPermissionLevel(2))
+                .then(CommandManager.literal("warlord")
+                    .executes(MobWarCommand::executeSummonWarlord)))
+            .then(CommandManager.literal("raid")
+                .requires(source -> source.hasPermissionLevel(2))
+                .then(CommandManager.literal("forceboss")
+                    .executes(MobWarCommand::executeForceRaidBoss)))
             .executes(MobWarCommand::executeHelp)
         );
     }
@@ -81,6 +93,18 @@ public class MobWarCommand {
         source.sendFeedback(() -> Text.literal(""), false);
         source.sendFeedback(() -> 
             Text.literal("Boss:").styled(style -> style.withColor(Formatting.DARK_PURPLE).withBold(true)), false);
+        
+        source.sendFeedback(() -> 
+            Text.literal("  • /mobwar summon warlord")
+                .styled(style -> style.withColor(Formatting.GREEN))
+                .append(Text.literal(" - Summon Mob Warlord boss (OP)")
+                    .styled(style -> style.withColor(Formatting.GRAY))), false);
+        
+        source.sendFeedback(() -> 
+            Text.literal("  • /mobwar raid forceboss")
+                .styled(style -> style.withColor(Formatting.GREEN))
+                .append(Text.literal(" - Guarantee boss in next raid (OP)")
+                    .styled(style -> style.withColor(Formatting.GRAY))), false);
         
         source.sendFeedback(() -> 
             Text.literal("  • /summon universalmobwar:mob_warlord")
@@ -233,6 +257,57 @@ public class MobWarCommand {
         source.sendFeedback(() -> 
             Text.literal("Configuration reloaded successfully!")
                 .styled(style -> style.withColor(Formatting.GREEN)), true);
+        
+        return 1;
+    }
+    
+    private static int executeSummonWarlord(CommandContext<ServerCommandSource> context) {
+        ServerCommandSource source = context.getSource();
+        ServerWorld world = source.getWorld();
+        Vec3d pos = source.getPosition();
+        
+        try {
+            // Create the Mob Warlord
+            MobWarlordEntity warlord = new MobWarlordEntity(UniversalMobWarMod.MOB_WARLORD, world);
+            warlord.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0.0f, 0.0f);
+            warlord.initialize(world, world.getLocalDifficulty(BlockPos.ofFloored(pos)), SpawnReason.COMMAND, null);
+            
+            world.spawnEntity(warlord);
+            
+            source.sendFeedback(() -> 
+                Text.literal("Summoned the Mob Warlord boss at ")
+                    .styled(style -> style.withColor(Formatting.DARK_PURPLE))
+                    .append(Text.literal(String.format("%.1f, %.1f, %.1f", pos.x, pos.y, pos.z))
+                        .styled(style -> style.withColor(Formatting.GOLD)))
+                    .append(Text.literal("!")
+                        .styled(style -> style.withColor(Formatting.DARK_PURPLE))), 
+                true
+            );
+            
+            return 1;
+        } catch (Exception e) {
+            source.sendError(Text.literal("Failed to summon Mob Warlord: " + e.getMessage()));
+            return 0;
+        }
+    }
+    
+    private static int executeForceRaidBoss(CommandContext<ServerCommandSource> context) {
+        ServerCommandSource source = context.getSource();
+        
+        // This is a simple flag setter - actual logic is in RaidBossSpawnCommand
+        mod.universalmobwar.command.RaidBossSpawnCommand.shouldForceSpawn();
+        
+        source.sendFeedback(() -> 
+            Text.literal("✅ Next raid will GUARANTEE a Mob Warlord spawn on the final wave!")
+                .styled(style -> style.withColor(Formatting.GREEN).withBold(true)), 
+            true
+        );
+        
+        source.sendFeedback(() -> 
+            Text.literal("  Start a raid to summon the boss!")
+                .styled(style -> style.withColor(Formatting.GRAY)), 
+            false
+        );
         
         return 1;
     }

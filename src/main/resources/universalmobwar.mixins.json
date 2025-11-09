@@ -11,7 +11,8 @@
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
 		"NeutralMobBehaviorMixin",
-		"WarlordMinionProtectionMixin"
+		"WarlordMinionProtectionMixin",
+		"RaidSpawningMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

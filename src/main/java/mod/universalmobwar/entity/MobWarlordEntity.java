@@ -91,11 +91,11 @@ public class MobWarlordEntity extends HostileEntity {
         this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 16.0f));
         this.goalSelector.add(3, new LookAroundGoal(this));
         
-        // Targeting priorities:
+        // Targeting priorities (context-aware based on raid status):
         // 1. Protect minions - attack anyone who hurts them (HIGHEST PRIORITY)
         // 2. Revenge - attack anyone who attacks the warlord (except minions - friendly fire forgiven)
-        // 3. Target all players
-        // 4. Target all other mobs (except minions)
+        // 3. RAID MODE: Villagers (priority 2) → Iron Golems (priority 3) → Players (priority 5)
+        // 3. NORMAL MODE: Players (priority 3) → Other mobs (priority 4)
         this.targetSelector.add(0, new ProtectMinionsGoal(this));
         this.targetSelector.add(1, new RevengeGoal(this) {
             @Override
@@ -108,9 +108,37 @@ public class MobWarlordEntity extends HostileEntity {
                 return super.canStart();
             }
         });
-        this.targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
-        this.targetSelector.add(3, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
-            entity -> entity instanceof MobEntity mob && !isMinionOf(mob)));
+        
+        // RAID-SPECIFIC TARGETING: Prioritize villagers and iron golems
+        this.targetSelector.add(2, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
+        this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
+        
+        // Players - lower priority in raids (5), higher in normal (3)
+        this.targetSelector.add(4, new ActiveTargetGoal<>(this, PlayerEntity.class, 10, true, false, 
+            entity -> {
+                // In raids, only target players if they're interfering (attacking villagers/golems/minions)
+                if (isRaidBoss()) {
+                    return entity instanceof PlayerEntity player && 
+                           (player.getAttacker() != null || this.getAttacker() == player);
+                }
+                return true; // Always target in normal mode
+            }
+        ));
+        
+        // Other mobs - avoid raid mobs when in raid
+        this.targetSelector.add(5, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
+            entity -> {
+                if (!(entity instanceof MobEntity mob)) return false;
+                if (isMinionOf(mob)) return false; // Never target own minions
+                
+                // In raids, avoid targeting raid mobs (pillagers, vindicators, etc.)
+                if (isRaidBoss() && isRaidMob(mob)) {
+                    return false; // Favor raid mobs
+                }
+                
+                return true;
+            }
+        ));
     }
     
     public static DefaultAttributeContainer.Builder createMobWarlordAttributes() {
@@ -580,6 +608,20 @@ public class MobWarlordEntity extends HostileEntity {
      */
     public static UUID getMasterUuid(UUID minionUuid) {
         return MINION_TO_WARLORD.get(minionUuid);
+    }
+    
+    /**
+     * Checks if a mob is a raid mob (pillagers, vindicators, ravagers, etc.).
+     * Used to avoid targeting raid allies when boss is spawned in a raid.
+     */
+    private boolean isRaidMob(MobEntity mob) {
+        EntityType<?> type = mob.getType();
+        return type == EntityType.PILLAGER ||
+               type == EntityType.VINDICATOR ||
+               type == EntityType.EVOKER ||
+               type == EntityType.RAVAGER ||
+               type == EntityType.WITCH ||
+               type == EntityType.VEX;
     }
     
     /**
@@ -1251,6 +1293,29 @@ public class MobWarlordEntity extends HostileEntity {
         public boolean shouldContinue() {
             // Continue fleeing for a bit
             return this.creeper.getNavigation().isFollowingPath();
+        }
+    }
+    
+    /**
+     * Raid-aware targeting goal that only activates when boss is in raid mode.
+     * Used for prioritizing villagers and iron golems during raids.
+     */
+    private static class RaidAwareTargetGoal<T extends LivingEntity> extends ActiveTargetGoal<T> {
+        private final MobWarlordEntity warlord;
+        
+        public RaidAwareTargetGoal(MobWarlordEntity warlord, Class<T> targetClass, boolean checkVisibility) {
+            super(warlord, targetClass, checkVisibility);
+            this.warlord = warlord;
+        }
+        
+        @Override
+        public boolean canStart() {
+            // Only target villagers/golems if in raid mode
+            if (!this.warlord.isRaidBoss()) {
+                return false;
+            }
+            
+            return super.canStart();
         }
     }
 }
