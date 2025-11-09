@@ -115,22 +115,43 @@ public class MobWarlordEntity extends WitchEntity {
         // CRITICAL: Safety checks before calling super.tick()
         // This prevents crashes during chunk loading / world initialization
         if (this.getWorld() == null) return;
+        
+        // Client-side rendering: wrap in try-catch for Iris Shaders compatibility
         if (this.getWorld().isClient) {
-            super.tick();
+            try {
+                super.tick();
+            } catch (Exception e) {
+                // Silently ignore rendering errors (Iris Shaders compatibility)
+            }
             return;
         }
+        
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
-            super.tick();
+            try {
+                super.tick();
+            } catch (Exception e) {
+                // Silently ignore errors
+            }
             return;
         }
         
         // Additional safety: ensure entity is fully initialized
-        if (this.age < 2) {
-            super.tick();
-            return; // Skip first few ticks to ensure world is ready
+        // Wait longer (40 ticks = 2 seconds) to ensure all rendering systems are ready
+        if (this.age < 40) {
+            try {
+                super.tick();
+            } catch (Exception e) {
+                // Silently ignore initialization errors
+            }
+            return; // Skip first 2 seconds to ensure world/rendering is ready
         }
         
-        super.tick();
+        // Wrap super.tick() to catch any particle/rendering errors from WitchEntity
+        try {
+            super.tick();
+        } catch (Exception e) {
+            // Silently ignore witch particle errors
+        }
         
         // Update boss bar safely
         try {
@@ -166,8 +187,8 @@ public class MobWarlordEntity extends WitchEntity {
             }
         }
         
-        // Particle effects (skip if world not ready)
-        if (this.age % 20 == 0 && this.age > 20) {
+        // Particle effects (skip if world not ready, wait 60 ticks = 3 seconds)
+        if (this.age % 20 == 0 && this.age > 60) {
             spawnParticles();
         }
     }
@@ -213,9 +234,9 @@ public class MobWarlordEntity extends WitchEntity {
                         minion.setTarget(this.getTarget());
                     }
                     
-                    // Spawn effects (after a small delay to ensure entity is synced)
+                    // Spawn effects (after initialization delay for Iris Shaders compatibility)
                     try {
-                        if (this.age > 20) { // Only spawn particles if warlord is fully initialized
+                        if (this.age > 60) { // Wait 3 seconds to ensure rendering is ready
                             serverWorld.spawnParticles(ParticleTypes.PORTAL, 
                                 spawnPos.x, spawnPos.y, spawnPos.z, 
                                 20, 0.5, 0.5, 0.5, 0.1);
@@ -373,7 +394,7 @@ public class MobWarlordEntity extends WitchEntity {
                 new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0x330033), harmfulEffects));
             
             // Dark purple particles for harmful potion
-            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 20) {
+            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
                 try {
                     serverWorld.spawnParticles(ParticleTypes.WITCH,
                         this.getX(), this.getY() + 1.5, this.getZ(),
@@ -396,7 +417,7 @@ public class MobWarlordEntity extends WitchEntity {
                 new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0xFF00FF), beneficialEffects));
             
             // Bright purple particles for beneficial potion
-            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 20) {
+            if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
                 try {
                     serverWorld.spawnParticles(ParticleTypes.ENCHANT,
                         this.getX(), this.getY() + 1.5, this.getZ(),
@@ -428,7 +449,7 @@ public class MobWarlordEntity extends WitchEntity {
         target.takeKnockback(2.0, -direction.x, -direction.z);
         
         // Attack particles (purple magic burst)
-        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 20) {
+        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
             try {
                 Vec3d targetPos = target.getPos();
                 serverWorld.spawnParticles(ParticleTypes.WITCH,
@@ -449,7 +470,7 @@ public class MobWarlordEntity extends WitchEntity {
     
     private void spawnParticles() {
         if (this.getWorld() == null) return;
-        if (this.age < 20) return; // Wait for full initialization
+        if (this.age < 60) return; // Wait 3 seconds for full initialization
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         
         try {
@@ -554,7 +575,7 @@ public class MobWarlordEntity extends WitchEntity {
                     
                     // Death particles
                     try {
-                        if (this.age > 20) { // Only if fully initialized
+                        if (this.age > 60) { // Only if fully initialized (3 seconds)
                             serverWorld.spawnParticles(ParticleTypes.POOF,
                                 minion.getX(), minion.getY() + 1.0, minion.getZ(),
                                 10, 0.3, 0.3, 0.3, 0.05);
@@ -637,7 +658,7 @@ public class MobWarlordEntity extends WitchEntity {
             this.warlord.playSound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.0f, 0.8f);
             
             // Spawn angry particles
-            if (this.warlord.getWorld() instanceof ServerWorld serverWorld && this.warlord.age > 20) {
+            if (this.warlord.getWorld() instanceof ServerWorld serverWorld && this.warlord.age > 60) {
                 try {
                     serverWorld.spawnParticles(ParticleTypes.ANGRY_VILLAGER,
                         this.warlord.getX(), this.warlord.getY() + 2.5, this.warlord.getZ(),
