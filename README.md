@@ -9,7 +9,7 @@
 ### Core Features:
 - **Mob Evolution System** - Mobs gain levels, stats, weapons, and armor from kills
 - **Alliance System** - Mobs fighting the same enemy become temporary allies
-- **MOB WARLORD BOSS** - Epic boss that commands an army of 20 mobs!
+- **MOB WARLORD BOSS** - Epic 2x-sized witch boss with custom potions, 27 summonable mobs, and protective AI!
 - **Complete Customization** - 7+ gamerules to fine-tune the chaos
 - **Player Immunity Option** - Watch the war unfold without being targeted
 - **Range Control** - Scale detection range from 0.01x to 100x
@@ -62,26 +62,69 @@
 - Auto-generates on first run
 
 ### 👑 MOB WARLORD BOSS
-**The ultimate challenge!** A giant witch that summons and commands armies.
+**The ultimate challenge!** A giant witch (2x normal size) that summons and commands massive armies.
 
 **Boss Stats:**
 - **1500 HP** (750 hearts!)
-- **Normal Speed** (0.35) - Can chase you down!
-- **20 Minion Army** - Zombies, Skeletons, Creepers, and more
-- **Dual Combat** - Melee + Potion throws
-- **500 XP Drop** - Endgame rewards
+- **2x Witch Size** (1.2m wide x 3.9m tall)
+- **Speed**: 0.35 (fast, can chase you down!)
+- **20 Minion Army** - 27 different mob types can be summoned
+- **Boss Bar**: Purple bar showing "🔮 Mob Warlord 🔮" with health
+- **500 XP Drop** - Massive endgame rewards
+- **Fire Immune** - Cannot burn
+- **Never Despawns** - Stays until defeated
 
-**Special Rules:**
-- Minions **never attack the Warlord** (total loyalty)
-- Minions **never attack each other** (perfect coordination)
-- Works regardless of gamerules (always cooperative)
-- All minions die when Warlord is defeated
+**🎯 Combat Abilities:**
+
+**Melee Attack** (Close Range):
+- 12 hearts damage + powerful knockback
+- Purple witch particles + dragon breath particles on hit
+- Magical sound effects
+
+**Custom Potion Attacks** (Long Range):
+- **70% Chance - Harmful Potion** (Dark Purple):
+  - Poison II (10 seconds)
+  - Weakness II (15 seconds)
+  - Slowness II (10 seconds)
+  - Wither I (5 seconds)
+
+- **30% Chance - Beneficial Potion** (Bright Purple):
+  - Buffs nearby minions with:
+  - Strength II (20 seconds)
+  - Speed II (20 seconds)
+  - Resistance I (20 seconds)
+  - Regeneration I (10 seconds)
+
+**👹 Summonable Minions (27 Types):**
+
+**Hostile Mobs (22):**
+- Undead: Zombie, Skeleton, Husk, Stray, Drowned, Wither Skeleton
+- Common: Creeper, Spider, Cave Spider
+- Magical: Witch, Blaze, Enderman, **Vex** ⭐, Evoker
+- Nether: Zombified Piglin, Piglin, Piglin Brute, Hoglin
+- Illagers: Vindicator, Pillager, Ravager
+
+**Neutral Mobs (5)** - Only if `universalMobWarNeutralAggressive` is enabled:
+- Iron Golem, Wolf, Polar Bear, Panda, Bee
+
+**🛡️ Boss Behavior:**
+- **Protects Minions**: Targets anyone who attacks its army (with angry particles + roar!)
+- **Self-Defense**: Attacks anyone who hits the boss
+- **Strategic**: Summons more minions when hurt (1-3 at once)
+- **Buff Support**: Throws beneficial potions to strengthen minions
+- **Total Loyalty**: Minions never attack the Warlord or each other (regardless of gamerules)
+- **Coordinated**: All minions automatically target the boss's current target
+- **Death Effect**: All minions die instantly when Warlord is defeated
 
 **How to Summon:**
 ```
+/mobwar summon warlord
+```
+Or:
+```
 /summon universalmobwar:mob_warlord
 ```
-Or use the **Mob Warlord Spawn Egg** (witch egg colors)!
+Or use the **Mob Warlord Spawn Egg** from Creative Inventory (Spawn Eggs tab - witch colors: dark green with bright green spots)!
 
 ---
 
@@ -89,7 +132,9 @@ Or use the **Mob Warlord Spawn Egg** (witch egg colors)!
 
 ✅ **Evolution System** - Mobs level up and get stronger  
 ✅ **Alliance System** - Temporary teamwork based on shared targets  
-✅ **Mob Warlord Boss** - Epic endgame boss with 750 hearts and 20 minions  
+✅ **Mob Warlord Boss** - Epic boss (2x witch size) with custom potions, 27 summonable mobs, and minion protection  
+✅ **Boss Protection AI** - Warlord defends its army with angry particles and roars  
+✅ **Custom Potions** - Boss throws harmful potions at enemies and beneficial potions to buff minions  
 ✅ **Works with ALL mobs** (vanilla, modded, custom)  
 ✅ **7 Customizable Gamerules** - Control every aspect  
 ✅ **Player Immunity Toggle** - Spectate without danger  
@@ -480,7 +525,7 @@ universal-mob-war/
 │     │  ├─ data/
 │     │  │  └─ MobWarData.java               # Mob evolution data
 │     │  ├─ entity/
-│     │  │  └─ MobWarlordEntity.java         # Boss entity (1500 HP, 20 minions!)
+│     │  │  └─ MobWarlordEntity.java         # Boss entity (2x witch, custom potions, 27 mobs, protective AI!)
 │     │  ├─ goal/
 │     │  │  └─ UniversalTargetGoal.java      # Enhanced targeting AI
 │     │  ├─ system/
@@ -517,8 +562,11 @@ universal-mob-war/
 ### System Details:
 - Evolution data stored in entity NBT
 - Alliances tracked with UUID maps and timestamps
-- Boss uses custom entity with spawn egg registration
-- Minion protection via dual mixins (targeting + damage)
+- Boss extends WitchEntity (2x size) for proper rendering and shader compatibility
+- Boss uses custom potion system with beneficial/harmful effects
+- Boss has ProtectMinionsGoal AI that targets attackers of its army
+- Minion protection via dual mixins (targeting + damage) with static UUID map
+- Minion loyalty tracked with thread-safe ConcurrentHashMap
 - Gamerules use Fabric's game rule system
 - Commands registered via Fabric Command API v2
 - Configuration uses JSON with Gson

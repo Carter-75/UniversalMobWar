@@ -82,6 +82,12 @@ public class MobWarlordEntity extends WitchEntity {
         this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 16.0f));
         this.goalSelector.add(3, new LookAroundGoal(this));
         
+        // Targeting priorities:
+        // 1. Protect minions - attack anyone who hurts them (HIGHEST PRIORITY)
+        // 2. Revenge - attack anyone who attacks the warlord
+        // 3. Target all players
+        // 4. Target all other mobs (except minions)
+        this.targetSelector.add(0, new ProtectMinionsGoal(this));
         this.targetSelector.add(1, new RevengeGoal(this));
         this.targetSelector.add(2, new ActiveTargetGoal<>(this, PlayerEntity.class, true));
         this.targetSelector.add(3, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
@@ -568,6 +574,88 @@ public class MobWarlordEntity extends WitchEntity {
                 player.sendMessage(Text.literal("The Mob Warlord has been defeated! Their army crumbles!")
                     .styled(style -> style.withColor(Formatting.GOLD).withBold(true)), false);
             });
+        }
+    }
+    
+    /**
+     * Custom AI goal for protecting minions.
+     * The Warlord will target anyone who attacks its minions.
+     */
+    private static class ProtectMinionsGoal extends Goal {
+        private final MobWarlordEntity warlord;
+        private LivingEntity attacker;
+        private int checkCooldown;
+        
+        public ProtectMinionsGoal(MobWarlordEntity warlord) {
+            this.warlord = warlord;
+            this.checkCooldown = 0;
+        }
+        
+        @Override
+        public boolean canStart() {
+            // Only check every 10 ticks for performance
+            if (checkCooldown > 0) {
+                checkCooldown--;
+                return false;
+            }
+            checkCooldown = 10;
+            
+            // Don't override if warlord is already targeting someone attacking it
+            if (this.warlord.getAttacker() != null) {
+                return false;
+            }
+            
+            // Check if any minions are being attacked
+            if (!(this.warlord.getWorld() instanceof ServerWorld serverWorld)) return false;
+            
+            for (UUID minionUuid : this.warlord.minionUuids) {
+                Entity entity = serverWorld.getEntity(minionUuid);
+                if (entity instanceof MobEntity minion && minion.isAlive()) {
+                    LivingEntity minionAttacker = minion.getAttacker();
+                    
+                    // Found someone attacking our minion!
+                    if (minionAttacker != null && minionAttacker.isAlive() && minionAttacker != this.warlord) {
+                        // Don't attack other minions
+                        if (minionAttacker instanceof MobEntity && this.warlord.isMinionOf((MobEntity) minionAttacker)) {
+                            continue;
+                        }
+                        
+                        this.attacker = minionAttacker;
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        @Override
+        public void start() {
+            this.warlord.setTarget(this.attacker);
+            
+            // Play angry sound
+            this.warlord.playSound(SoundEvents.ENTITY_RAVAGER_ROAR, 1.0f, 0.8f);
+            
+            // Spawn angry particles
+            if (this.warlord.getWorld() instanceof ServerWorld serverWorld && this.warlord.age > 20) {
+                try {
+                    serverWorld.spawnParticles(ParticleTypes.ANGRY_VILLAGER,
+                        this.warlord.getX(), this.warlord.getY() + 2.5, this.warlord.getZ(),
+                        5, 0.5, 0.5, 0.5, 0.0);
+                } catch (Exception e) {
+                    // Ignore particle errors
+                }
+            }
+        }
+        
+        @Override
+        public boolean shouldContinue() {
+            return this.attacker != null && this.attacker.isAlive();
+        }
+        
+        @Override
+        public void stop() {
+            this.attacker = null;
         }
     }
     
