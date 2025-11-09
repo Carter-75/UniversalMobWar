@@ -35,11 +35,11 @@ import net.minecraft.world.World;
 import java.util.*;
 
 /**
- * The Mob Warlord - A giant witch boss that spawns and commands armies of mobs.
+ * The Mob Warlord - A giant boss that summons and commands armies of mobs.
  * All spawned minions are loyal to the warlord and never attack it or each other.
- * Extends WitchEntity to use the witch model and rendering.
+ * Uses HostileEntity for maximum compatibility with Iris Shaders and rendering mods.
  */
-public class MobWarlordEntity extends WitchEntity {
+public class MobWarlordEntity extends HostileEntity {
     
     private static final TrackedData<Integer> MINION_COUNT = DataTracker.registerData(MobWarlordEntity.class, TrackedDataHandlerRegistry.INTEGER);
     
@@ -55,7 +55,7 @@ public class MobWarlordEntity extends WitchEntity {
     private static final int SUMMON_COOLDOWN = 100; // 5 seconds
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     
-    public MobWarlordEntity(EntityType<? extends WitchEntity> entityType, World world) {
+    public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         this.experiencePoints = 500; // Massive XP drop
         this.bossBar = new ServerBossBar(
@@ -95,7 +95,7 @@ public class MobWarlordEntity extends WitchEntity {
     }
     
     public static DefaultAttributeContainer.Builder createMobWarlordAttributes() {
-        return WitchEntity.createWitchAttributes()
+        return HostileEntity.createHostileAttributes()
             .add(EntityAttributes.GENERIC_MAX_HEALTH, 1500.0) // 750 hearts!
             .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.35) // Normal/fast speed
             .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 12.0)

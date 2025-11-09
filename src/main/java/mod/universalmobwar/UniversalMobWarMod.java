@@ -34,12 +34,12 @@ public class UniversalMobWarMod implements ModInitializer {
 	public static final String MODID = "universalmobwar";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
 
-	// Mob Warlord Boss Entity (extends WitchEntity for proper rendering)
+	// Mob Warlord Boss Entity (uses HostileEntity for Iris Shaders compatibility)
 	public static final EntityType<MobWarlordEntity> MOB_WARLORD = Registry.register(
 		Registries.ENTITY_TYPE,
 		Identifier.of(MODID, "mob_warlord"),
 		EntityType.Builder.create(MobWarlordEntity::new, SpawnGroup.MONSTER)
-			.dimensions(0.6f * 2.0f, 1.95f * 2.0f) // 2x witch size (witch is 0.6 x 1.95)
+			.dimensions(1.2f, 3.6f) // Large boss size (1.2m wide x 3.6m tall)
 			.maxTrackingRange(64)
 			.build()
 	);
