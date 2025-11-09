@@ -96,41 +96,63 @@ public class MobWarlordEntity extends HostileEntity {
     
     @Override
     public void tick() {
+        // CRITICAL: Safety checks before calling super.tick()
+        // This prevents crashes during chunk loading / world initialization
+        if (this.getWorld() == null) return;
+        if (this.getWorld().isClient) {
+            super.tick();
+            return;
+        }
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+            super.tick();
+            return;
+        }
+        
+        // Additional safety: ensure entity is fully initialized
+        if (this.age < 2) {
+            super.tick();
+            return; // Skip first few ticks to ensure world is ready
+        }
+        
         super.tick();
         
-        if (!this.getWorld().isClient) {
-            // Update boss bar
-            this.bossBar.setPercent(this.getHealth() / this.getMaxHealth());
-            
-            // Cooldowns
-            if (summonCooldown > 0) summonCooldown--;
-            if (attackCooldown > 0) attackCooldown--;
-            
-            // Clean up dead minions
-            cleanupDeadMinions();
-            
-            // Auto-summon when low on minions or low health
-            if (summonCooldown == 0) {
-                int currentMinions = minionUuids.size();
-                float healthPercent = this.getHealth() / this.getMaxHealth();
-                
-                // More aggressive summoning when hurt
-                boolean shouldSummon = currentMinions < MAX_MINIONS && (
-                    currentMinions < 5 || 
-                    (healthPercent < 0.75f && currentMinions < 10) ||
-                    (healthPercent < 0.5f && currentMinions < 15)
-                );
-                
-                if (shouldSummon && this.getTarget() != null) {
-                    summonMinions(healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1);
-                    summonCooldown = SUMMON_COOLDOWN;
-                }
+        // Update boss bar safely
+        try {
+            if (this.bossBar != null) {
+                this.bossBar.setPercent(this.getHealth() / this.getMaxHealth());
             }
+        } catch (Exception e) {
+            // Ignore boss bar errors during initialization
+        }
+        
+        // Cooldowns
+        if (summonCooldown > 0) summonCooldown--;
+        if (attackCooldown > 0) attackCooldown--;
+        
+        // Clean up dead minions
+        cleanupDeadMinions();
+        
+        // Auto-summon when low on minions or low health
+        if (summonCooldown == 0) {
+            int currentMinions = minionUuids.size();
+            float healthPercent = this.getHealth() / this.getMaxHealth();
             
-            // Particle effects
-            if (this.age % 20 == 0) {
-                spawnParticles();
+            // More aggressive summoning when hurt
+            boolean shouldSummon = currentMinions < MAX_MINIONS && (
+                currentMinions < 5 || 
+                (healthPercent < 0.75f && currentMinions < 10) ||
+                (healthPercent < 0.5f && currentMinions < 15)
+            );
+            
+            if (shouldSummon && this.getTarget() != null) {
+                summonMinions(healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1);
+                summonCooldown = SUMMON_COOLDOWN;
             }
+        }
+        
+        // Particle effects (skip if world not ready)
+        if (this.age % 20 == 0 && this.age > 20) {
+            spawnParticles();
         }
     }
     
@@ -177,9 +199,13 @@ public class MobWarlordEntity extends HostileEntity {
                 minionUuids.add(minion.getUuid());
                 
                 // Spawn effects
-                serverWorld.spawnParticles(ParticleTypes.PORTAL, 
-                    spawnPos.x, spawnPos.y, spawnPos.z, 
-                    20, 0.5, 0.5, 0.5, 0.1);
+                try {
+                    serverWorld.spawnParticles(ParticleTypes.PORTAL, 
+                        spawnPos.x, spawnPos.y, spawnPos.z, 
+                        20, 0.5, 0.5, 0.5, 0.1);
+                } catch (Exception e) {
+                    // Silently ignore particle errors
+                }
                 this.playSound(SoundEvents.ENTITY_EVOKER_CAST_SPELL, 1.0f, 1.0f);
             }
         }
@@ -229,14 +255,21 @@ public class MobWarlordEntity extends HostileEntity {
      * Cleans up dead or despawned minions.
      */
     private void cleanupDeadMinions() {
-        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        if (this.getWorld() == null || !(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        if (this.age < 2) return; // Skip during initialization
         
-        minionUuids.removeIf(uuid -> {
-            Entity entity = serverWorld.getEntity(uuid);
-            return entity == null || !entity.isAlive();
-        });
-        
-        this.dataTracker.set(MINION_COUNT, minionUuids.size());
+        try {
+            minionUuids.removeIf(uuid -> {
+                Entity entity = serverWorld.getEntity(uuid);
+                return entity == null || !entity.isAlive();
+            });
+            
+            if (this.dataTracker != null) {
+                this.dataTracker.set(MINION_COUNT, minionUuids.size());
+            }
+        } catch (Exception e) {
+            // Silently ignore errors during world loading
+        }
     }
     
     /**
@@ -285,23 +318,46 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     private void spawnParticles() {
-        if (this.getWorld() instanceof ServerWorld serverWorld) {
-            serverWorld.spawnParticles(ParticleTypes.WITCH,
-                this.getX(), this.getY() + 2.0, this.getZ(),
-                5, 0.5, 0.5, 0.5, 0.05);
+        if (this.getWorld() == null) return;
+        if (this.age < 20) return; // Wait for full initialization
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        
+        try {
+            // Additional null check for serverWorld's particle manager
+            if (serverWorld.getServer() != null && !serverWorld.isClient) {
+                serverWorld.spawnParticles(ParticleTypes.WITCH,
+                    this.getX(), this.getY() + 2.0, this.getZ(),
+                    5, 0.5, 0.5, 0.5, 0.05);
+            }
+        } catch (Exception e) {
+            // Silently ignore particle errors during initialization
         }
     }
     
     @Override
     public void onStartedTrackingBy(ServerPlayerEntity player) {
         super.onStartedTrackingBy(player);
-        this.bossBar.addPlayer(player);
+        
+        try {
+            if (this.bossBar != null && player != null) {
+                this.bossBar.addPlayer(player);
+            }
+        } catch (Exception e) {
+            // Silently ignore errors during world loading
+        }
     }
     
     @Override
     public void onStoppedTrackingBy(ServerPlayerEntity player) {
         super.onStoppedTrackingBy(player);
-        this.bossBar.removePlayer(player);
+        
+        try {
+            if (this.bossBar != null && player != null) {
+                this.bossBar.removePlayer(player);
+            }
+        } catch (Exception e) {
+            // Silently ignore errors during world unloading
+        }
     }
     
     @Override
@@ -334,7 +390,15 @@ public class MobWarlordEntity extends HostileEntity {
     @Override
     protected void mobTick() {
         super.mobTick();
-        this.bossBar.setPercent(this.getHealth() / this.getMaxHealth());
+        
+        // Update boss bar safely
+        try {
+            if (this.bossBar != null && this.age > 2) {
+                this.bossBar.setPercent(this.getHealth() / this.getMaxHealth());
+            }
+        } catch (Exception e) {
+            // Silently ignore errors during initialization
+        }
     }
     
     @Override
@@ -359,9 +423,13 @@ public class MobWarlordEntity extends HostileEntity {
                     minion.damage(minion.getDamageSources().magic(), Float.MAX_VALUE);
                     
                     // Death particles
-                    serverWorld.spawnParticles(ParticleTypes.POOF,
-                        minion.getX(), minion.getY() + 1.0, minion.getZ(),
-                        10, 0.3, 0.3, 0.3, 0.05);
+                    try {
+                        serverWorld.spawnParticles(ParticleTypes.POOF,
+                            minion.getX(), minion.getY() + 1.0, minion.getZ(),
+                            10, 0.3, 0.3, 0.3, 0.05);
+                    } catch (Exception e) {
+                        // Silently ignore particle errors
+                    }
                 }
             }
             minionUuids.clear();
