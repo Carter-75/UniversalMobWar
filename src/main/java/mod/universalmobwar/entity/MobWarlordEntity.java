@@ -57,12 +57,14 @@ public class MobWarlordEntity extends HostileEntity {
     private int attackCooldown = 0;
     private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
     private int particleCooldown = 0; // Cooldown for particle connections
+    private int recruitCooldown = 0; // Cooldown for mob recruitment
     
     private static final int MAX_MINIONS = 20;
-    private static final int SUMMON_COOLDOWN = 100; // 5 seconds
+    private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
     private static final int PARTICLE_COOLDOWN = 20; // 1 second - particle connections
+    private static final int RECRUIT_COOLDOWN = 60; // 3 seconds - mob recruitment cooldown
     
     public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -244,6 +246,7 @@ public class MobWarlordEntity extends HostileEntity {
         
         // Cooldowns
         if (summonCooldown > 0) summonCooldown--;
+        if (recruitCooldown > 0) recruitCooldown--;
         if (attackCooldown > 0) attackCooldown--;
         if (cleanupCooldown > 0) cleanupCooldown--;
         if (particleCooldown > 0) particleCooldown--;
@@ -276,6 +279,12 @@ public class MobWarlordEntity extends HostileEntity {
                 summonMinions(healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1);
                 summonCooldown = SUMMON_COOLDOWN;
             }
+        }
+        
+        // MOB RECRUITMENT: Take over nearby hostile mobs and add them to the army
+        if (recruitCooldown == 0 && minionUuids.size() < MAX_MINIONS) {
+            recruitNearbyMobs();
+            recruitCooldown = RECRUIT_COOLDOWN;
         }
         
         // Particle effects (skip if world not ready, wait 60 ticks = 3 seconds)
@@ -402,6 +411,84 @@ public class MobWarlordEntity extends HostileEntity {
             }
         } catch (Exception e) {
             // Silently handle errors
+        }
+    }
+    
+    /**
+     * Recruits nearby hostile/neutral mobs and adds them to the warlord's army.
+     * This is like "taking over" existing mobs instead of spawning new ones.
+     */
+    private void recruitNearbyMobs() {
+        if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        if (minionUuids.size() >= MAX_MINIONS) return;
+        
+        // Find nearby hostile/neutral mobs that aren't already minions
+        List<MobEntity> nearbyMobs = serverWorld.getEntitiesByClass(
+            MobEntity.class,
+            this.getBoundingBox().expand(16.0), // 16 block radius
+            mob -> mob != this && 
+                   mob.isAlive() && 
+                   !isMinionOf(mob) &&
+                   !(mob instanceof MobWarlordEntity) &&
+                   (mob instanceof HostileEntity || mob instanceof Angerable) && // Only hostile or neutral mobs
+                   !isRaidMob(mob) // Don't recruit raid mobs (they're our allies in raids)
+        );
+        
+        // Try to recruit 1-2 mobs
+        int recruited = 0;
+        for (MobEntity mob : nearbyMobs) {
+            if (recruited >= 2) break;
+            if (minionUuids.size() >= MAX_MINIONS) break;
+            
+            // 50% chance to successfully recruit each mob
+            if (this.random.nextFloat() < 0.5f) {
+                // Add to minion tracking
+                MINION_TO_WARLORD.put(mob.getUuid(), this.getUuid());
+                minionUuids.add(mob.getUuid());
+                
+                // Make minion persistent
+                mob.setPersistent();
+                
+                // Set target to warlord's target
+                LivingEntity warlordTarget = this.getTarget();
+                if (warlordTarget != null && warlordTarget.isAlive()) {
+                    // Validate target isn't another minion
+                    boolean targetIsMinion = false;
+                    if (warlordTarget instanceof MobEntity targetMob) {
+                        UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
+                        targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
+                    }
+                    
+                    if (!targetIsMinion) {
+                        mob.setTarget(warlordTarget);
+                    }
+                }
+                
+                // Recruitment particles and sound
+                try {
+                    if (this.age > 60) {
+                        serverWorld.spawnParticles(ParticleTypes.ENCHANT,
+                            mob.getX(), mob.getY() + mob.getHeight() / 2, mob.getZ(),
+                            30, 0.5, 0.5, 0.5, 0.5);
+                        serverWorld.spawnParticles(ParticleTypes.PORTAL,
+                            mob.getX(), mob.getY() + mob.getHeight() / 2, mob.getZ(),
+                            15, 0.3, 0.3, 0.3, 0.3);
+                    }
+                } catch (Exception e) {
+                    // Ignore particle errors
+                }
+                
+                this.playSound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.0f, 1.5f);
+                recruited++;
+                
+                UniversalMobWarMod.LOGGER.info("Mob Warlord recruited: {} (UUID: {})", 
+                    mob.getType().getRegistryEntry().registryKey().getValue(), 
+                    mob.getUuid());
+            }
+        }
+        
+        if (recruited > 0) {
+            this.dataTracker.set(MINION_COUNT, minionUuids.size());
         }
     }
     
@@ -672,6 +759,7 @@ public class MobWarlordEntity extends HostileEntity {
     /**
      * Smart ranged attack system with dynamic decision making.
      * Priority:
+     * 0. SELF-HEALING - heal the boss if health is low (HIGHEST PRIORITY)
      * 1. Self-defense - attack current target if being attacked
      * 2. Heal critical minions (below 50% health)
      * 3. Attack enemies (avoiding friendly fire)
@@ -680,6 +768,15 @@ public class MobWarlordEntity extends HostileEntity {
     public void performRangedAttack(LivingEntity target) {
         if (attackCooldown > 0) return;
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
+        
+        // PRIORITY 0: SELF-HEALING - Boss heals itself when health is below 70%
+        float healthPercent = this.getHealth() / this.getMaxHealth();
+        if (healthPercent < 0.7f) {
+            // Throw a super healing potion at self
+            throwSuperHealingPotion(this);
+            attackCooldown = ATTACK_COOLDOWN / 2; // Shorter cooldown for self-healing
+            return;
+        }
         
         // PRIORITY 1: Self-defense - if boss has a target (being attacked), deal with threat first
         if (target != null && target.isAlive()) {
@@ -810,6 +907,43 @@ public class MobWarlordEntity extends HostileEntity {
         }
         
         this.playSound(SoundEvents.ENTITY_WITCH_THROW, 1.0f, 0.8f + this.random.nextFloat() * 0.4f);
+    }
+    
+    /**
+     * Throws a SUPER healing potion at the boss itself or critical minions.
+     * Much stronger than regular healing potions.
+     */
+    private void throwSuperHealingPotion(LivingEntity target) {
+        PotionEntity potionEntity = new PotionEntity(this.getWorld(), this);
+        ItemStack potion = new ItemStack(Items.SPLASH_POTION);
+        
+        List<StatusEffectInstance> superHealingEffects = List.of(
+            new StatusEffectInstance(StatusEffects.INSTANT_HEALTH, 1, 3),      // Instant Health IV (8 hearts)
+            new StatusEffectInstance(StatusEffects.REGENERATION, 400, 2),      // 20 seconds, Regeneration III
+            new StatusEffectInstance(StatusEffects.RESISTANCE, 600, 2),        // 30 seconds, Resistance III
+            new StatusEffectInstance(StatusEffects.ABSORPTION, 600, 2)         // 30 seconds, Absorption III (6 extra hearts)
+        );
+        
+        potion.set(DataComponentTypes.POTION_CONTENTS,
+            new PotionContentsComponent(java.util.Optional.empty(), java.util.Optional.of(0xFFD700), superHealingEffects)); // Golden
+        
+        Vec3d vec3d = target.getEyePos().subtract(this.getEyePos());
+        potionEntity.setItem(potion);
+        potionEntity.setVelocity(vec3d.x, vec3d.y + vec3d.length() * 0.2, vec3d.z, 0.75f, 8.0f);
+        this.getWorld().spawnEntity(potionEntity);
+        
+        // Golden healing particles
+        if (this.getWorld() instanceof ServerWorld serverWorld && this.age > 60) {
+            try {
+                serverWorld.spawnParticles(ParticleTypes.ENCHANTED_HIT,
+                    this.getX(), this.getY() + 1.5, this.getZ(),
+                    20, 0.5, 0.5, 0.5, 0.2);
+            } catch (Exception e) {
+                // Ignore particle errors
+            }
+        }
+        
+        this.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f); // Epic healing sound
     }
     
     /**

@@ -18,9 +18,12 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 
 ### 👑 Mob Warlord Boss
 - **Epic Boss Fight** - 2x-sized giant witch with 1500 HP (750 hearts!)
+- **🌟 Super Self-Healing** - Throws golden potions when health drops below 70%
+- **🌟 Mob Recruitment** - Takes over nearby mobs and adds them to its army every 3 seconds
+- **Fast Spawning** - Summons new minions every 2 seconds (aggressive reinforcement!)
 - **27 Summonable Mobs** - Commands an army of up to 20 minions
 - **Smart AI** - Heals low-health minions, avoids friendly fire, prioritizes threats
-- **3 Potion Types** - Harmful, healing, and buff potions with custom effects
+- **4 Potion Types** - Harmful, super healing (golden), regular healing, and buff potions
 - **Particle Connections** - Purple lines to loyal minions, red lines to betrayers
 - **Raid Integration** - 1.5% chance to spawn in final raid wave (can be forced with command)
 
@@ -37,6 +40,9 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 
 ### Mob Warlord Boss
 - Giant witch boss (actually 2x size!) with boss bar
+- **🌟 NEW: Super self-healing** - golden potions when below 70% health (Instant Health IV + Absorption III!)
+- **🌟 NEW: Mob recruitment** - takes over nearby hostile/neutral mobs every 3 seconds
+- **🌟 NEW: Faster spawning** - summons allies every 2 seconds (was 5 seconds)
 - Smart combat AI: heals minions, avoids friendly fire, buffs allies
 - Summons 27 different mob types (including Vexes!)
 - Custom potions: harmful (debuffs), healing (Instant Health II + buffs), support (Strength/Speed/Resistance)
@@ -163,6 +169,9 @@ Use `/gamerule <name> <value>` to configure:
   - Used to support minions when combat is safe
 
 **Smart AI Priority System**:
+0. **🌟 SELF-HEALING** - Boss heals itself when below 70% health (HIGHEST PRIORITY!)
+   - **Super Healing Potion** (Golden): Instant Health IV (8 hearts), Regeneration III (20s), Resistance III (30s), Absorption III (6 extra hearts)
+   - Shorter cooldown for rapid self-healing
 1. **Self-Defense** - Attacks threats first
 2. **Heal Minions** - Throws healing potions to injured minions (<50% HP)
 3. **Attack Enemies** - Avoids friendly fire by checking splash radius
@@ -173,6 +182,14 @@ Use `/gamerule <name> <value>` to configure:
 - Forgives friendly fire from minions
 - Targets betrayers who attack other minions
 - Coordinated assault: all minions target boss's current target
+
+**🆕 Mob Recruitment System**:
+- **Takes over nearby mobs** every 3 seconds
+- Recruits 1-2 hostile/neutral mobs within 16 blocks
+- 50% success chance per mob
+- Recruited mobs get purple portal + enchant particles
+- Recruited mobs become permanent minions with full loyalty
+- Works in addition to spawning new minions!
 
 ### Summonable Mobs (27 Types)
 
