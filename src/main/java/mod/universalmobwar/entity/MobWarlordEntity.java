@@ -483,7 +483,7 @@ public class MobWarlordEntity extends HostileEntity {
         // Make minion persistent
         killedMob.setPersistent();
         
-        // Add tethering goal with HIGHEST priority - keeps minion within 16 blocks of warlord
+        // Add tethering goal with HIGHEST priority - keeps minion within 14 blocks of warlord
         ((MobEntityAccessor) killedMob).getGoalSelector().add(0, new StayNearWarlordGoal(killedMob, this));
         
         // Make sure the converted mob will actually attack enemies
@@ -578,7 +578,7 @@ public class MobWarlordEntity extends HostileEntity {
                     // ALSO register with universal summoner tracker
                     SummonerTracker.registerSummoned(minion.getUuid(), this.getUuid());
                     
-                    // Add tethering goal with HIGHEST priority - keeps minion within 16 blocks of warlord
+                    // Add tethering goal with HIGHEST priority - keeps minion within 14 blocks of warlord
                     ((MobEntityAccessor) minion).getGoalSelector().add(0, new StayNearWarlordGoal(minion, this));
                     
                     // Special AI for creepers - make them avoid allies when exploding
@@ -1523,15 +1523,14 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     /**
-     * Tethering goal that keeps minions within 16 blocks of the Mob Warlord.
+     * Tethering goal that keeps minions within 14 blocks of the Mob Warlord.
      * If a minion strays too far, they will return to the boss regardless of enemy targets.
      * This prevents minions from wandering off and getting separated from their master.
      */
     public static class StayNearWarlordGoal extends Goal {
         private final MobEntity minion;
         private final MobWarlordEntity warlord;
-        private static final double MAX_DISTANCE = 16.0; // Maximum distance from warlord
-        private static final double RETURN_DISTANCE = 14.0; // Start returning at this distance
+        private static final double RETURN_DISTANCE = 14.0; // Minions start returning at this distance
         private int checkCooldown = 0;
         
         public StayNearWarlordGoal(MobEntity minion, MobWarlordEntity warlord) {
