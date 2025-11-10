@@ -467,6 +467,16 @@ public class MobWarlordEntity extends HostileEntity {
         if (minionUuids.size() >= MAX_MINIONS) return;
         if (killedMob == null || !killedMob.isAlive()) return;
         
+        // CRITICAL: Never convert other Mob Warlords (prevents infinite loops and conflicts)
+        if (killedMob instanceof MobWarlordEntity) return;
+        
+        // CRITICAL: Never convert another warlord's minions (prevents ownership conflicts and goal duplication)
+        UUID existingMaster = MINION_TO_WARLORD.get(killedMob.getUuid());
+        if (existingMaster != null && !existingMaster.equals(this.getUuid())) {
+            // This mob belongs to another warlord - can't steal them!
+            return;
+        }
+        
         // 50% chance to convert
         if (this.random.nextFloat() > 0.5f) return;
         
