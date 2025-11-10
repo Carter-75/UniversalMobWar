@@ -59,14 +59,12 @@ public class MobWarlordEntity extends HostileEntity {
     private int attackCooldown = 0;
     private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
     private int particleCooldown = 0; // Cooldown for particle connections
-    private int recruitCooldown = 0; // Cooldown for mob recruitment
     
     private static final int MAX_MINIONS = 20;
     private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
     private static final int PARTICLE_COOLDOWN = 20; // 1 second - particle connections
-    private static final int RECRUIT_COOLDOWN = 60; // 3 seconds - mob recruitment cooldown
     
     public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -116,23 +114,13 @@ public class MobWarlordEntity extends HostileEntity {
             }
         });
         
-        // NEW: AGGRESSIVE TARGETING - Target angry neutral mobs (Endermen, Wolves, etc.)
-        this.targetSelector.add(2, new ActiveTargetGoal<>(this, MobEntity.class, 5, true, false,
+        // AGGRESSIVE TARGETING - Target ALL hostile mobs actively
+        this.targetSelector.add(2, new ActiveTargetGoal<>(this, HostileEntity.class, 1, true, false,
             entity -> {
                 if (!(entity instanceof MobEntity mob)) return false;
                 if (isMinionOf(mob)) return false; // Never target own minions
-                
-                // Target neutral mobs that are already angry at something
-                if (entity instanceof Angerable angerable && angerable.getAngryAt() != null) {
-                    return true; // Target angry Endermen, Wolves, etc.
-                }
-                
-                // Target any hostile mob
-                if (entity instanceof HostileEntity) {
-                    return true;
-                }
-                
-                return false;
+                if (entity instanceof MobWarlordEntity) return false; // Don't target other warlords
+                return true;
             }
         ));
         
@@ -140,50 +128,11 @@ public class MobWarlordEntity extends HostileEntity {
         this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
         this.targetSelector.add(4, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
         
-        // Players - lower priority in raids (6), higher in normal (5)
-        this.targetSelector.add(5, new ActiveTargetGoal<>(this, PlayerEntity.class, 10, true, false, 
-            entity -> {
-                // In raids, only target players if they're interfering (attacking villagers/golems/minions)
-                if (isRaidBoss()) {
-                    return entity instanceof PlayerEntity player && 
-                           (player.getAttacker() != null || this.getAttacker() == player);
-                }
-                return true; // Always target in normal mode
-            }
-        ));
+        // Players - ALWAYS target players aggressively (priority 3)
+        this.targetSelector.add(3, new ActiveTargetGoal<PlayerEntity>(this, PlayerEntity.class, 1, true, false, null));
         
-        // Other mobs - avoid raid mobs when in raid (lower priority)
-        this.targetSelector.add(6, new ActiveTargetGoal<>(this, MobEntity.class, 10, true, false,
-            entity -> {
-                if (!(entity instanceof MobEntity mob)) return false;
-                if (isMinionOf(mob)) return false; // Never target own minions
-                
-                // In raids, avoid targeting raid mobs (pillagers, vindicators, etc.)
-                if (isRaidBoss() && isRaidMob(mob)) {
-                    return false; // Favor raid mobs
-                }
-                
-                return true;
-            }
-        ));
-        
-        // ULTIMATE FALLBACK: Target ANY living entity nearby (except minions/self/other warlords)
-        // This ensures the boss ALWAYS has something to fight
-        this.targetSelector.add(7, new ActiveTargetGoal<>(this, LivingEntity.class, 10, true, false,
-            entity -> {
-                // Don't target ourselves
-                if (entity == this) return false;
-                
-                // Don't target our own minions
-                if (entity instanceof MobEntity mob && isMinionOf(mob)) return false;
-                
-                // Don't target other warlords (modded servers might have multiple)
-                if (entity instanceof MobWarlordEntity) return false;
-                
-                // Target EVERYTHING ELSE within range!
-                return entity.isAlive() && entity.squaredDistanceTo(this) <= 4096.0; // 64 block range
-            }
-        ));
+        // Passive mobs and animals (low priority)
+        this.targetSelector.add(5, new ActiveTargetGoal<net.minecraft.entity.passive.AnimalEntity>(this, net.minecraft.entity.passive.AnimalEntity.class, 10, true, false, null));
     }
     
     public static DefaultAttributeContainer.Builder createMobWarlordAttributes() {
@@ -289,7 +238,6 @@ public class MobWarlordEntity extends HostileEntity {
         
         // Cooldowns
         if (summonCooldown > 0) summonCooldown--;
-        if (recruitCooldown > 0) recruitCooldown--;
         if (attackCooldown > 0) attackCooldown--;
         if (cleanupCooldown > 0) cleanupCooldown--;
         if (particleCooldown > 0) particleCooldown--;
@@ -345,11 +293,8 @@ public class MobWarlordEntity extends HostileEntity {
             }
         }
         
-        // MOB RECRUITMENT: Take over nearby hostile mobs and add them to the army
-        if (recruitCooldown == 0 && minionUuids.size() < MAX_MINIONS) {
-            recruitNearbyMobs();
-            recruitCooldown = RECRUIT_COOLDOWN;
-        }
+        // MOB CONVERSION: When boss kills a mob, there's a 50% chance to convert it to a minion
+        // This is handled in the damage method, not here
         
         // Particle effects (skip if world not ready, wait 60 ticks = 3 seconds)
         if (this.age % 20 == 0 && this.age > 60) {
@@ -499,84 +444,85 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     /**
-     * Recruits nearby hostile/neutral mobs and adds them to the warlord's army.
-     * This is like "taking over" existing mobs instead of spawning new ones.
+     * Converts a killed mob into a minion instead of letting it die.
+     * Called when the boss deals a killing blow to a mob.
+     * 50% chance to convert the mob into a loyal minion.
      */
-    private void recruitNearbyMobs() {
+    public void tryConvertKilledMob(MobEntity killedMob) {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (minionUuids.size() >= MAX_MINIONS) return;
+        if (killedMob == null || !killedMob.isAlive()) return;
         
-        // Find nearby hostile/neutral mobs that aren't already minions
-        List<MobEntity> nearbyMobs = serverWorld.getEntitiesByClass(
-            MobEntity.class,
-            this.getBoundingBox().expand(16.0), // 16 block radius
-            mob -> mob != this && 
-                   mob.isAlive() && 
-                   !isMinionOf(mob) &&
-                   !(mob instanceof MobWarlordEntity) &&
-                   (mob instanceof HostileEntity || mob instanceof Angerable) // Only hostile or neutral mobs
-                   // FIX: Removed raid mob filter - boss should recruit ALL nearby mobs!
-        );
+        // 50% chance to convert
+        if (this.random.nextFloat() > 0.5f) return;
         
-        // Try to recruit 1-2 mobs
-        int recruited = 0;
-        for (MobEntity mob : nearbyMobs) {
-            if (recruited >= 2) break;
-            if (minionUuids.size() >= MAX_MINIONS) break;
+        // Heal the mob instead of letting it die
+        killedMob.setHealth(killedMob.getMaxHealth());
+        
+        // Add to minion tracking
+        MINION_TO_WARLORD.put(killedMob.getUuid(), this.getUuid());
+        minionUuids.add(killedMob.getUuid());
+        
+        // Register with universal summoner tracker
+        SummonerTracker.registerSummoned(killedMob.getUuid(), this.getUuid());
+        
+        // Make minion persistent
+        killedMob.setPersistent();
+        
+        // Add tethering goal with HIGHEST priority - keeps minion within 16 blocks of warlord
+        ((MobEntityAccessor) killedMob).getGoalSelector().add(0, new StayNearWarlordGoal(killedMob, this));
+        
+        // Make sure the converted mob will actually attack enemies
+        // The UniversalTargetGoal should already be on them, but if not, their normal AI will work
+        // Clear any fear/fleeing states
+        killedMob.setTarget(null);
+        killedMob.setAttacker(null);
+        
+        // Force the mob to be aggressive by setting it to angry state if it's angerable
+        if (killedMob instanceof Angerable angerable) {
+            angerable.setAttacker(null); // Clear any anger at the boss
+            angerable.stopAnger(); // Reset anger
+        }
+        
+        LivingEntity warlordTarget = this.getTarget();
+        if (warlordTarget != null && warlordTarget.isAlive() && warlordTarget != killedMob) {
+            // Validate target isn't another minion
+            boolean targetIsMinion = false;
+            if (warlordTarget instanceof MobEntity targetMob) {
+                UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
+                targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
+            }
             
-            // 50% chance to successfully recruit each mob
-            if (this.random.nextFloat() < 0.5f) {
-                // Add to minion tracking
-                MINION_TO_WARLORD.put(mob.getUuid(), this.getUuid());
-                minionUuids.add(mob.getUuid());
-                
-                // ALSO register with universal summoner tracker
-                SummonerTracker.registerSummoned(mob.getUuid(), this.getUuid());
-                
-                // Make minion persistent
-                mob.setPersistent();
-                
-                // Set target to warlord's target
-                LivingEntity warlordTarget = this.getTarget();
-                if (warlordTarget != null && warlordTarget.isAlive()) {
-                    // Validate target isn't another minion
-                    boolean targetIsMinion = false;
-                    if (warlordTarget instanceof MobEntity targetMob) {
-                        UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
-                        targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
-                    }
-                    
-                    if (!targetIsMinion) {
-                        mob.setTarget(warlordTarget);
-                    }
-                }
-                
-                // Recruitment particles and sound
-                try {
-                    if (this.age > 60) {
-                        serverWorld.spawnParticles(ParticleTypes.ENCHANT,
-                            mob.getX(), mob.getY() + mob.getHeight() / 2, mob.getZ(),
-                            30, 0.5, 0.5, 0.5, 0.5);
-                        serverWorld.spawnParticles(ParticleTypes.PORTAL,
-                            mob.getX(), mob.getY() + mob.getHeight() / 2, mob.getZ(),
-                            15, 0.3, 0.3, 0.3, 0.3);
-                    }
-                } catch (Exception e) {
-                    // Ignore particle errors
-                }
-                
-                this.playSound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.0f, 1.5f);
-                recruited++;
-                
-                UniversalMobWarMod.LOGGER.debug("Mob Warlord recruited: {} (UUID: {})", 
-                    mob.getType().getRegistryEntry().registryKey().getValue(), 
-                    mob.getUuid());
+            if (!targetIsMinion) {
+                killedMob.setTarget(warlordTarget);
             }
         }
         
-        if (recruited > 0) {
-            this.dataTracker.set(MINION_COUNT, minionUuids.size());
+        // Conversion particles and sound - dramatic effect!
+        try {
+            if (this.age > 60) {
+                serverWorld.spawnParticles(ParticleTypes.SOUL,
+                    killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
+                    50, 0.5, 0.5, 0.5, 0.1);
+                serverWorld.spawnParticles(ParticleTypes.ENCHANT,
+                    killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
+                    30, 0.5, 0.5, 0.5, 0.5);
+                serverWorld.spawnParticles(ParticleTypes.PORTAL,
+                    killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
+                    20, 0.3, 0.3, 0.3, 0.3);
+            }
+        } catch (Exception e) {
+            // Ignore particle errors
         }
+        
+        this.playSound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.5f, 0.8f);
+        this.playSound(SoundEvents.ENTITY_ZOMBIE_VILLAGER_CURE, 1.0f, 1.5f);
+        
+        this.dataTracker.set(MINION_COUNT, minionUuids.size());
+        
+        UniversalMobWarMod.LOGGER.debug("Mob Warlord converted {} into a minion! (UUID: {})", 
+            killedMob.getType().getRegistryEntry().registryKey().getValue(), 
+            killedMob.getUuid());
     }
     
     /**
@@ -617,6 +563,9 @@ public class MobWarlordEntity extends HostileEntity {
                     
                     // ALSO register with universal summoner tracker
                     SummonerTracker.registerSummoned(minion.getUuid(), this.getUuid());
+                    
+                    // Add tethering goal with HIGHEST priority - keeps minion within 16 blocks of warlord
+                    ((MobEntityAccessor) minion).getGoalSelector().add(0, new StayNearWarlordGoal(minion, this));
                     
                     // Special AI for creepers - make them avoid allies when exploding
                     if (minion instanceof net.minecraft.entity.mob.CreeperEntity creeper) {
@@ -1110,11 +1059,25 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Performs a melee attack with knockback and particles.
+     * Also handles mob conversion on killing blows.
      */
     public void performMeleeAttack(LivingEntity target) {
         if (attackCooldown > 0) return;
         
+        // Check if this attack would kill the target (mob only, not players)
+        boolean wouldKill = false;
+        if (target instanceof MobEntity mobTarget && !(target instanceof MobWarlordEntity)) {
+            float damage = (float)this.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+            wouldKill = (mobTarget.getHealth() <= damage);
+        }
+        
+        // Perform the attack
         this.tryAttack(target);
+        
+        // If we would have killed a mob, try to convert it
+        if (wouldKill && target instanceof MobEntity mobTarget && mobTarget.isAlive()) {
+            tryConvertKilledMob(mobTarget);
+        }
         
         // Knockback effect
         Vec3d direction = target.getPos().subtract(this.getPos()).normalize();
@@ -1542,6 +1505,79 @@ public class MobWarlordEntity extends HostileEntity {
             }
             
             return super.canStart();
+        }
+    }
+    
+    /**
+     * Tethering goal that keeps minions within 16 blocks of the Mob Warlord.
+     * If a minion strays too far, they will return to the boss regardless of enemy targets.
+     * This prevents minions from wandering off and getting separated from their master.
+     */
+    public static class StayNearWarlordGoal extends Goal {
+        private final MobEntity minion;
+        private final MobWarlordEntity warlord;
+        private static final double MAX_DISTANCE = 16.0; // Maximum distance from warlord
+        private static final double RETURN_DISTANCE = 14.0; // Start returning at this distance
+        private int checkCooldown = 0;
+        
+        public StayNearWarlordGoal(MobEntity minion, MobWarlordEntity warlord) {
+            this.minion = minion;
+            this.warlord = warlord;
+            this.setControls(EnumSet.of(Control.MOVE, Control.TARGET));
+        }
+        
+        @Override
+        public boolean canStart() {
+            // Check every 20 ticks (1 second) for performance
+            if (checkCooldown > 0) {
+                checkCooldown--;
+                return false;
+            }
+            checkCooldown = 20;
+            
+            // Check if warlord is still alive
+            if (!this.warlord.isAlive()) {
+                return false;
+            }
+            
+            // Check if minion is too far from warlord
+            double distance = this.minion.squaredDistanceTo(this.warlord);
+            return distance > (RETURN_DISTANCE * RETURN_DISTANCE);
+        }
+        
+        @Override
+        public boolean shouldContinue() {
+            // Continue until we're close enough to the warlord
+            if (!this.warlord.isAlive()) return false;
+            
+            double distance = this.minion.squaredDistanceTo(this.warlord);
+            // Stop when within 12 blocks to prevent bouncing
+            return distance > (12.0 * 12.0);
+        }
+        
+        @Override
+        public void start() {
+            // Clear current target to focus on returning
+            this.minion.setTarget(null);
+            // Navigate back to warlord
+            this.minion.getNavigation().startMovingTo(this.warlord, 1.2); // Slightly faster return speed
+        }
+        
+        @Override
+        public void tick() {
+            // Keep navigating to warlord's current position
+            if (this.minion.age % 10 == 0) { // Update path every 0.5 seconds
+                this.minion.getNavigation().startMovingTo(this.warlord, 1.2);
+            }
+            
+            // Make minion look at the warlord while returning
+            this.minion.getLookControl().lookAt(this.warlord, 30.0f, 30.0f);
+        }
+        
+        @Override
+        public void stop() {
+            // Stop navigating
+            this.minion.getNavigation().stop();
         }
     }
 }

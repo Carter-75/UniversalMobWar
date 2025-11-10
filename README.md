@@ -19,11 +19,13 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 ### 👑 Mob Warlord Boss
 - **Epic Boss Fight** - 2x-sized giant witch with 1500 HP (750 hearts!)
 - **🌟 Super Self-Healing** - Throws golden potions when health drops below 70%
-- **🌟 Mob Recruitment** - Takes over nearby mobs and adds them to its army every 3 seconds
+- **🌟 Mob Conversion on Kill** - 50% chance to convert defeated enemies into loyal minions
 - **Fast Spawning** - Summons new minions every 2 seconds (aggressive reinforcement!)
 - **27 Summonable Mobs** - Commands an army of up to 20 minions
-- **Smart AI** - Heals low-health minions, avoids friendly fire, prioritizes threats
+- **Aggressive AI** - Actively targets players and hostile mobs, always in combat
+- **Smart Combat** - Heals low-health minions, avoids friendly fire, prioritizes threats
 - **4 Potion Types** - Harmful, super healing (golden), regular healing, and buff potions
+- **Minion Tethering** - Minions stay within 16 blocks and return if they wander too far
 - **Particle Connections** - Purple lines to loyal minions, red lines to betrayers
 - **Raid Integration** - 1.5% chance to spawn in final raid wave (can be forced with command)
 
@@ -177,19 +179,21 @@ Use `/gamerule <name> <value>` to configure:
 3. **Attack Enemies** - Avoids friendly fire by checking splash radius
 4. **Buff Minions** - Strengthens army when safe
 
-**Minion Protection**:
+**Minion Protection & Control**:
 - Attacks anyone who hurts its minions
 - Forgives friendly fire from minions
 - Targets betrayers who attack other minions
 - Coordinated assault: all minions target boss's current target
+- **Tethering**: Minions stay within 16 blocks of the boss - if they wander or chase enemies beyond this range, they immediately return to the boss's side
 
-**🆕 Mob Recruitment System**:
-- **Takes over nearby mobs** every 3 seconds
-- Recruits 1-2 hostile/neutral mobs within 16 blocks
-- 50% success chance per mob
-- Recruited mobs get purple portal + enchant particles
-- Recruited mobs become permanent minions with full loyalty
-- Works in addition to spawning new minions!
+**🆕 Mob Conversion System**:
+- **Converts defeated enemies into minions**
+- When the boss (not minions) kills a mob, 50% chance to convert instead of killing
+- Converted mobs are instantly healed to full health and join the boss
+- Dramatic conversion effect with soul, enchant, and portal particles
+- Only the BOSS's kills trigger conversion (minion kills don't count)
+- Works for all mobs except other Warlords
+- Adds up to 20 total minions
 
 ### Summonable Mobs (27 Types)
 
@@ -207,6 +211,7 @@ Use `/gamerule <name> <value>` to configure:
 - **Smart Creepers**: Flee if 3+ allies nearby to avoid mass friendly fire
 - **Total Loyalty**: Never attack boss or each other (regardless of gamerules)
 - **Betrayal System**: If a minion attacks another, they become a traitor (red particles)
+- **Tethering System**: Minions stay within 16 blocks of the boss - if they chase enemies too far, they automatically return
 - **Death Link**: All minions die instantly when boss is defeated
 
 ### Particle Connections
