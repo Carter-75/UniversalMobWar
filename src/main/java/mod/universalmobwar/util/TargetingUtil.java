@@ -1,5 +1,6 @@
 package mod.universalmobwar.util;
 
+import mod.universalmobwar.entity.MobWarlordEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -20,7 +21,13 @@ public final class TargetingUtil {
 		List<LivingEntity> list = self.getWorld().getEntitiesByClass(LivingEntity.class, box, filter::test);
 		if (list.isEmpty()) return null;
 
-		list.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(self)));
+		// STRATEGIC PRIORITY SORTING
+		// 1. Prioritize Mob Warlords (killing boss = killing all minions)
+		// 2. Then sort by distance
+		list.sort(Comparator
+			.comparing((LivingEntity e) -> !(e instanceof MobWarlordEntity)) // false (warlords) sorts before true (others)
+			.thenComparingDouble(e -> e.squaredDistanceTo(self)) // then by distance
+		);
 		return list.getFirst();
 	}
 

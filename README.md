@@ -12,6 +12,7 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 
 ### ⚔️ Combat & Evolution
 - **Universal Mob Combat** - All mobs attack different species automatically
+- **Strategic AI** - ALL mobs prioritize Warlord bosses over minions (kill boss = kill army!)
 - **Evolution System** - Mobs gain levels, stats, weapons, and armor from kills (max level 100)
 - **Alliance System** - Two-tier system: strong same-species alliances, weak cross-species alliances
 - **Betrayal Detection** - Minions who attack allies are marked as traitors
@@ -51,10 +52,16 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 - Particle connections showing loyalty (purple) vs betrayal (red)
 - Smart creeper AI - creepers flee if 3+ allies nearby to avoid friendly fire
 - **Raid spawning** - 1.5% chance on final wave OR force with `/mobwar raid forceboss`
-- **Context-aware targeting**:
-  - **In raids**: Targets villagers → iron golems → players (only if interfering)
-  - **Normal spawn**: Targets players → all other mobs
-  - Avoids attacking raid mobs (pillagers, vindicators, etc.) when spawned in raids
+- **Strategic targeting priorities**:
+  - **Priority 0**: Defend minions if attacked
+  - **Priority 1**: Revenge if boss is attacked
+  - **Priority 2**: **OTHER WARLORDS FIRST** (chaos mode only) - Kill the boss, kill all their minions!
+  - **Priority 3-4**: Villagers & Iron Golems (raids)
+  - **Priority 5**: Players
+  - **Priority 6**: All hostile mobs (including enemy minions)
+  - **Priority 7**: Animals
+  
+  **Smart strategy**: In chaos mode, warlords prioritize killing other warlords since defeating a warlord instantly kills all their minions!
 
 ### Betrayal System
 - Automatic detection when minions attack each other
@@ -371,6 +378,7 @@ Mobs will ignore you - perfect for watching the chaos!
 /gamerule universalMobWarRangeMultiplier 1000
 ```
 Everything fights everything at 10x detection range!
+**Note**: In chaos mode, even multiple Mob Warlord bosses will fight EACH OTHER!
 
 ### Peaceful Evolution
 ```
@@ -390,6 +398,12 @@ Mobs fight each other but leave you alone. Watch them evolve naturally!
 - Works with **all modded mobs** (automatically detected)
 - Tested with **400+ mod modpacks**
 - Compatible with **Iris Shaders**
+
+### Strategic AI System
+- **Smart Targeting**: All mobs (zombies, skeletons, etc.) prioritize Mob Warlords over regular minions
+- **Reasoning**: Killing a Warlord instantly kills all 20 of its minions
+- **Example**: A zombie fighting against a Warlord + 15 minions will attack the Warlord first
+- **Result**: More strategic and realistic combat behavior
 
 ### Performance
 - Optimized for large modpacks

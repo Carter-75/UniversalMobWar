@@ -114,25 +114,39 @@ public class MobWarlordEntity extends HostileEntity {
             }
         });
         
-        // AGGRESSIVE TARGETING - Target ALL hostile mobs actively
-        this.targetSelector.add(2, new ActiveTargetGoal<>(this, HostileEntity.class, 1, true, false,
+        // PRIORITY 2: Target OTHER WARLORDS FIRST in chaos mode (kill boss = kill all minions!)
+        this.targetSelector.add(2, new ActiveTargetGoal<>(this, MobWarlordEntity.class, 1, true, false,
+            entity -> {
+                if (entity == this) return false; // Don't target self
+                
+                // Only target other warlords in chaos mode
+                boolean ignoreSame = entity.getWorld().getGameRules().getBoolean(UniversalMobWarMod.IGNORE_SAME_SPECIES_RULE);
+                return !ignoreSame; // Only in chaos mode
+            }
+        ));
+        
+        // PRIORITY 3: RAID-SPECIFIC TARGETING - Villagers (when in raid)
+        this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
+        
+        // PRIORITY 4: RAID-SPECIFIC TARGETING - Iron Golems (when in raid)
+        this.targetSelector.add(4, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
+        
+        // PRIORITY 5: PLAYERS - Always target players aggressively
+        this.targetSelector.add(5, new ActiveTargetGoal<PlayerEntity>(this, PlayerEntity.class, 1, true, false, null));
+        
+        // PRIORITY 6: ALL hostile mobs (including enemy minions, but NOT other warlords)
+        this.targetSelector.add(6, new ActiveTargetGoal<>(this, HostileEntity.class, 1, true, false,
             entity -> {
                 if (!(entity instanceof MobEntity mob)) return false;
                 if (isMinionOf(mob)) return false; // Never target own minions
-                if (entity instanceof MobWarlordEntity) return false; // Don't target other warlords
+                if (entity instanceof MobWarlordEntity) return false; // Warlords handled by priority 2
+                
                 return true;
             }
         ));
         
-        // RAID-SPECIFIC TARGETING: Prioritize villagers and iron golems
-        this.targetSelector.add(3, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.VillagerEntity.class, true));
-        this.targetSelector.add(4, new RaidAwareTargetGoal<>(this, net.minecraft.entity.passive.IronGolemEntity.class, true));
-        
-        // Players - ALWAYS target players aggressively (priority 3)
-        this.targetSelector.add(3, new ActiveTargetGoal<PlayerEntity>(this, PlayerEntity.class, 1, true, false, null));
-        
-        // Passive mobs and animals (low priority)
-        this.targetSelector.add(5, new ActiveTargetGoal<net.minecraft.entity.passive.AnimalEntity>(this, net.minecraft.entity.passive.AnimalEntity.class, 10, true, false, null));
+        // PRIORITY 7: Passive mobs and animals (lowest priority)
+        this.targetSelector.add(7, new ActiveTargetGoal<net.minecraft.entity.passive.AnimalEntity>(this, net.minecraft.entity.passive.AnimalEntity.class, 10, true, false, null));
     }
     
     public static DefaultAttributeContainer.Builder createMobWarlordAttributes() {
