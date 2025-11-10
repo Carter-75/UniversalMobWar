@@ -318,10 +318,10 @@ public class MobWarlordEntity extends HostileEntity {
                 (healthPercent < 0.5f && currentMinions < 15)
             );
             
-            // REVERTED: Boss should only summon when there's a target (combat situation)
+            // Boss summons when there's a target (combat situation)
             if (shouldSummon && this.getTarget() != null) {
                 int toSummon = healthPercent < 0.5f ? 3 : healthPercent < 0.75f ? 2 : 1;
-                UniversalMobWarMod.LOGGER.info("Mob Warlord summoning {} minions (current: {}, health: {}%, target: {})", 
+                UniversalMobWarMod.LOGGER.debug("Mob Warlord summoning {} minions (current: {}, health: {}%, target: {})", 
                     toSummon, currentMinions, (int)(healthPercent * 100), this.getTarget().getName().getString());
                 summonMinions(toSummon);
                 summonCooldown = SUMMON_COOLDOWN;
@@ -340,7 +340,7 @@ public class MobWarlordEntity extends HostileEntity {
                              !(entity instanceof MobWarlordEntity) &&
                              !(entity instanceof MobEntity mob && isMinionOf(mob))
                 );
-                UniversalMobWarMod.LOGGER.warn("Mob Warlord has NO TARGET! {} potential targets nearby within 64 blocks", 
+                UniversalMobWarMod.LOGGER.debug("Mob Warlord has NO TARGET! {} potential targets nearby within 64 blocks", 
                     nearbyHostiles.size());
             }
         }
@@ -568,7 +568,7 @@ public class MobWarlordEntity extends HostileEntity {
                 this.playSound(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.0f, 1.5f);
                 recruited++;
                 
-                UniversalMobWarMod.LOGGER.info("Mob Warlord recruited: {} (UUID: {})", 
+                UniversalMobWarMod.LOGGER.debug("Mob Warlord recruited: {} (UUID: {})", 
                     mob.getType().getRegistryEntry().registryKey().getValue(), 
                     mob.getUuid());
             }
@@ -863,7 +863,7 @@ public class MobWarlordEntity extends HostileEntity {
         float healthPercent = this.getHealth() / this.getMaxHealth();
         if (healthPercent < 0.7f) { // Changed back to 0.7 - boss should heal more often!
             // Throw a super healing potion at self
-            UniversalMobWarMod.LOGGER.info("Mob Warlord self-healing! Health: {}% ({}/{})", 
+            UniversalMobWarMod.LOGGER.debug("Mob Warlord self-healing! Health: {}% ({}/{})", 
                 (int)(healthPercent * 100), (int)this.getHealth(), (int)this.getMaxHealth());
             throwSuperHealingPotion(this);
             attackCooldown = ATTACK_COOLDOWN / 2; // Shorter cooldown for self-healing

@@ -6,9 +6,8 @@
 	"description": "Mobs attack each other and evolve! Features: alliance system, mob leveling with equipment, customizable range, player immunity, and more. Total chaos with progression!",
 	"authors": ["Carter"],
 	"contact": {
-		"sources": "https://github.com/yourusername/universal-mob-war"
 	},
-	"license": "MIT",
+	"license": "All Rights Reserved",
 	"icon": "icon.png",
 	"environment": "*",
 	"entrypoints": {

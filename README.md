@@ -404,13 +404,25 @@ Mobs fight each other but leave you alone. Watch them evolve naturally!
 
 ## 📦 Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api)
-3. Download `universal-mob-war-2.0.0.jar`
+1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1 (version 0.16.7 or higher)
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.106.1 or higher)
+3. Download `universal-mob-war-2.0.0.jar` from the official download page
 4. Place in `mods` folder
 5. Launch game!
 
 Config file will be auto-generated at `config/universalmobwar.json`
+
+---
+
+## 🔨 Building from Source
+
+If you want to build the mod yourself for personal use:
+
+1. Clone this repository
+2. Run `./gradlew build` (Linux/Mac) or `gradlew.bat build` (Windows)
+3. Find the compiled jar in `build/libs/`
+
+**Note**: Build artifacts (`build/`, `.gradle/`) are already in `.gitignore` and should not be committed to version control.
 
 ---
 
@@ -453,29 +465,37 @@ When players join, they see:
 **Copyright © 2024 Carter. All rights reserved.**
 
 ### ✅ You MAY:
-- Use this mod in modpacks
+- Use this mod in modpacks (with proper attribution)
 - Use this mod on servers (public or private)
 - Create videos/content featuring this mod
+- Share where to obtain this mod (link to the official download page)
 
 ### ❌ You MAY NOT:
 - Edit, modify, or decompile this mod
 - Claim this mod as your own
-- Redistribute or share the direct download link
+- **Redistribute or share the direct download link to the mod file**
 - Redistribute modified versions
 - Remove or alter credits
+- Re-upload this mod to other platforms or file-sharing sites
 
 ### 📋 Attribution Requirements:
 If you use this mod in a modpack, server, or content, you **MUST**:
 1. Credit **Carter** as the original creator
-2. Include a link to this GitHub repository
+2. Include a link to the **official download page** (not the direct file link)
 3. Clearly state that you did not create this mod
 
 **Example Attribution**:
 ```
 Universal Mob War by Carter
-GitHub: [Link to this repository]
+Download: [Link to official download page]
 Not created by [Your Name/Server Name]
 ```
+
+### 🔒 Distribution Policy:
+This mod is distributed through a controlled download page. You may direct users to the official download location, but you may not:
+- Provide direct download links to the .jar file
+- Re-host the mod files elsewhere
+- Bypass the official download process
 
 **Violation of these terms may result in removal requests or DMCA takedowns.**
 
