@@ -379,8 +379,8 @@ Mobs fight each other but leave you alone. Watch them evolve naturally!
 ## 🔧 Technical Details
 
 ### Compatibility
-- **Fabric 1.21.1** (Loader ≥0.16.7)
-- **Fabric API** ≥0.106.1+1.21.1
+- **Fabric 1.21.1** (Loader ≥0.16.5)
+- **Fabric API** ≥0.102.0+1.21.1
 - Works with **all vanilla mobs**
 - Works with **all modded mobs** (automatically detected)
 - Tested with **400+ mod modpacks**
@@ -404,8 +404,8 @@ Mobs fight each other but leave you alone. Watch them evolve naturally!
 
 ## 📦 Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1 (version 0.16.7 or higher)
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.106.1 or higher)
+1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1 (version 0.16.5 or higher)
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.102.0 or higher)
 3. Download `universal-mob-war-2.0.0.jar` from the official download page
 4. Place in `mods` folder
 5. Launch game!
