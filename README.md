@@ -411,14 +411,21 @@ Mobs fight each other but leave you alone. Watch them evolve naturally!
 - **Adaptive Delays**: Operations scale from 0.1-1.0s based on real-time server load (fast when quiet, slower when busy)
 - **Smart Scheduler**: All operations never overlap (25-100ms dynamic gap) + anti-starvation protection
 - **Ultra-Low Overhead**: Delay adjustments only every 50ms, cleanup only when needed (>50 entries)
-- **Entity Query System**: Cached queries (1s TTL) reduce overhead by 80%
+- **Targeting System (Ultra-Optimized)**:
+  - Spatial caching (1s per chunk) reduces queries by 80%
+  - Query rate limiting (50/tick) prevents CPU spikes
+  - Smart validation ordered by cost (cheapest checks first)
+  - Skip sorting for single targets
+  - Skip visibility checks for close targets (< 4 blocks)
+  - Early player filtering when player targeting disabled
+  - Conditional cache cleanup (only when > 30 entries)
 - **Staggered Operations**: All Warlords use UUID-based tick offsets (no simultaneous operations)
 - **Kill Event Optimization**: Adaptive scheduled evolution (0.1-0.5s), reduced particles, staggered minion deaths
 - **Alliance System**: Adaptive scheduled updates (0.15-0.6s) prevent overlap with other operations
 - **Particle System**: Optimized density (55% fewer particles) and update intervals
 - **Anti-Starvation**: Max 10 queued operations per type, 2s forced execution if waiting too long
 - **Smart Validation**: Only checks 3 random minions per cycle
-- **Memory Efficient**: Maps auto-cleanup when >50 entries, queue resets, minimal allocations
+- **Memory Efficient**: Maps auto-cleanup when needed, queue resets, minimal allocations
 - Tested with 400+ mod modpacks - runs smoothly even with 10+ Warlords
 
 ### Data Persistence
