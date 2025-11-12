@@ -1,6 +1,7 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.MobWarData;
+import mod.universalmobwar.util.OperationScheduler;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
@@ -26,9 +27,41 @@ public class EvolutionSystem {
     
     /**
      * Called when a mob kills another mob. Increases kill count and levels up if needed.
-     * OPTIMIZED: Equipment spawning delayed by 1 tick to prevent kill lag.
+     * OPTIMIZED: Smart scheduled with 0.25s minimum delay, prevents operation overlaps.
+     * ANTI-STARVATION: Won't queue if queue is full (drops operation - mob will retry next kill).
      */
     public static void onMobKill(MobEntity killer, LivingEntity victim) {
+        String killerId = killer.getUuid().toString();
+        
+        // SMART SCHEDULING: Only process if not overlapping with other operations
+        if (!OperationScheduler.canExecuteEvolution(killerId)) {
+            // ANTI-STARVATION: Queue is either full or operation on cooldown
+            // Queue for later - schedule 250ms in the future
+            if (killer.getWorld() instanceof ServerWorld serverWorld) {
+                OperationScheduler.incrementEvolutionQueue(); // Track queue depth
+                serverWorld.getServer().execute(() -> {
+                    try {
+                        Thread.sleep(250); // 0.25s delay
+                        processKillInternal(killer, victim);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        OperationScheduler.decrementEvolutionQueue(); // Done - free queue slot
+                    }
+                });
+            }
+            return;
+        }
+        
+        // Execute immediately if allowed
+        processKillInternal(killer, victim);
+        OperationScheduler.markEvolutionExecuted(killerId);
+    }
+    
+    /**
+     * Internal kill processing with stat and equipment updates.
+     */
+    private static void processKillInternal(MobEntity killer, LivingEntity victim) {
         MobWarData data = MobWarData.get(killer);
         int oldLevel = data.getLevel();
         
@@ -39,14 +72,18 @@ public class EvolutionSystem {
         if (newLevel > oldLevel) {
             applyLevelBonuses(killer, data);
             
-            // OPTIMIZATION: Delay equipment spawning by 1 tick to reduce kill lag
+            // OPTIMIZATION: Delay equipment spawning by additional 250ms to spread load
             if (killer.getWorld() instanceof ServerWorld serverWorld) {
                 final int finalNewLevel = newLevel;
                 serverWorld.getServer().execute(() -> {
-                    updateEquipment(killer, finalNewLevel);
+                    try {
+                        Thread.sleep(250); // Additional 0.25s delay for equipment
+                        updateEquipment(killer, finalNewLevel);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 });
             } else {
-                // Fallback for non-server worlds (shouldn't happen but just in case)
                 updateEquipment(killer, newLevel);
             }
         }

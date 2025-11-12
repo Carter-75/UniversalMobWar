@@ -7,6 +7,7 @@ import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
 import mod.universalmobwar.util.TargetingUtil;
+import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -300,6 +301,7 @@ public class UniversalMobWarMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
 				TargetingUtil.cleanupCache();
+				OperationScheduler.cleanup(); // Also cleanup operation scheduler
 			}
 		});
 

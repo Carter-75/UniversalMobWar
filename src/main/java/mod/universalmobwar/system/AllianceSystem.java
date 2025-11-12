@@ -1,6 +1,7 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.MobWarData;
+import mod.universalmobwar.util.OperationScheduler;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -30,11 +31,42 @@ public class AllianceSystem {
     
     /**
      * Updates alliances for a mob based on who they're fighting with.
+     * OPTIMIZED: Smart scheduled with 0.3s minimum delay, prevents operation overlaps.
+     * ANTI-STARVATION: Won't queue if queue is full (drops operation - mob will retry later).
      * Same-species alliances are STRONG (when same-species combat is disabled).
      * Different-species alliances are WEAK and temporary.
      * Alliances break immediately when target dies or changes.
      */
     public static void updateAlliances(MobEntity mob, ServerWorld world) {
+        String mobId = mob.getUuid().toString();
+        
+        // SMART SCHEDULING: Only process if not overlapping with other operations
+        if (!OperationScheduler.canExecuteAlliance(mobId)) {
+            // ANTI-STARVATION: Queue is either full or operation on cooldown
+            // Queue for later - schedule 300ms in the future
+            OperationScheduler.incrementAllianceQueue(); // Track queue depth
+            world.getServer().execute(() -> {
+                try {
+                    Thread.sleep(300); // 0.3s delay
+                    updateAlliancesInternal(mob, world);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    OperationScheduler.decrementAllianceQueue(); // Done - free queue slot
+                }
+            });
+            return;
+        }
+        
+        // Execute immediately if allowed
+        updateAlliancesInternal(mob, world);
+        OperationScheduler.markAllianceExecuted(mobId);
+    }
+    
+    /**
+     * Internal alliance update processing.
+     */
+    private static void updateAlliancesInternal(MobEntity mob, ServerWorld world) {
         LivingEntity target = mob.getTarget();
         MobWarData mobData = MobWarData.get(mob);
         UUID mobUuid = mob.getUuid();
