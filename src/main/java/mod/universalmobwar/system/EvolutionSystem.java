@@ -9,6 +9,7 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
 /**
@@ -25,6 +26,7 @@ public class EvolutionSystem {
     
     /**
      * Called when a mob kills another mob. Increases kill count and levels up if needed.
+     * OPTIMIZED: Equipment spawning delayed by 1 tick to prevent kill lag.
      */
     public static void onMobKill(MobEntity killer, LivingEntity victim) {
         MobWarData data = MobWarData.get(killer);
@@ -36,7 +38,17 @@ public class EvolutionSystem {
         // Apply bonuses if leveled up
         if (newLevel > oldLevel) {
             applyLevelBonuses(killer, data);
-            updateEquipment(killer, newLevel);
+            
+            // OPTIMIZATION: Delay equipment spawning by 1 tick to reduce kill lag
+            if (killer.getWorld() instanceof ServerWorld serverWorld) {
+                final int finalNewLevel = newLevel;
+                serverWorld.getServer().execute(() -> {
+                    updateEquipment(killer, finalNewLevel);
+                });
+            } else {
+                // Fallback for non-server worlds (shouldn't happen but just in case)
+                updateEquipment(killer, newLevel);
+            }
         }
         
         MobWarData.save(killer, data);

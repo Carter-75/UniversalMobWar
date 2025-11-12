@@ -37,6 +37,7 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	private long lastAllianceCheck = 0;
 	private int updateCooldown = 0; // Staggered update system for performance
 	private int allianceCheckInterval = 2000; // Dynamic alliance check interval
+	private final long allianceCheckOffset; // UUID-based offset for staggering alliance updates
 
 	public UniversalTargetGoal(
 		MobEntity mob, 
@@ -57,6 +58,9 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		this.allianceEnabledSupplier = allianceEnabledSupplier;
 		this.evolutionEnabledSupplier = evolutionEnabledSupplier;
 		this.rangeMultiplierSupplier = rangeMultiplierSupplier;
+		
+		// OPTIMIZATION: Calculate UUID-based offset for staggering alliance updates (0-2000ms)
+		this.allianceCheckOffset = Math.abs(mob.getUuid().hashCode()) % 2000L;
 	}
 
 	@Override
@@ -195,11 +199,12 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		final boolean ignoreSame = ignoreSameSpeciesSupplier.getAsBoolean();
 		final boolean targetPlayers = targetPlayersSupplier.getAsBoolean();
 		
-		// OPTIMIZATION: Dynamic alliance check interval based on combat state
+		// OPTIMIZATION: Dynamic alliance check interval based on combat state with UUID offset
 		long currentTime = System.currentTimeMillis();
 		long timeSinceLastCheck = currentTime - lastAllianceCheck;
 		
-		if (allianceEnabledSupplier.getAsBoolean() && timeSinceLastCheck > allianceCheckInterval) {
+		// OPTIMIZATION: Use offset to stagger alliance updates across all mobs
+		if (allianceEnabledSupplier.getAsBoolean() && timeSinceLastCheck > (allianceCheckInterval + allianceCheckOffset)) {
 			if (mob.getWorld() instanceof ServerWorld serverWorld) {
 				// Check if in active combat (recently attacked)
 				boolean inCombat = (currentTime - mob.getLastAttackTime() < 3000);

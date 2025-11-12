@@ -60,6 +60,12 @@ public class MobWarlordEntity extends HostileEntity {
     private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
     private int particleCooldown = 0; // Cooldown for particle connections
     
+    // OPTIMIZATION: UUID-based tick offsets for staggering operations across multiple Warlords
+    private final int particleOffset; // 0-30 tick offset for particle drawing
+    private final int cleanupOffset; // 0-100 tick offset for cleanup cycles
+    private final int validationOffset; // 0-60 tick offset for validation
+    private final int summonOffset; // 0-40 tick offset for summoning checks
+    
     private static final int MAX_MINIONS = 20;
     private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
@@ -76,6 +82,13 @@ public class MobWarlordEntity extends HostileEntity {
         );
         // FIX: Start with summon cooldown at 0 so boss summons immediately after initialization
         this.summonCooldown = 0;
+        
+        // OPTIMIZATION: Calculate UUID-based offsets for staggering operations
+        int hash = Math.abs(this.getUuid().hashCode());
+        this.particleOffset = hash % 30;
+        this.cleanupOffset = hash % 100;
+        this.validationOffset = hash % 60;
+        this.summonOffset = hash % 40;
     }
     
     @Override
@@ -251,25 +264,20 @@ public class MobWarlordEntity extends HostileEntity {
         }
         
         // Cooldowns
-        if (summonCooldown > 0) summonCooldown--;
         if (attackCooldown > 0) attackCooldown--;
-        if (cleanupCooldown > 0) cleanupCooldown--;
-        if (particleCooldown > 0) particleCooldown--;
         
-        // Clean up dead minions (only every 5 seconds to avoid lag with large modpacks)
-        if (cleanupCooldown == 0) {
+        // OPTIMIZED: Clean up dead minions with UUID offset (spreads multiple Warlords over 100 ticks)
+        if ((this.age + cleanupOffset) % CLEANUP_COOLDOWN == 0 && this.age > 60) {
             cleanupDeadMinions();
-            cleanupCooldown = CLEANUP_COOLDOWN;
         }
         
-        // Draw particle connections to minions (every 1 second for visibility)
-        if (particleCooldown == 0) {
+        // OPTIMIZED: Draw particle connections with UUID offset (spreads multiple Warlords over 30 ticks)
+        if ((this.age + particleOffset) % PARTICLE_COOLDOWN == 0 && this.age > 60) {
             drawParticleConnections();
-            particleCooldown = PARTICLE_COOLDOWN;
         }
         
-        // Auto-summon when low on minions or low health
-        if (summonCooldown == 0) {
+        // OPTIMIZED: Auto-summon with UUID offset (spreads summon checks across 40 ticks)
+        if ((this.age + summonOffset) % SUMMON_COOLDOWN == 0 && this.age > 60) {
             int currentMinions = minionUuids.size();
             float healthPercent = this.getHealth() / this.getMaxHealth();
             
@@ -286,7 +294,6 @@ public class MobWarlordEntity extends HostileEntity {
                 UniversalMobWarMod.LOGGER.debug("Mob Warlord summoning {} minions (current: {}, health: {}%, target: {})", 
                     toSummon, currentMinions, (int)(healthPercent * 100), this.getTarget().getName().getString());
                 summonMinions(toSummon);
-                summonCooldown = SUMMON_COOLDOWN;
             }
         }
         
@@ -315,8 +322,8 @@ public class MobWarlordEntity extends HostileEntity {
             spawnParticles();
         }
         
-        // CRITICAL: Periodically validate minion targets (every 3 seconds - optimized)
-        if (this.age % 60 == 0 && this.age > 60) {
+        // OPTIMIZED: Periodically validate minion targets with UUID offset (spreads validation across 60 ticks)
+        if ((this.age + validationOffset) % 60 == 0 && this.age > 60) {
             validateMinionTargets();
         }
         
@@ -535,18 +542,18 @@ public class MobWarlordEntity extends HostileEntity {
             }
         }
         
-        // Conversion particles and sound - dramatic effect!
+        // OPTIMIZED: Conversion particles - reduced count for better performance on kill events
         try {
             if (this.age > 60) {
                 serverWorld.spawnParticles(ParticleTypes.SOUL,
                     killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
-                    50, 0.5, 0.5, 0.5, 0.1);
+                    20, 0.5, 0.5, 0.5, 0.1); // Reduced from 50 to 20
                 serverWorld.spawnParticles(ParticleTypes.ENCHANT,
                     killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
-                    30, 0.5, 0.5, 0.5, 0.5);
+                    15, 0.5, 0.5, 0.5, 0.5); // Reduced from 30 to 15
                 serverWorld.spawnParticles(ParticleTypes.PORTAL,
                     killedMob.getX(), killedMob.getY() + killedMob.getHeight() / 2, killedMob.getZ(),
-                    20, 0.3, 0.3, 0.3, 0.3);
+                    10, 0.3, 0.3, 0.3, 0.3); // Reduced from 20 to 10
             }
         } catch (Exception e) {
             // Ignore particle errors
@@ -716,7 +723,6 @@ public class MobWarlordEntity extends HostileEntity {
         
         // OPTIMIZATION: Skip cleanup if no minions
         if (minionUuids.isEmpty()) {
-            cleanupCooldown = CLEANUP_COOLDOWN * 2; // Check less frequently when empty
             return;
         }
         
@@ -1271,28 +1277,21 @@ public class MobWarlordEntity extends HostileEntity {
     public void onDeath(DamageSource damageSource) {
         super.onDeath(damageSource);
         
-        // Kill all minions when warlord dies
+        // OPTIMIZED: Stagger minion deaths to prevent lag spike (5 per tick, cascading death effect)
         if (!this.getWorld().isClient && this.getWorld() instanceof ServerWorld serverWorld) {
-            for (UUID minionUuid : new HashSet<>(minionUuids)) {
-                Entity entity = serverWorld.getEntity(minionUuid);
-                if (entity instanceof LivingEntity minion && minion.isAlive()) {
-                    minion.damage(minion.getDamageSources().magic(), Float.MAX_VALUE);
-                    
-                    // Death particles
-                    try {
-                        if (this.age > 60) { // Only if fully initialized (3 seconds)
-                            serverWorld.spawnParticles(ParticleTypes.POOF,
-                                minion.getX(), minion.getY() + 1.0, minion.getZ(),
-                                10, 0.3, 0.3, 0.3, 0.05);
-                        }
-                    } catch (Exception e) {
-                        // Silently ignore particle errors
-                    }
-                }
+            List<UUID> minionList = new ArrayList<>(minionUuids);
+            
+            // Schedule staggered minion deaths
+            for (int i = 0; i < minionList.size(); i++) {
+                final UUID minionUuid = minionList.get(i);
+                final int delay = i / 5; // 5 minions per tick (0.25 seconds total for 20 minions)
                 
-                // Clean up from static map
-                MINION_TO_WARLORD.remove(minionUuid);
+                // Schedule death after delay ticks
+                serverWorld.getServer().execute(() -> {
+                    scheduleMinionDeath(serverWorld, minionUuid, delay);
+                });
             }
+            
             minionUuids.clear();
             
             // Victory message
@@ -1301,6 +1300,47 @@ public class MobWarlordEntity extends HostileEntity {
                     .styled(style -> style.withColor(Formatting.GOLD).withBold(true)), false);
             });
         }
+    }
+    
+    /**
+     * Helper method to schedule minion death after a delay.
+     */
+    private void scheduleMinionDeath(ServerWorld serverWorld, UUID minionUuid, int delayTicks) {
+        if (delayTicks == 0) {
+            killMinion(serverWorld, minionUuid);
+        } else {
+            // Schedule for later
+            serverWorld.getServer().execute(() -> {
+                try {
+                    Thread.sleep(delayTicks * 50L); // 50ms per tick
+                    killMinion(serverWorld, minionUuid);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+    }
+    
+    /**
+     * Kills a minion with particles.
+     */
+    private void killMinion(ServerWorld serverWorld, UUID minionUuid) {
+        Entity entity = serverWorld.getEntity(minionUuid);
+        if (entity instanceof LivingEntity minion && minion.isAlive()) {
+            minion.damage(minion.getDamageSources().magic(), Float.MAX_VALUE);
+            
+            // Death particles
+            try {
+                serverWorld.spawnParticles(ParticleTypes.POOF,
+                    minion.getX(), minion.getY() + 1.0, minion.getZ(),
+                    10, 0.3, 0.3, 0.3, 0.05);
+            } catch (Exception e) {
+                // Silently ignore particle errors
+            }
+        }
+        
+        // Clean up from static map
+        MINION_TO_WARLORD.remove(minionUuid);
     }
     
     /**
