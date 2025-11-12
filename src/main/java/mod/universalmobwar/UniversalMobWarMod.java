@@ -6,9 +6,11 @@ import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.util.TargetingUtil;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -291,6 +293,13 @@ public class UniversalMobWarMod implements ModInitializer {
 					() -> world.getGameRules().getBoolean(EVOLUTION_SYSTEM_RULE),
 					() -> world.getGameRules().getInt(RANGE_MULTIPLIER_RULE) / 100.0
 				));
+			}
+		});
+		
+		// OPTIMIZATION: Register cache cleanup for entity query system (every 5 seconds)
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (server.getTicks() % 100 == 0) { // Every 5 seconds
+				TargetingUtil.cleanupCache();
 			}
 		});
 

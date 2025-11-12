@@ -35,6 +35,8 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	private final DoubleSupplier rangeMultiplierSupplier;
 	private LivingEntity candidate;
 	private long lastAllianceCheck = 0;
+	private int updateCooldown = 0; // Staggered update system for performance
+	private int allianceCheckInterval = 2000; // Dynamic alliance check interval
 
 	public UniversalTargetGoal(
 		MobEntity mob, 
@@ -59,6 +61,19 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 
 	@Override
 	public boolean canStart() {
+		// OPTIMIZATION: Stagger updates - not all mobs search every tick
+		if (updateCooldown > 0) {
+			updateCooldown--;
+			// Still keep current target if valid
+			LivingEntity currentTarget = mob.getTarget();
+			if (currentTarget != null && currentTarget.isAlive()) {
+				return false;
+			}
+			return false;
+		}
+		// Spread updates over 10 ticks using UUID-based offset
+		updateCooldown = 10 + (Math.abs(mob.getUuid().hashCode()) % 10);
+		
 		// Check if mod is enabled
 		if (!modEnabledSupplier.getAsBoolean()) return false;
 
@@ -121,6 +136,12 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 
 		// Priority 3: Find nearest valid target
 		this.candidate = TargetingUtil.findNearestValidTarget(mob, followRange, ignoreSame, targetPlayers);
+		
+		// OPTIMIZATION: Longer cooldown if no target found
+		if (this.candidate == null) {
+			updateCooldown = 40; // Wait 2 seconds before searching again
+		}
+		
 		return this.candidate != null;
 	}
 
@@ -174,10 +195,18 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		final boolean ignoreSame = ignoreSameSpeciesSupplier.getAsBoolean();
 		final boolean targetPlayers = targetPlayersSupplier.getAsBoolean();
 		
-		// Update alliances periodically
+		// OPTIMIZATION: Dynamic alliance check interval based on combat state
 		long currentTime = System.currentTimeMillis();
-		if (allianceEnabledSupplier.getAsBoolean() && currentTime - lastAllianceCheck > 2000) {
+		long timeSinceLastCheck = currentTime - lastAllianceCheck;
+		
+		if (allianceEnabledSupplier.getAsBoolean() && timeSinceLastCheck > allianceCheckInterval) {
 			if (mob.getWorld() instanceof ServerWorld serverWorld) {
+				// Check if in active combat (recently attacked)
+				boolean inCombat = (currentTime - mob.getLastAttackTime() < 3000);
+				
+				// Adjust interval: 2s in combat, 4s when calm
+				allianceCheckInterval = inCombat ? 2000 : 4000;
+				
 				AllianceSystem.updateAlliances(mob, serverWorld);
 				AllianceSystem.cleanupExpiredAlliances(mob);
 			}

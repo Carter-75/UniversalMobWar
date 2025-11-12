@@ -64,7 +64,7 @@ public class MobWarlordEntity extends HostileEntity {
     private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
-    private static final int PARTICLE_COOLDOWN = 20; // 1 second - particle connections
+    private static final int PARTICLE_COOLDOWN = 30; // 1.5 seconds - optimized particle connections
     
     public MobWarlordEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -315,8 +315,8 @@ public class MobWarlordEntity extends HostileEntity {
             spawnParticles();
         }
         
-        // CRITICAL: Periodically validate minion targets (every 2 seconds)
-        if (this.age % 40 == 0 && this.age > 60) {
+        // CRITICAL: Periodically validate minion targets (every 3 seconds - optimized)
+        if (this.age % 60 == 0 && this.age > 60) {
             validateMinionTargets();
         }
         
@@ -342,14 +342,21 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     /**
-     * Validates all minion targets and clears invalid ones.
+     * Validates minion targets and clears invalid ones.
+     * OPTIMIZED: Only checks 3 random minions per cycle to spread load.
      * Also detects betrayal (minions attacking other minions).
      */
     private void validateMinionTargets() {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         
+        // OPTIMIZATION: Only validate 3 random minions per cycle
+        List<UUID> minionsList = new ArrayList<>(minionUuids);
+        Collections.shuffle(minionsList);
+        int checksThisCycle = Math.min(3, minionsList.size());
+        
         try {
-            for (UUID minionUuid : minionUuids) {
+            for (int i = 0; i < checksThisCycle; i++) {
+                UUID minionUuid = minionsList.get(i);
                 Entity entity = serverWorld.getEntity(minionUuid);
                 if (entity instanceof MobEntity minion && minion.isAlive()) {
                     LivingEntity target = minion.getTarget();
@@ -397,6 +404,7 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Draws particle connections from the warlord to all minions.
+     * OPTIMIZED: Reduced particle density for better performance.
      * Shows purple/dark purple lines so players can see who is allied.
      */
     private void drawParticleConnections() {
@@ -406,9 +414,9 @@ public class MobWarlordEntity extends HostileEntity {
         try {
             Vec3d bossPos = this.getPos().add(0, this.getHeight() / 2, 0); // Center of boss
             
-            // Limit particle draws for performance (max 10 per cycle)
+            // OPTIMIZATION: Limit connections drawn based on minion count
             int drawnCount = 0;
-            int maxDraws = 10;
+            int maxDraws = Math.min(15, minionUuids.size());
             
             for (UUID minionUuid : minionUuids) {
                 if (drawnCount++ >= maxDraws) break;
@@ -418,15 +426,20 @@ public class MobWarlordEntity extends HostileEntity {
                     if (entity instanceof MobEntity minion && minion.isAlive()) {
                         Vec3d minionPos = minion.getPos().add(0, minion.getHeight() / 2, 0);
                         
+                        // OPTIMIZATION: Skip particles if minion is very close
+                        double distance = minionPos.distanceTo(bossPos);
+                        if (distance < 3.0) continue; // Don't draw particles for minions within 3 blocks
+                        
                         // Check if betrayer - different color
                         boolean isBetrayer = betrayers.contains(minionUuid);
                         
                         // Draw particle line from boss to minion
                         Vec3d direction = minionPos.subtract(bossPos);
-                        double distance = direction.length();
-                        Vec3d step = direction.normalize().multiply(0.5); // Particle every 0.5 blocks
+                        Vec3d step = direction.normalize().multiply(1.0); // OPTIMIZED: Particle every 1.0 blocks (was 0.5)
                         
-                        int particleCount = Math.min((int)(distance / 0.5), 20); // Max 20 particles per connection
+                        // OPTIMIZATION: Fewer particles per connection, scale with minion count
+                        int maxParticles = minionUuids.size() > 10 ? 8 : 15;
+                        int particleCount = Math.min((int)(distance / 1.0), maxParticles);
                         for (int i = 0; i < particleCount; i++) {
                             Vec3d particlePos = bossPos.add(step.multiply(i));
                             
@@ -700,6 +713,12 @@ public class MobWarlordEntity extends HostileEntity {
     private void cleanupDeadMinions() {
         if (this.getWorld() == null || !(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (this.age < 60) return; // Skip during initialization (3 seconds)
+        
+        // OPTIMIZATION: Skip cleanup if no minions
+        if (minionUuids.isEmpty()) {
+            cleanupCooldown = CLEANUP_COOLDOWN * 2; // Check less frequently when empty
+            return;
+        }
         
         try {
             // Performance optimization: Create a list to avoid concurrent modification
