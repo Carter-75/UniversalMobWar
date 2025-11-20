@@ -1,4 +1,3 @@
-
 # Universal Mob War v2.0+ (Evolution & Scaling)
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
@@ -26,20 +25,12 @@
 - **Combat & AI:**
   - All mobs attack other species, prioritize Warlord bosses
   - Alliance system: strong (same species), weak (cross-species/chaos)
-  - Betrayal detection: traitors marked, targeted
-
-- **Mob Warlord Boss:**
-  - Giant witch boss (2x size, 1500 HP, 20 minions)
-  - Super self-healing, mob conversion, fast minion spawn, 27 summon types
-  - Smart AI: buffs, healing, tethering, particle lines, raid integration
-
 - **Customization:**
   - All options are available as settings in the config file and Mod Menu
   - No need to use `/gamerule` for configuration—everything is configurable via settings
 
 ---
 
-## 🛠️ Settings & Config
 
 - **Mod Menu:** Click gear icon in Mods list for instant config
 - **Config file:** `config/universalmobwar.json` (all options, including scaling system)
@@ -48,121 +39,38 @@
   - All legacy evolution/alliance/gameplay options still available
 
 ---
-
-## 🌐 Global Mob Scaling System
-
-- Every mob gets a Power Profile on spawn/activation
-- World-day scaling: soft exponential curve, late game = much harder
-- Kill-based scaling: points for every kill/assist, harder per tier
 - Upgrades: health, armor, speed, damage, resistances, aggro, immunities, more
 - Archetype paths: zombies, skeletons, spiders, creepers, witches, illagers, end/nether/warden, all modded (auto-detect)
-- Tier system: nonlinear, internal, unlocks upgrades, higher cost per tier
-- Fully compatible with legacy evolution (can run both or either)
-
-**How to use:**
-  - Enable in Mod Menu or set `scalingEnabled: true` in config
-  - All mobs scale with world days & kills, upgrades/tier applied automatically
-  - Legacy evolution can be toggled independently
 
 ---
-
-## ⚔️ Commands
-
-- `/mobwar help` — All commands
-- `/mobwar stats` — View mob levels
-- `/mobwar reset` — Clear mob targets (OP)
-- `/mobwar reload` — Reload config (OP)
-- `/mobwar summon warlord` — Summon boss (OP)
 - `/mobwar raid forceboss` — Force boss in next raid
 
-**All gameplay and configuration options previously set via game rules are now available as settings in the config file and Mod Menu.**
 
 ---
-
-## 👑 Mob Warlord Boss (Highlights)
-
-- 2x witch, 1500 HP, 20 minions, 27 summon types
-- Super healing, mob conversion, buffs, smart AI, raid integration
-- Minion tethering, betrayal system, particle lines
-
----
-
-## 📝 Config Example
-
-```json
-{
-  "modEnabled": true,
-  "scalingEnabled": false,
-  "dayScalingMultiplier": 1.0,
-  "killScalingMultiplier": 1.0,
-  "maxTier": 20,
   "allowBossScaling": true,
-  "allowModdedScaling": true,
   "restrictEffectsToMobTheme": true,
   "debugLogging": false,
   "ignoreSameSpecies": true,
   "targetPlayers": true,
-  "neutralMobsAlwaysAggressive": false,
-  "allianceSystemEnabled": true,
-  "evolutionSystemEnabled": true,
-  "rangeMultiplier": 1.0,
-  "maxLevel": 100,
   "killsPerLevel": 3,
   "giveEquipmentToMobs": true,
-  "allianceDurationTicks": 100,
-  "sameSpeciesAllianceDurationTicks": 400,
-  "allianceRange": 16.0,
-  "allianceBreakChance": 0.3,
-  "sameSpeciesAllianceBreakChance": 0.05,
   "excludedMobs": [],
   "showTargetLines": true,
-  "showHealthBars": true,
-  "showMobLabels": true,
-  "showLevelParticles": true
-}
-```
 
 ---
-
-## 🔧 Technical & Performance
-
-- **Fabric 1.21.1+**, all vanilla/modded mobs, 400+ modpacks tested
-- **Highly optimized**: spatial caching, query rate limiting, adaptive scheduling, anti-starvation, minimal overhead
 - **No lag**: scaling logic only runs if enabled, all operations staggered, memory efficient
 - **Data**: mob levels/kills in NBT, config auto-generated, all settings hot-reloadable
-
----
-
-## 📄 License & Attribution
-
 **© 2024 Carter. All rights reserved.**
 
-- Use in modpacks/servers/videos with attribution
-- Do not edit, redistribute, or rehost the mod file
-- Always credit Carter and link to the official download page
-
----
-
-**Enjoy the chaos!** 🎉
 
 ---
 
 ## 🎮 Commands
-
-### Basic Commands
-```
 /mobwar help                    - Show all commands
 /mobwar stats                   - View nearby mob levels
-/mobwar reset                   - Clear all mob targets (OP)
-/mobwar reload                  - Reload config file (OP)
-```
 
-### Boss Summoning
 ```
 /mobwar summon warlord          - Summon Mob Warlord at your location (OP)
-/summon universalmobwar:mob_warlord  - Alternative summon command
-```
-
 ### Raid Boss (NEW!)
 ```
 /mobwar raid forceboss          - Guarantee boss spawn in next raid (OP)
@@ -297,6 +205,173 @@ All former game rules are now settings in the config file and Mod Menu. You no l
 
 ### How to Get Spawn Egg
 Look in Creative Inventory → Spawn Eggs tab → **Mob Warlord Spawn Egg** (witch colors: dark green with bright green spots)
+
+---
+
+## 🧬 Unified Mob Progression & Skill Tree
+
+All mobs use a single, unified progression system that combines world scaling, kill-based leveling, and archetype-specific upgrades. There is no split between "legacy" and "global"—everything is part of one seamless system.
+
+### Mob Progression Flow
+
+```
+Mob Spawn
+   |
+   v
+[Base Stats]
+   |
+   v
++ World Days → Scaling Points
++ Kills      → Scaling Points
+   |
+   v
+[Total Points] → [Tier Level]
+   |
+   v
+[Archetype Path]
+   |
+   v
+Skill Tree (Upgrades unlocked by Tier)
+```
+
+### Full Skill Tree Diagram
+
+```
+Mob (any type)
+│
+├── Universal Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Damage
+│   ├─ Tier 3: +Speed
+│   ├─ Tier 4: +Armor
+│   ├─ Tier 5: +Knockback Resist
+│   ├─ Tier 6: +Aggro Range
+│   ├─ Tier 7: +Immunity
+│   ├─ Tier 8: Special: All-Resist
+│   └─ Tier 9+: Special: AoE
+│
+├── Zombie Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Damage
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Infectious Bite
+│   ├─ Tier 5: Undead Fortitude
+│   └─ Tier 6+: Horde Summon
+│
+├── Skeleton Path
+│   ├─ Tier 1: +Speed
+│   ├─ Tier 2: +Damage
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Piercing Arrows
+│   ├─ Tier 5: Multi-Shot
+│   ├─ Tier 6: Dodge
+│   └─ Tier 7+: Sniper Shot
+│
+├── Creeper Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Speed
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Blast Radius
+│   ├─ Tier 5: Chain Explosion
+│   └─ Tier 6+: Charged Explosion
+│
+├── Spider Path
+│   ├─ Tier 1: +Speed
+│   ├─ Tier 2: +Jump
+│   ├─ Tier 3: +Climb
+│   ├─ Tier 4: Poison Bite
+│   ├─ Tier 5: Web Trap
+│   ├─ Tier 6: Leap Attack
+│   └─ Tier 7+: Venom Cloud
+│
+├── Witch Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Potion Power
+│   ├─ Tier 3: +Resistance
+│   ├─ Tier 4: Splash Range
+│   ├─ Tier 5: Debuff Potions
+│   ├─ Tier 6: Heal Ally
+│   └─ Tier 7+: Mass Hex
+│
+├── Illager Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Damage
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Summon Ally
+│   ├─ Tier 5: Evoker Fangs
+│   ├─ Tier 6: Totem Use
+│   └─ Tier 7+: Raid Banner
+│
+├── Nether Path
+│   ├─ Tier 1: +Fire Resist
+│   ├─ Tier 2: +Damage
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Lava Walk
+│   ├─ Tier 5: Nether Aura
+│   ├─ Tier 6: Wither Touch
+│   └─ Tier 7+: Hellfire Burst
+│
+├── End Path
+│   ├─ Tier 1: +Health
+│   ├─ Tier 2: +Teleport
+│   ├─ Tier 3: +Armor
+│   ├─ Tier 4: Levitate Attack
+│   ├─ Tier 5: Ender Swarm
+│   ├─ Tier 6: Blindness
+│   └─ Tier 7+: Void Pulse
+│
+└── Warden Path
+    ├─ Tier 1: +Health
+    ├─ Tier 2: +Sonic Boom
+    ├─ Tier 3: +Armor
+    ├─ Tier 4: Scent Range
+    ├─ Tier 5: Blind Rage
+    ├─ Tier 6: Earthquake
+    └─ Tier 7+: Apex Predator
+```
+
+*Modded mobs auto-detect the closest vanilla archetype and follow its path.*
+
+#### Upgrade Effects & Costs
+- **+Health**: +10% max health per tier
+- **+Damage**: +10% attack damage per tier
+- **+Speed**: +5% movement speed per tier
+- **+Armor**: +2 armor per tier
+- **+Knockback Resist**: +10% per tier
+- **Special Upgrades**: Unique to archetype, unlocked at high tiers (see above)
+- **Upgrade Cost**: Each tier requires more points (see below)
+
+#### Tier/Point Requirements
+| Tier | Total Points Required |
+|------|----------------------|
+| 0    | 0                    |
+| 1    | 10                   |
+| 2    | 30                   |
+| 3    | 80                   |
+| 4    | 200                  |
+| 5    | 500                  |
+| 6    | 1200                 |
+| 7    | 3000                 |
+| 8    | 7000                 |
+| 9    | 15000                |
+| 10+  | 30000+               |
+
+- **Points** = (World Days × dayScalingMultiplier) + (Kills × killScalingMultiplier / tier penalty)
+- Each new tier unlocks a new upgrade from the archetype path.
+
+#### Equipment Progression (All Mobs)
+| Tier/Level | Weapon           | Armor Set         |
+|-----------|------------------|------------------|
+| 1-9       | None             | None             |
+| 10-19     | Wooden Sword     | None             |
+| 20-29     | Stone Sword      | Leather          |
+| 30-39     | Iron Sword       | Chainmail        |
+| 40-49     | Diamond Sword    | Iron             |
+| 50-59     | Netherite Sword  | Diamond          |
+| 60+       | Netherite Sword  | Netherite        |
+
+- Equipment is upgraded automatically as mobs reach the required tier/level.
+- Drop chance for equipment: 10%
 
 ---
 

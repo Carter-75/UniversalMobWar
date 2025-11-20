@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class ModConfig {
         // Global Mob Scaling System (new)
-        public boolean scalingEnabled = false;
+        public boolean scalingEnabled = true;
         public double dayScalingMultiplier = 1.0;
         public double killScalingMultiplier = 1.0;
         public int maxTier = 20;
