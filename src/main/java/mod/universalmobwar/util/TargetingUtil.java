@@ -44,7 +44,7 @@ public final class TargetingUtil {
 	}
 	
 	private static final Map<String, ChunkEntityCache> ENTITY_CACHE = new ConcurrentHashMap<>();
-	private static final long CACHE_DURATION_MS = 1000; // 1 second cache
+	private static final long CACHE_DURATION_MS = 1500; // 1.5 second cache
 	private static long lastCacheCleanup = 0;
 	
 	// Query rate limiting - max queries per tick across ALL mobs
@@ -150,7 +150,7 @@ public final class TargetingUtil {
 		// Small caches don't benefit from cleanup and it wastes CPU
 		if (ENTITY_CACHE.size() <= 30) return;
 		
-		// Remove expired entries (older than 2 seconds)
+		// Remove expired entries (older than 3 seconds)
 		ENTITY_CACHE.entrySet().removeIf(entry -> 
 			entry.getValue().isExpired(currentTime, CACHE_DURATION_MS * 2)
 		);

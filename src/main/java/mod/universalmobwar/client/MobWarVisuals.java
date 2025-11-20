@@ -11,29 +11,33 @@ import net.minecraft.util.Formatting;
  * Shows target lines, health bars, and mob labels.
  */
 public class MobWarVisuals {
+        // FPS safeguard: disables some visuals if FPS is low
+        private static boolean isFpsAcceptable() {
+            // Placeholder: Replace with actual FPS check if available
+            // For now, always return true (no FPS API in vanilla)
+            return true;
+        }
     
     /**
      * Gets display text for a mob showing their level and stats.
      */
     public static Text getMobDisplayName(MobEntity mob) {
+        if (!isFpsAcceptable()) {
+            return mob.getDisplayName();
+        }
         MobWarData data = MobWarData.get(mob);
         int level = data.getLevel();
-        
         if (level == 0) {
             return mob.getDisplayName();
         }
-        
         // Format: [Lv.5] Zombie ⚔
         net.minecraft.text.MutableText levelText = Text.literal("[Lv." + level + "] ")
             .styled(style -> style.withColor(getLevelColor(level)).withBold(true));
-        
         levelText.append(mob.getDisplayName());
-        
         // Add weapon indicator if mob has weapon
         if (!mob.getMainHandStack().isEmpty()) {
             levelText.append(Text.literal(" ⚔").styled(style -> style.withColor(Formatting.GOLD)));
         }
-        
         return levelText;
     }
     
@@ -52,11 +56,13 @@ public class MobWarVisuals {
      * Gets status text for a mob (current target info).
      */
     public static Text getMobStatusText(MobEntity mob) {
+        if (!isFpsAcceptable()) {
+            return Text.literal("").styled(style -> style.withColor(Formatting.GRAY));
+        }
         LivingEntity target = mob.getTarget();
         if (target == null) {
             return Text.literal("Idle").styled(style -> style.withColor(Formatting.GRAY));
         }
-        
         return Text.literal("→ ")
             .styled(style -> style.withColor(Formatting.RED))
             .append(Text.literal(target.getDisplayName().getString())
@@ -67,8 +73,10 @@ public class MobWarVisuals {
      * Gets detailed stats text for tooltips.
      */
     public static Text getMobStatsText(MobEntity mob) {
+        if (!isFpsAcceptable()) {
+            return Text.literal("");
+        }
         MobWarData data = MobWarData.get(mob);
-        
         return Text.literal("Level: " + data.getLevel())
             .styled(style -> style.withColor(Formatting.YELLOW))
             .append(Text.literal(" | Kills: " + data.getKillCount())

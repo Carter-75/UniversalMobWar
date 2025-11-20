@@ -1,3 +1,4 @@
+
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.MobWarData;
@@ -12,12 +13,16 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles mob evolution and power scaling based on kills.
  * Applies stat bonuses and equipment as mobs level up.
  */
 public class EvolutionSystem {
+    private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
     
     private static final Identifier HEALTH_MODIFIER_ID = Identifier.of("universalmobwar", "health_bonus");
     private static final Identifier DAMAGE_MODIFIER_ID = Identifier.of("universalmobwar", "damage_bonus");
@@ -36,19 +41,15 @@ public class EvolutionSystem {
         // SMART SCHEDULING: Only process if not overlapping with other operations
         if (!OperationScheduler.canExecuteEvolution(killerId)) {
             // ANTI-STARVATION: Queue is either full or operation on cooldown
-            // Queue for later - schedule 250ms in the future
+            // Queue for later - schedule 250ms in the future (non-blocking)
             if (killer.getWorld() instanceof ServerWorld serverWorld) {
                 OperationScheduler.incrementEvolutionQueue(); // Track queue depth
-                serverWorld.getServer().execute(() -> {
-                    try {
-                        Thread.sleep(250); // 0.25s delay
+                SCHEDULER.schedule(() -> {
+                    serverWorld.getServer().execute(() -> {
                         processKillInternal(killer, victim);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } finally {
                         OperationScheduler.decrementEvolutionQueue(); // Done - free queue slot
-                    }
-                });
+                    });
+                }, 250, TimeUnit.MILLISECONDS);
             }
             return;
         }
@@ -71,18 +72,14 @@ public class EvolutionSystem {
         // Apply bonuses if leveled up
         if (newLevel > oldLevel) {
             applyLevelBonuses(killer, data);
-            
-            // OPTIMIZATION: Delay equipment spawning by additional 250ms to spread load
+            // OPTIMIZATION: Delay equipment spawning by additional 250ms to spread load (non-blocking)
             if (killer.getWorld() instanceof ServerWorld serverWorld) {
                 final int finalNewLevel = newLevel;
-                serverWorld.getServer().execute(() -> {
-                    try {
-                        Thread.sleep(250); // Additional 0.25s delay for equipment
+                SCHEDULER.schedule(() -> {
+                    serverWorld.getServer().execute(() -> {
                         updateEquipment(killer, finalNewLevel);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                });
+                    });
+                }, 250, TimeUnit.MILLISECONDS);
             } else {
                 updateEquipment(killer, newLevel);
             }

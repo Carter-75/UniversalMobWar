@@ -1,0 +1,11 @@
+# Add the TerraformersMC maven repo for Mod Menu
+repositories {
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+    }
+}
+
+dependencies {
+    modCompileOnly "com.terraformersmc:modmenu:7.2.0"
+}

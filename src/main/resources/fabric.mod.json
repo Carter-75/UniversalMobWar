@@ -12,7 +12,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": ["mod.universalmobwar.UniversalMobWarMod"],
-		"client": ["mod.universalmobwar.client.UniversalMobWarModClient"]
+		"client": ["mod.universalmobwar.client.UniversalMobWarModClient"],
+		"modmenu": ["mod.universalmobwar.client.UniversalMobWarModMenu"]
 	},
 	"mixins": [
 		"universalmobwar.mixins.json"
@@ -21,6 +22,9 @@
 		"fabricloader": ">=0.16.5",
 		"fabric-api": ">=0.102.0+1.21.1",
 		"minecraft": "1.21.1"
+	},
+	"suggests": {
+		"modmenu": ">=7.2.0"
 	}
 }
 

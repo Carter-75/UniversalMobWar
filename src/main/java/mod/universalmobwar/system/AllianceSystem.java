@@ -1,3 +1,4 @@
+
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.MobWarData;
@@ -6,14 +7,17 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
-
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Manages mob alliances and friend-based combat assistance.
  * Mobs attacking the same target become temporary allies.
  */
 public class AllianceSystem {
+    private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
     
     // Tracks when alliances were formed (for expiration)
     private static final Map<UUID, Map<UUID, Long>> allianceTimestamps = new HashMap<>();
@@ -43,18 +47,14 @@ public class AllianceSystem {
         // SMART SCHEDULING: Only process if not overlapping with other operations
         if (!OperationScheduler.canExecuteAlliance(mobId)) {
             // ANTI-STARVATION: Queue is either full or operation on cooldown
-            // Queue for later - schedule 300ms in the future
+            // Queue for later - schedule 300ms in the future (non-blocking)
             OperationScheduler.incrementAllianceQueue(); // Track queue depth
-            world.getServer().execute(() -> {
-                try {
-                    Thread.sleep(300); // 0.3s delay
+            SCHEDULER.schedule(() -> {
+                world.getServer().execute(() -> {
                     updateAlliancesInternal(mob, world);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
                     OperationScheduler.decrementAllianceQueue(); // Done - free queue slot
-                }
-            });
+                });
+            }, 300, TimeUnit.MILLISECONDS);
             return;
         }
         

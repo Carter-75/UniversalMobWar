@@ -196,7 +196,17 @@ public class MobWarData {
         return data;
     }
     
+    private static final Map<UUID, Long> lastSaveTimes = new HashMap<>();
+    private static final long SAVE_DEBOUNCE_MS = 200; // Only save once every 200ms per mob
+
     public static void save(MobEntity mob, MobWarData data) {
+        long now = System.currentTimeMillis();
+        UUID uuid = mob.getUuid();
+        Long lastSave = lastSaveTimes.get(uuid);
+        if (lastSave != null && (now - lastSave) < SAVE_DEBOUNCE_MS) {
+            return; // Debounce frequent saves
+        }
+        lastSaveTimes.put(uuid, now);
         NbtCompound nbt = mob.writeNbt(new NbtCompound());
         nbt.put(NBT_KEY, data.writeNbt());
         mob.readNbt(nbt);

@@ -16,6 +16,15 @@ import java.util.List;
  * Stores default gamerule values and mob exclusions.
  */
 public class ModConfig {
+        // Advanced performance tuning
+        public int targetingCacheMs = 1500; // Entity targeting cache duration (ms)
+        public int targetingMaxQueriesPerTick = 50; // Max targeting queries per tick
+        public int mobDataSaveDebounceMs = 200; // Debounce for mob NBT saves
+        public boolean enableBatching = true; // Enable batching for alliance/evolution
+        public boolean enableAsyncTasks = true; // Use async scheduling for heavy ops
+        public int maxParticlesPerConnection = 8; // Particle lines per minion connection
+        public int maxDrawnMinionConnections = 15; // Max minion lines per boss
+        public int minFpsForVisuals = 30; // Hide some visuals if FPS drops below this
     
     // Default gamerule values
     public boolean modEnabled = true;
