@@ -216,41 +216,41 @@ public class UniversalMobWarMod implements ModInitializer {
 			
 			handler.player.sendMessage(Text.literal(""), false);
 			handler.player.sendMessage(
-				Text.literal("⚙ Key Game Rules (use /gamerule):").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
+				Text.literal("⚙ Key Settings (config/Mod Menu):").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("universalMobWarEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal("modEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
 					.append(Text.literal(" - Turn mod on/off").styled(style -> style.withColor(Formatting.GRAY))),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("universalMobWarTargetPlayers").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal("targetPlayers").styled(style -> style.withColor(Formatting.YELLOW)))
 					.append(Text.literal(" - Player immunity toggle").styled(style -> style.withColor(Formatting.GRAY))),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("universalMobWarRangeMultiplier").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Scale range (1-10000)").styled(style -> style.withColor(Formatting.GRAY))),
+					.append(Text.literal("rangeMultiplier").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal(" - Scale detection range (0.01x to 100x)").styled(style -> style.withColor(Formatting.GRAY))),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("universalMobWarEvolution").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal("evolutionSystemEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
 					.append(Text.literal(" - Enable leveling system").styled(style -> style.withColor(Formatting.GRAY))),
 				false
 			);
 			handler.player.sendMessage(
 				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("universalMobWarAlliances").styled(style -> style.withColor(Formatting.YELLOW)))
+					.append(Text.literal("allianceSystemEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
 					.append(Text.literal(" - Enable alliance system").styled(style -> style.withColor(Formatting.GRAY))),
 				false
 			);
 			handler.player.sendMessage(
-				Text.literal("    Type /mobwar help for all 7 game rules!").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true)),
+				Text.literal("    All options are available in the config file or Mod Menu!").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true)),
 				false
 			);
 			

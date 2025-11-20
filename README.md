@@ -34,8 +34,8 @@
   - Smart AI: buffs, healing, tethering, particle lines, raid integration
 
 - **Customization:**
-  - In-game settings & Mod Menu
-  - 7 game rules, range control, player immunity, config file, creative protection
+  - All options are available as settings in the config file and Mod Menu
+  - No need to use `/gamerule` for configuration—everything is configurable via settings
 
 ---
 
@@ -66,7 +66,7 @@
 
 ---
 
-## ⚔️ Commands & Game Rules
+## ⚔️ Commands
 
 - `/mobwar help` — All commands
 - `/mobwar stats` — View mob levels
@@ -75,16 +75,7 @@
 - `/mobwar summon warlord` — Summon boss (OP)
 - `/mobwar raid forceboss` — Force boss in next raid
 
-**Game Rules:**
-| Rule | Default | Description |
-|------|---------|-------------|
-| `universalMobWarEnabled` | true | Master toggle |
-| `universalMobWarIgnoreSame` | true | Same-species alliances |
-| `universalMobWarTargetPlayers` | true | Player immunity |
-| `universalMobWarNeutralAggressive` | false | Neutral mobs always hostile |
-| `universalMobWarAlliances` | true | Alliance system |
-| `universalMobWarEvolution` | true | Legacy leveling |
-| `universalMobWarRangeMultiplier` | 100 | Detection range |
+**All gameplay and configuration options previously set via game rules are now available as settings in the config file and Mod Menu.**
 
 ---
 
@@ -180,25 +171,32 @@ Use this command, then start a raid. The boss will spawn on the final wave with 
 
 ---
 
-## ⚙️ Game Rules
+## ⚙️ Settings (Replaces Game Rules)
 
-Use `/gamerule <name> <value>` to configure:
+All former game rules are now settings in the config file and Mod Menu. You no longer need to use `/gamerule`—just adjust your settings and reload the config if needed.
 
-| Game Rule | Default | Description |
-|-----------|---------|-------------|
-| `universalMobWarEnabled` | true | Master toggle for entire mod |
-| `universalMobWarIgnoreSame` | true | If true, same-species don't fight (strong alliances) |
-| `universalMobWarTargetPlayers` | true | If false, mobs ignore players (spectator mode) |
-| `universalMobWarNeutralAggressive` | false | Make neutral mobs (endermen, iron golems) always hostile |
-| `universalMobWarAlliances` | true | Enable alliance system |
-| `universalMobWarEvolution` | true | Enable mob leveling and equipment |
-| `universalMobWarRangeMultiplier` | 100 | Detection range multiplier (1-10000 = 0.01x to 100x) |
+**Key settings:**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `modEnabled` | true | Master toggle for entire mod |
+| `ignoreSameSpecies` | true | If true, same-species don't fight (strong alliances) |
+| `targetPlayers` | true | If false, mobs ignore players (spectator mode) |
+| `neutralMobsAlwaysAggressive` | false | Make neutral mobs (endermen, iron golems) always hostile |
+| `allianceSystemEnabled` | true | Enable alliance system |
+| `evolutionSystemEnabled` | true | Enable mob leveling and equipment |
+| `rangeMultiplier` | 1.0 | Detection range multiplier (0.01x to 100x) |
 
-### Examples
-```
-/gamerule universalMobWarIgnoreSame false    # Enable chaos mode (same-species can fight)
-/gamerule universalMobWarTargetPlayers false # Player immunity (spectate safely)
-/gamerule universalMobWarRangeMultiplier 500 # 5x detection range
+**To change settings:**
+- Use the Mod Menu in-game, or
+- Edit `config/universalmobwar.json` and use `/mobwar reload` to apply changes.
+
+**Examples:**
+```json
+{
+  "ignoreSameSpecies": false,    // Enable chaos mode (same-species can fight)
+  "targetPlayers": false,        // Player immunity (spectate safely)
+  "rangeMultiplier": 5.0         // 5x detection range
+}
 ```
 
 ---
