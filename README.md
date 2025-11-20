@@ -30,12 +30,37 @@ Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (t
 - **Particle Connections** - Purple lines to loyal minions, red lines to betrayers
 - **Raid Integration** - 1.5% chance to spawn in final raid wave (can be forced with command)
 
-### 🎮 Customization
+
+### 🎮 Customization & Settings Menu
+- **In-Game Settings Menu** - Configure the mod easily from within Minecraft! Toggle features, enable/disable the mod, and save changes instantly.
+- **Mod Menu Support** - Seamless integration with [Mod Menu](https://modrinth.com/mod/modmenu): just click the gear icon next to "Universal Mob War" in the Mods list to open the config screen.
 - **7 Game Rules** - Fine-tune every aspect of the combat
 - **Range Control** - Scale mob detection from 0.01x to 100x
 - **Player Immunity** - Toggle to spectate without being targeted
 - **Config File** - Persistent settings and mob exclusions
 - **Creative Mode Protection** - Creative players don't trigger evolution/alliances
+
+---
+
+## 🛠️ Settings Menu & Mod Menu Integration
+
+Universal Mob War includes a modern in-game settings menu for easy configuration:
+
+- **Access via Mod Menu:**
+  1. Install [Mod Menu](https://modrinth.com/mod/modmenu) (if not already present).
+  2. Launch Minecraft and click the "Mods" button on the main menu.
+  3. Find **Universal Mob War** in the list and click the gear ⚙️ icon to open the config screen.
+
+- **Settings Available:**
+  - Enable/disable the mod
+  - (Future updates may add more options)
+  - Changes are saved instantly and take effect immediately in-game
+
+- **Config File Sync:**
+  - All changes made in the settings menu are written to `config/universalmobwar.json`
+  - You can also edit this file directly for advanced options
+
+This makes it easy to toggle the mod or adjust settings without leaving the game or editing files manually.
 
 ---
 
