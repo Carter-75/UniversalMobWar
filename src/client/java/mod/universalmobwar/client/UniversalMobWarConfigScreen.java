@@ -10,6 +10,7 @@ import mod.universalmobwar.config.ModConfig;
 public class UniversalMobWarConfigScreen extends Screen {
     private final Screen parent;
     private CheckboxWidget enabledCheckbox;
+    private CheckboxWidget scalingCheckbox;
 
     public UniversalMobWarConfigScreen(Screen parent) {
         super(Text.literal("Universal Mob War Config"));
@@ -26,8 +27,17 @@ public class UniversalMobWarConfigScreen extends Screen {
             .build();
         this.addDrawableChild(enabledCheckbox);
         y += 24;
+
+        scalingCheckbox = CheckboxWidget.builder(Text.literal("Enable Global Mob Scaling System"), this.textRenderer)
+            .pos(this.width / 2 - 100, y)
+            .checked(config.scalingEnabled)
+            .build();
+        this.addDrawableChild(scalingCheckbox);
+        y += 24;
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> {
             config.modEnabled = enabledCheckbox.isChecked();
+            config.scalingEnabled = scalingCheckbox.isChecked();
             config.save();
             this.client.setScreen(parent);
         }).position(this.width / 2 - 100, y).size(200, 20).build());

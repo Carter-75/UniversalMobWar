@@ -19,19 +19,26 @@ public abstract class MobDeathTrackerMixin {
     @Inject(method = "onDeath", at = @At("HEAD"))
     private void universalmobwar$trackKill(DamageSource damageSource, CallbackInfo ci) {
         LivingEntity victim = (LivingEntity)(Object)this;
-        
-        // Only track if evolution system is enabled
+
         if (victim.getWorld().isClient()) return;
         if (!(victim instanceof MobEntity)) return;
-        
+
+        // Evolution system (legacy)
         boolean evolutionEnabled = victim.getWorld().getGameRules().getBoolean(UniversalMobWarMod.EVOLUTION_SYSTEM_RULE);
-        if (!evolutionEnabled) return;
-        
+        // Global scaling system (new)
+        boolean scalingEnabled = mod.universalmobwar.config.ModConfig.getInstance().scalingEnabled;
+
+        if (!evolutionEnabled && !scalingEnabled) return;
+
         // Find the killer - only count kills by mobs, not creative players
         if (damageSource.getAttacker() instanceof MobEntity killer) {
-            EvolutionSystem.onMobKill(killer, victim);
+            if (evolutionEnabled) {
+                EvolutionSystem.onMobKill(killer, victim);
+            }
+            if (scalingEnabled) {
+                mod.universalmobwar.system.GlobalMobScalingSystem.onMobKill(killer, victim);
+            }
         }
-        // Don't track kills by creative/spectator players
     }
 }
 

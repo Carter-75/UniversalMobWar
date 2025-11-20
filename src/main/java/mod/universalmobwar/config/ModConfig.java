@@ -16,6 +16,16 @@ import java.util.List;
  * Stores default gamerule values and mob exclusions.
  */
 public class ModConfig {
+        // Global Mob Scaling System (new)
+        public boolean scalingEnabled = false;
+        public double dayScalingMultiplier = 1.0;
+        public double killScalingMultiplier = 1.0;
+        public int maxTier = 20;
+        public boolean allowBossScaling = true;
+        public boolean allowModdedScaling = true;
+        public boolean restrictEffectsToMobTheme = true;
+        public boolean debugLogging = false;
+
         // Advanced performance tuning
         public int targetingCacheMs = 1500; // Entity targeting cache duration (ms)
         public int targetingMaxQueriesPerTick = 50; // Max targeting queries per tick
@@ -55,6 +65,7 @@ public class ModConfig {
     public boolean showHealthBars = true;
     public boolean showMobLabels = true;
     public boolean showLevelParticles = true;
+
     
     private static final String CONFIG_FILE_NAME = "universalmobwar.json";
     private static ModConfig INSTANCE = null;

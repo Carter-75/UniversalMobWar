@@ -1,129 +1,158 @@
-# Universal Mob War v2.0 - Evolution Update
+
+# Universal Mob War v2.0+ (Evolution & Scaling)
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
 
-**Transform Minecraft into an evolving battlefield where mobs fight each other, level up, and form alliances!**
+**Battlefield overhaul: mobs fight, evolve, form alliances, and scale globally!**
 
-Compatible with **all vanilla and modded mobs**. Optimized for large modpacks (tested with 400+ mods).
-
----
-
-## 📋 Key Features
-
-### ⚔️ Combat & Evolution
-- **Universal Mob Combat** - All mobs attack different species automatically
-- **Strategic AI** - ALL mobs prioritize Warlord bosses over minions (kill boss = kill army!)
-- **Evolution System** - Mobs gain levels, stats, weapons, and armor from kills (max level 100)
-- **Alliance System** - Two-tier system: strong same-species alliances, weak cross-species alliances
-- **Betrayal Detection** - Minions who attack allies are marked as traitors
-
-### 👑 Mob Warlord Boss
-- **Epic Boss Fight** - 2x-sized giant witch with 1500 HP (750 hearts!)
-- **🌟 Super Self-Healing** - Throws golden potions when health drops below 70%
-- **🌟 Mob Conversion on Kill** - 50% chance to convert defeated enemies into loyal minions
-- **Fast Spawning** - Summons new minions every 2 seconds (aggressive reinforcement!)
-- **27 Summonable Mobs** - Commands an army of up to 20 minions
-- **Aggressive AI** - Actively targets players and hostile mobs, always in combat
-- **Smart Combat** - Heals low-health minions, avoids friendly fire, prioritizes threats
-- **4 Potion Types** - Harmful, super healing (golden), regular healing, and buff potions
-- **Minion Tethering** - Minions stay within 16 blocks and return if they wander too far
-- **Particle Connections** - Purple lines to loyal minions, red lines to betrayers
-- **Raid Integration** - 1.5% chance to spawn in final raid wave (can be forced with command)
-
-
-### 🎮 Customization & Settings Menu
-- **In-Game Settings Menu** - Configure the mod easily from within Minecraft! Toggle features, enable/disable the mod, and save changes instantly.
-- **Mod Menu Support** - Seamless integration with [Mod Menu](https://modrinth.com/mod/modmenu): just click the gear icon next to "Universal Mob War" in the Mods list to open the config screen.
-- **7 Game Rules** - Fine-tune every aspect of the combat
-- **Range Control** - Scale mob detection from 0.01x to 100x
-- **Player Immunity** - Toggle to spectate without being targeted
-- **Config File** - Persistent settings and mob exclusions
-- **Creative Mode Protection** - Creative players don't trigger evolution/alliances
+**Works with all vanilla & modded mobs.**
 
 ---
 
-## 🛠️ Settings Menu & Mod Menu Integration
+## 📋 Features Overview
 
-Universal Mob War includes a modern in-game settings menu for easy configuration:
+- **Global Mob Scaling (NEW):**
+  - All mobs scale with world days & kills (nonlinear, deterministic, no config lag)
+  - Power Profile: hidden stats, day/kill points, upgrades, tier, archetype
+  - World-day exponential scaling, kill-based progression, universal & archetype upgrades
+  - Tier system: nonlinear, internal, unlocks stronger upgrades
+  - Toggle in config/Mod Menu, no perf impact when off, works with legacy evolution
 
-- **Access via Mod Menu:**
-  1. Install [Mod Menu](https://modrinth.com/mod/modmenu) (if not already present).
-  2. Launch Minecraft and click the "Mods" button on the main menu.
-  3. Find **Universal Mob War** in the list and click the gear ⚙️ icon to open the config screen.
+- **Evolution System (Legacy):**
+  - Mobs level up from kills (max 100), gain stats & equipment
+  - Stat bonuses: +0.5 hearts, +10% damage, +0.5% speed, armor/knockback, gear upgrades
+  - Creative mode protection
 
-- **Settings Available:**
-  - Enable/disable the mod
-  - (Future updates may add more options)
-  - Changes are saved instantly and take effect immediately in-game
+- **Combat & AI:**
+  - All mobs attack other species, prioritize Warlord bosses
+  - Alliance system: strong (same species), weak (cross-species/chaos)
+  - Betrayal detection: traitors marked, targeted
 
-- **Config File Sync:**
-  - All changes made in the settings menu are written to `config/universalmobwar.json`
-  - You can also edit this file directly for advanced options
+- **Mob Warlord Boss:**
+  - Giant witch boss (2x size, 1500 HP, 20 minions)
+  - Super self-healing, mob conversion, fast minion spawn, 27 summon types
+  - Smart AI: buffs, healing, tethering, particle lines, raid integration
 
-This makes it easy to toggle the mod or adjust settings without leaving the game or editing files manually.
+- **Customization:**
+  - In-game settings & Mod Menu
+  - 7 game rules, range control, player immunity, config file, creative protection
 
 ---
 
-## 🆕 What's New in v2.0
+## 🛠️ Settings & Config
 
-### Mob Warlord Boss
-- Giant witch boss (actually 2x size!) with boss bar
-- **🌟 NEW: Super self-healing** - golden potions when below 70% health (Instant Health IV + Absorption III!)
-- **🌟 NEW: Mob recruitment** - takes over nearby hostile/neutral mobs every 3 seconds
-- **🌟 NEW: Faster spawning** - summons allies every 2 seconds (was 5 seconds)
-- Smart combat AI: heals minions, avoids friendly fire, buffs allies
-- Summons 27 different mob types (including Vexes!)
-- Custom potions: harmful (debuffs), healing (Instant Health II + buffs), support (Strength/Speed/Resistance)
-- Particle connections showing loyalty (purple) vs betrayal (red)
-- Smart creeper AI - creepers flee if 3+ allies nearby to avoid friendly fire
-- **Raid spawning** - 1.5% chance on final wave OR force with `/mobwar raid forceboss`
-- **Strategic targeting priorities**:
-  - **Priority 0**: Defend minions if attacked
-  - **Priority 1**: Revenge if boss is attacked
-  - **Priority 2**: **OTHER WARLORDS FIRST** (chaos mode only) - Kill the boss, kill all their minions!
-  - **Priority 3-4**: Villagers & Iron Golems (raids)
-  - **Priority 5**: Players
-  - **Priority 6**: All hostile mobs (including enemy minions)
-  - **Priority 7**: Animals
-  
-  **Smart strategy**: In chaos mode, warlords prioritize killing other warlords since defeating a warlord instantly kills all their minions!
+- **Mod Menu:** Click gear icon in Mods list for instant config
+- **Config file:** `config/universalmobwar.json` (all options, including scaling system)
+- **Key options:**
+  - `scalingEnabled`, `dayScalingMultiplier`, `killScalingMultiplier`, `maxTier`, `allowBossScaling`, `allowModdedScaling`, `restrictEffectsToMobTheme`, `debugLogging`
+  - All legacy evolution/alliance/gameplay options still available
 
-### Betrayal System
-- Automatic detection when minions attack each other
-- Betrayers lose protection - boss and loyal minions can target them
-- Visual indicator: red angry particle connections instead of purple
-- Action bar message: "⚔ A minion has betrayed the Warlord! ⚔"
-- Status persists through saves
+---
 
-### Alliance System (Two-Tier)
-**Strong Alliances (Same Species)**:
-- 95% formation chance, lasts 20 seconds
-- 20% chance to ignore help requests
-- 80% detection range
-- Will help allies even with different targets
-- Only when `universalMobWarIgnoreSame` is true (default)
+## 🌐 Global Mob Scaling System
 
-**Weak Alliances (Different Species)**:
-- 70% formation chance, lasts 5 seconds
-- 70% chance to ignore help requests
-- 50% detection range
-- Only helps when fighting same target
+- Every mob gets a Power Profile on spawn/activation
+- World-day scaling: soft exponential curve, late game = much harder
+- Kill-based scaling: points for every kill/assist, harder per tier
+- Upgrades: health, armor, speed, damage, resistances, aggro, immunities, more
+- Archetype paths: zombies, skeletons, spiders, creepers, witches, illagers, end/nether/warden, all modded (auto-detect)
+- Tier system: nonlinear, internal, unlocks upgrades, higher cost per tier
+- Fully compatible with legacy evolution (can run both or either)
 
-**Chaos Mode** (when `universalMobWarIgnoreSame` is false):
-- All alliances become weak, even same-species
-- Total warfare with minimal coordination
+**How to use:**
+  - Enable in Mod Menu or set `scalingEnabled: true` in config
+  - All mobs scale with world days & kills, upgrades/tier applied automatically
+  - Legacy evolution can be toggled independently
 
-### Evolution System
-- Mobs gain XP and levels from kills (max level 100)
-- **Stat Bonuses per Level**:
-  - +0.5 hearts health
-  - +10% attack damage
-  - +0.5% movement speed
-  - Progressive armor and knockback resistance
-- **Automatic Equipment**:
-  - Level 10+: Weapons (wood → stone → iron → diamond → netherite)
-  - Level 20+: Armor sets (leather → chainmail → iron → diamond → netherite)
-- **Creative Mode Protection**: No evolution XP when killed by creative players
+---
+
+## ⚔️ Commands & Game Rules
+
+- `/mobwar help` — All commands
+- `/mobwar stats` — View mob levels
+- `/mobwar reset` — Clear mob targets (OP)
+- `/mobwar reload` — Reload config (OP)
+- `/mobwar summon warlord` — Summon boss (OP)
+- `/mobwar raid forceboss` — Force boss in next raid
+
+**Game Rules:**
+| Rule | Default | Description |
+|------|---------|-------------|
+| `universalMobWarEnabled` | true | Master toggle |
+| `universalMobWarIgnoreSame` | true | Same-species alliances |
+| `universalMobWarTargetPlayers` | true | Player immunity |
+| `universalMobWarNeutralAggressive` | false | Neutral mobs always hostile |
+| `universalMobWarAlliances` | true | Alliance system |
+| `universalMobWarEvolution` | true | Legacy leveling |
+| `universalMobWarRangeMultiplier` | 100 | Detection range |
+
+---
+
+## 👑 Mob Warlord Boss (Highlights)
+
+- 2x witch, 1500 HP, 20 minions, 27 summon types
+- Super healing, mob conversion, buffs, smart AI, raid integration
+- Minion tethering, betrayal system, particle lines
+
+---
+
+## 📝 Config Example
+
+```json
+{
+  "modEnabled": true,
+  "scalingEnabled": false,
+  "dayScalingMultiplier": 1.0,
+  "killScalingMultiplier": 1.0,
+  "maxTier": 20,
+  "allowBossScaling": true,
+  "allowModdedScaling": true,
+  "restrictEffectsToMobTheme": true,
+  "debugLogging": false,
+  "ignoreSameSpecies": true,
+  "targetPlayers": true,
+  "neutralMobsAlwaysAggressive": false,
+  "allianceSystemEnabled": true,
+  "evolutionSystemEnabled": true,
+  "rangeMultiplier": 1.0,
+  "maxLevel": 100,
+  "killsPerLevel": 3,
+  "giveEquipmentToMobs": true,
+  "allianceDurationTicks": 100,
+  "sameSpeciesAllianceDurationTicks": 400,
+  "allianceRange": 16.0,
+  "allianceBreakChance": 0.3,
+  "sameSpeciesAllianceBreakChance": 0.05,
+  "excludedMobs": [],
+  "showTargetLines": true,
+  "showHealthBars": true,
+  "showMobLabels": true,
+  "showLevelParticles": true
+}
+```
+
+---
+
+## 🔧 Technical & Performance
+
+- **Fabric 1.21.1+**, all vanilla/modded mobs, 400+ modpacks tested
+- **Highly optimized**: spatial caching, query rate limiting, adaptive scheduling, anti-starvation, minimal overhead
+- **No lag**: scaling logic only runs if enabled, all operations staggered, memory efficient
+- **Data**: mob levels/kills in NBT, config auto-generated, all settings hot-reloadable
+
+---
+
+## 📄 License & Attribution
+
+**© 2024 Carter. All rights reserved.**
+
+- Use in modpacks/servers/videos with attribution
+- Do not edit, redistribute, or rehost the mod file
+- Always credit Carter and link to the official download page
+
+---
+
+**Enjoy the chaos!** 🎉
 
 ---
 

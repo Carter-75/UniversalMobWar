@@ -25,6 +25,7 @@ import net.minecraft.item.SpawnEggItem;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -32,6 +33,7 @@ import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import mod.universalmobwar.system.GlobalMobScalingSystem;
 public class UniversalMobWarMod implements ModInitializer {
 
 	public static final String MODID = "universalmobwar";
@@ -56,7 +58,7 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	// Gamerule: true = mod is active (default). false = mod is completely disabled.
 	public static GameRules.Key<GameRules.BooleanRule> MOD_ENABLED_RULE;
-
+	// Removed misplaced import inside class body
 	// Gamerule: true = ignore same-species (default). false = chaos (same-species allowed).
 	public static GameRules.Key<GameRules.BooleanRule> IGNORE_SAME_SPECIES_RULE;
 	
@@ -270,9 +272,14 @@ public class UniversalMobWarMod implements ModInitializer {
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
 			if (!(entity instanceof MobEntity mob)) return;
 
+			// Global Mob Scaling System (new)
+			if (world instanceof ServerWorld serverWorld) {
+				GlobalMobScalingSystem.onMobActivated(mob, serverWorld);
+			}
+
 			// Check if the mod is enabled
 			if (!world.getGameRules().getBoolean(MOD_ENABLED_RULE)) return;
-			
+
 			// Check if this mob type is excluded
 			String mobId = mob.getType().getTranslationKey();
 			if (ModConfig.getInstance().isMobExcluded(mobId)) return;
@@ -282,7 +289,7 @@ public class UniversalMobWarMod implements ModInitializer {
 			// Check if our goal is already added to prevent duplicates on chunk reload
 			boolean alreadyHasGoal = targetSelector.getGoals().stream()
 				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
-			
+
 			if (!alreadyHasGoal) {
 				targetSelector.add(2, new UniversalTargetGoal(
 					mob,
