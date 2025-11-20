@@ -5,7 +5,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityData;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;

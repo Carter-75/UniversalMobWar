@@ -3,7 +3,6 @@ package mod.universalmobwar.goal;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.system.AllianceSystem;
-import mod.universalmobwar.system.EvolutionSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.TrackTargetGoal;
@@ -16,22 +15,14 @@ import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
-/**
- * Enhanced targeting goal with alliance and evolution support.
- * Priorities:
- * 1. Continue attacking current target if valid
- * 2. Help allied mobs being attacked
- * 3. Find nearest valid target
- */
+//
 public class UniversalTargetGoal extends TrackTargetGoal {
 
 	private final MobEntity mob;
 	private final BooleanSupplier modEnabledSupplier;
 	private final BooleanSupplier ignoreSameSpeciesSupplier;
 	private final BooleanSupplier targetPlayersSupplier;
-	private final BooleanSupplier neutralAggressiveSupplier;
 	private final BooleanSupplier allianceEnabledSupplier;
-	private final BooleanSupplier evolutionEnabledSupplier;
 	private final DoubleSupplier rangeMultiplierSupplier;
 	private LivingEntity candidate;
 	private long lastAllianceCheck = 0;
@@ -40,13 +31,11 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	private final long allianceCheckOffset; // UUID-based offset for staggering alliance updates
 
 	public UniversalTargetGoal(
-		MobEntity mob, 
-		BooleanSupplier modEnabledSupplier, 
+		MobEntity mob,
+		BooleanSupplier modEnabledSupplier,
 		BooleanSupplier ignoreSameSpeciesSupplier,
 		BooleanSupplier targetPlayersSupplier,
-		BooleanSupplier neutralAggressiveSupplier,
 		BooleanSupplier allianceEnabledSupplier,
-		BooleanSupplier evolutionEnabledSupplier,
 		DoubleSupplier rangeMultiplierSupplier
 	) {
 		super(mob, false, false);
@@ -54,11 +43,8 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		this.modEnabledSupplier = modEnabledSupplier;
 		this.ignoreSameSpeciesSupplier = ignoreSameSpeciesSupplier;
 		this.targetPlayersSupplier = targetPlayersSupplier;
-		this.neutralAggressiveSupplier = neutralAggressiveSupplier;
 		this.allianceEnabledSupplier = allianceEnabledSupplier;
-		this.evolutionEnabledSupplier = evolutionEnabledSupplier;
 		this.rangeMultiplierSupplier = rangeMultiplierSupplier;
-		
 		// OPTIMIZATION: Calculate UUID-based offset for staggering alliance updates (0-2000ms)
 		this.allianceCheckOffset = Math.abs(mob.getUuid().hashCode()) % 2000L;
 	}
@@ -77,11 +63,10 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		}
 		// Spread updates over 10 ticks using UUID-based offset
 		updateCooldown = 10 + (Math.abs(mob.getUuid().hashCode()) % 10);
-		
+
 		// Check if mod is enabled
 		if (!modEnabledSupplier.getAsBoolean()) return false;
-
-		if (!(mob.getWorld() instanceof ServerWorld serverWorld)) return false;
+		if (!(mob.getWorld() instanceof ServerWorld)) return false;
 		if (!mob.isAlive()) return false;
 
 		// CRITICAL: Check if this mob is a warlord minion
@@ -95,7 +80,6 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 					mob.setTarget(null);
 					return false;
 				}
-				
 				// Don't target fellow minions (same master)
 				if (currentTarget instanceof MobEntity targetMob) {
 					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
@@ -140,12 +124,12 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 
 		// Priority 3: Find nearest valid target
 		this.candidate = TargetingUtil.findNearestValidTarget(mob, followRange, ignoreSame, targetPlayers);
-		
+
 		// OPTIMIZATION: Longer cooldown if no target found
 		if (this.candidate == null) {
 			updateCooldown = 40; // Wait 2 seconds before searching again
 		}
-		
+
 		return this.candidate != null;
 	}
 
@@ -156,13 +140,11 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 			UUID masterUuid = MobWarlordEntity.getMasterUuid(mob.getUuid());
 			if (masterUuid != null) {
 				// This is a minion - validate the candidate
-				
 				// Don't target the warlord master
 				if (this.candidate instanceof MobWarlordEntity warlord && warlord.getUuid().equals(masterUuid)) {
 					this.candidate = null;
 					return;
 				}
-				
 				// Don't target fellow minions (same master)
 				if (this.candidate instanceof MobEntity targetMob) {
 					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
@@ -172,14 +154,11 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 					}
 				}
 			}
-			
 			mob.setTarget(this.candidate);
-			
 			// Track target change
 			MobWarData data = MobWarData.get(mob);
 			data.setCurrentTarget(this.candidate.getUuid());
 			MobWarData.save(mob, data);
-			
 			// Update alliances if enabled
 			if (allianceEnabledSupplier.getAsBoolean() && mob.getWorld() instanceof ServerWorld serverWorld) {
 				AllianceSystem.updateAlliances(mob, serverWorld);
@@ -192,39 +171,31 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	public boolean shouldContinue() {
 		// Check if mod is still enabled
 		if (!modEnabledSupplier.getAsBoolean()) return false;
-
 		LivingEntity t = mob.getTarget();
 		if (t == null || !t.isAlive()) return false;
-
 		final boolean ignoreSame = ignoreSameSpeciesSupplier.getAsBoolean();
 		final boolean targetPlayers = targetPlayersSupplier.getAsBoolean();
-		
 		// OPTIMIZATION: Dynamic alliance check interval based on combat state with UUID offset
 		long currentTime = System.currentTimeMillis();
 		long timeSinceLastCheck = currentTime - lastAllianceCheck;
-		
 		// OPTIMIZATION: Use offset to stagger alliance updates across all mobs
 		if (allianceEnabledSupplier.getAsBoolean() && timeSinceLastCheck > (allianceCheckInterval + allianceCheckOffset)) {
 			if (mob.getWorld() instanceof ServerWorld serverWorld) {
 				// Check if in active combat (recently attacked)
 				boolean inCombat = (currentTime - mob.getLastAttackTime() < 3000);
-				
 				// Adjust interval: 2s in combat, 4s when calm
 				allianceCheckInterval = inCombat ? 2000 : 4000;
-				
 				AllianceSystem.updateAlliances(mob, serverWorld);
 				AllianceSystem.cleanupExpiredAlliances(mob);
 			}
 			lastAllianceCheck = currentTime;
 		}
-		
 		return TargetingUtil.isValidTarget(mob, t, ignoreSame, targetPlayers);
 	}
 
 	@Override
 	public void stop() {
 		this.candidate = null;
-		
 		// Don't clear target tracking - keep it for priority system
 		super.stop();
 	}

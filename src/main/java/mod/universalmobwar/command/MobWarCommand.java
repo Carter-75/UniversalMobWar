@@ -1,4 +1,5 @@
 package mod.universalmobwar.command;
+import net.minecraft.util.math.BlockPos;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -15,7 +16,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
@@ -155,7 +155,7 @@ public class MobWarCommand {
     private static int executeStats(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         ServerCommandSource source = context.getSource();
         ServerWorld world = source.getWorld();
-        BlockPos pos = BlockPos.ofFloored(source.getPosition());
+        // Removed unused variable: BlockPos pos = BlockPos.ofFloored(source.getPosition());
         
         // Find mobs within 50 blocks
         List<MobEntity> nearbyMobs = world.getEntitiesByClass(

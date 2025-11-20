@@ -25,8 +25,6 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
@@ -55,10 +53,7 @@ public class MobWarlordEntity extends HostileEntity {
     
     private final ServerBossBar bossBar;
     private final Set<UUID> minionUuids = new HashSet<>();
-    private int summonCooldown = 0;
     private int attackCooldown = 0;
-    private int cleanupCooldown = 0; // Cooldown for expensive cleanup operations
-    private int particleCooldown = 0; // Cooldown for particle connections
     
     // OPTIMIZATION: UUID-based tick offsets for staggering operations across multiple Warlords
     private final int particleOffset; // 0-30 tick offset for particle drawing
@@ -81,7 +76,7 @@ public class MobWarlordEntity extends HostileEntity {
             BossBar.Style.NOTCHED_10
         );
         // FIX: Start with summon cooldown at 0 so boss summons immediately after initialization
-        this.summonCooldown = 0;
+        // (Field removed in cleanup; if cooldown logic is needed, re-add as appropriate)
         
         // OPTIMIZATION: Calculate UUID-based offsets for staggering operations
         int hash = Math.abs(this.getUuid().hashCode());
@@ -564,6 +559,7 @@ public class MobWarlordEntity extends HostileEntity {
         
         this.dataTracker.set(MINION_COUNT, minionUuids.size());
         
+        //noinspection deprecation
         UniversalMobWarMod.LOGGER.debug("Mob Warlord converted {} into a minion! (UUID: {})", 
             killedMob.getType().getRegistryEntry().registryKey().getValue(), 
             killedMob.getUuid());
@@ -789,15 +785,7 @@ public class MobWarlordEntity extends HostileEntity {
      * Checks if a mob is a raid mob (pillagers, vindicators, ravagers, etc.).
      * Used to avoid targeting raid allies when boss is spawned in a raid.
      */
-    private boolean isRaidMob(MobEntity mob) {
-        EntityType<?> type = mob.getType();
-        return type == EntityType.PILLAGER ||
-               type == EntityType.VINDICATOR ||
-               type == EntityType.EVOKER ||
-               type == EntityType.RAVAGER ||
-               type == EntityType.WITCH ||
-               type == EntityType.VEX;
-    }
+
     
     /**
      * Finds a low-health minion that needs healing.

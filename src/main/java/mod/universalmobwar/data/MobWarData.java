@@ -1,6 +1,5 @@
 package mod.universalmobwar.data;
 
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 

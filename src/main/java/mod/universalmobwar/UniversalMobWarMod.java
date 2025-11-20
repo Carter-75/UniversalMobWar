@@ -284,19 +284,17 @@ public class UniversalMobWarMod implements ModInitializer {
 				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
 			
 			if (!alreadyHasGoal) {
-				// Priority 2 so it competes well with vanilla targeting without breaking boss-specific logic.
-				targetSelector.add(2, new UniversalTargetGoal(mob, 
+				targetSelector.add(2, new UniversalTargetGoal(
+					mob,
 					() -> world.getGameRules().getBoolean(MOD_ENABLED_RULE),
 					() -> world.getGameRules().getBoolean(IGNORE_SAME_SPECIES_RULE),
 					() -> world.getGameRules().getBoolean(TARGET_PLAYERS_RULE),
-					() -> world.getGameRules().getBoolean(NEUTRAL_MOBS_AGGRESSIVE_RULE),
 					() -> world.getGameRules().getBoolean(ALLIANCE_SYSTEM_RULE),
-					() -> world.getGameRules().getBoolean(EVOLUTION_SYSTEM_RULE),
-					() -> world.getGameRules().getInt(RANGE_MULTIPLIER_RULE) / 100.0
+					() -> ((double) world.getGameRules().getInt(RANGE_MULTIPLIER_RULE)) / 100.0
 				));
 			}
 		});
-		
+
 		// OPTIMIZATION: Register cache cleanup for entity query system (every 5 seconds)
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
