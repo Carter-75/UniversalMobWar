@@ -2,6 +2,7 @@ package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.data.PowerProfile;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityData;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
@@ -86,11 +87,11 @@ public abstract class HordeSummonMixin {
             double z = original.getZ() + (original.getRandom().nextDouble() - 0.5) * 7.0;
             
             BlockPos pos = new BlockPos((int)x, (int)y, (int)z);
-            if (world.getBlockState(pos).isAir() && world.getBlockState(pos.down()).isSolid()) {
+            if (world.getBlockState(pos).isAir() && world.getBlockState(pos.down()).isSolidBlock(world, pos.down())) {
                 Entity entity = type.create(world);
                 if (entity instanceof MobEntity reinforcement) {
                     reinforcement.refreshPositionAndAngles(x, y, z, original.getRandom().nextFloat() * 360.0F, 0.0F);
-                    reinforcement.initialize(world, world.getLocalDifficulty(pos), SpawnReason.REINFORCEMENT, null, null);
+                    reinforcement.initialize(world, world.getLocalDifficulty(pos), SpawnReason.REINFORCEMENT, (EntityData)null);
                     
                     // Important: The user said "extra dont summon the same 1-3 extra again and again"
                     // We should probably disable the skill on the summoned mob.

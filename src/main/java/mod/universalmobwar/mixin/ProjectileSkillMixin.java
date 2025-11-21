@@ -2,7 +2,6 @@ package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.data.PowerProfile;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
@@ -27,7 +26,7 @@ public abstract class ProjectileSkillMixin {
                 if (projectile instanceof PersistentProjectileEntity persistent) {
                     int piercing = profile.specialSkills.getOrDefault("piercing_shot", 0);
                     if (piercing > 0) {
-                        persistent.setPierceLevel((byte) piercing);
+                        ((PersistentProjectileEntityAccessor) persistent).invokeSetPierceLevel((byte) piercing);
                     }
                 }
 
@@ -62,7 +61,7 @@ public abstract class ProjectileSkillMixin {
                         Entity extra = entity.getType().create(world);
                         if (extra instanceof ProjectileEntity extraProj) {
                             extraProj.setOwner(owner);
-                            extraProj.copyPositionAndRotationFrom(entity);
+                            extraProj.refreshPositionAndAngles(entity.getX(), entity.getY(), entity.getZ(), entity.getYaw(), entity.getPitch());
                             
                             // Spread
                             float spread = 10.0f * (i + 1);
@@ -72,7 +71,13 @@ public abstract class ProjectileSkillMixin {
                             extraProj.setVelocity(entity.getVelocity().rotateY((float)Math.toRadians(spread)));
                             
                             if (extraProj instanceof PersistentProjectileEntity extraPers && projectile instanceof PersistentProjectileEntity mainPers) {
-                                extraPers.setPierceLevel(mainPers.getPierceLevel());
+                                if (extraPers instanceof PersistentProjectileEntityAccessor extraAcc && mainPers instanceof PersistentProjectileEntityAccessor mainAcc) {
+                                     extraAcc.invokeSetPierceLevel(mainAcc.invokeGetPierceLevel());
+                                } else {
+                                     // Fallback if mixin fails or casting fails (shouldn't happen if mixin applied)
+                                     // But we can't cast to interface on the object directly unless we cast the object.
+                                     ((PersistentProjectileEntityAccessor)extraPers).invokeSetPierceLevel(((PersistentProjectileEntityAccessor)mainPers).invokeGetPierceLevel());
+                                }
                                 // Copy damage?
                                 extraPers.setDamage(mainPers.getDamage());
                             }
