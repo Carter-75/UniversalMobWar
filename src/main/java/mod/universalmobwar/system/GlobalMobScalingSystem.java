@@ -2,7 +2,6 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.PowerProfile;
-import mod.universalmobwar.system.UpgradeSystem.UpgradeNode;
 import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -41,7 +40,21 @@ public class GlobalMobScalingSystem {
         if (ACTIVATION_IN_PROGRESS.contains(mob)) return;
         ACTIVATION_IN_PROGRESS.add(mob);
         try {
-            if (ACTIVE_PROFILES.containsKey(mob)) return;
+            if (ACTIVE_PROFILES.containsKey(mob)) {
+                // Even if active, check if we need to update points (e.g. new day)
+                // But if maxed, skip.
+                PowerProfile profile = ACTIVE_PROFILES.get(mob);
+                if (profile.isMaxed) return;
+                
+                double newDayPoints = calculateDayScalingPoints(world);
+                if (newDayPoints > profile.dayScalingPoints) {
+                    profile.dayScalingPoints = newDayPoints;
+                    profile.totalPoints = profile.dayScalingPoints + profile.killScalingPoints;
+                    updateTierAndUpgrades(mob, profile);
+                }
+                return;
+            }
+            
             PowerProfile profile = new PowerProfile();
             // Copy base stats
             profile.baseHealth = mob.getMaxHealth();
@@ -56,6 +69,7 @@ public class GlobalMobScalingSystem {
             profile.totalPoints = profile.dayScalingPoints;
             profile.tierLevel = 0;
             profile.archetype = mod.universalmobwar.system.ArchetypeClassifier.detectArchetype(mob);
+            profile.categories = mod.universalmobwar.system.ArchetypeClassifier.getMobCategories(mob);
             profile.priorityPath = mod.universalmobwar.system.ArchetypeClassifier.detectPriorityPath(mob);
             ACTIVE_PROFILES.put(mob, profile);
             updateTierAndUpgrades(mob, profile);
@@ -73,7 +87,7 @@ public class GlobalMobScalingSystem {
     public static void onMobKill(MobEntity mob, LivingEntity victim) {
         if (!ModConfig.getInstance().scalingEnabled) return;
         PowerProfile profile = ACTIVE_PROFILES.get(mob);
-        if (profile == null) return;
+        if (profile == null || profile.isMaxed) return;
         double points = calculateKillPoints(mob, victim, profile);
         profile.killScalingPoints += points;
         profile.totalPoints = profile.dayScalingPoints + profile.killScalingPoints;
@@ -90,13 +104,42 @@ public class GlobalMobScalingSystem {
     }
 
     /**
-     * Calculate day-based scaling points using a soft exponential curve.
+     * Calculate day-based scaling points using the user's specific schedule.
      */
     private static double calculateDayScalingPoints(ServerWorld world) {
         long day = world.getTimeOfDay() / 24000L;
-        double base = ModConfig.getInstance().dayScalingMultiplier;
-        // Example: soft exponential (tweak as needed)
-        return base * Math.pow(day, 1.18);
+        double points = 0;
+
+        // 0-10 days: 0.1 per day
+        long daysInPhase1 = Math.min(day, 10);
+        points += daysInPhase1 * 0.1;
+        if (day <= 10) return points;
+
+        // 10-15 days: 0.5 per day
+        long daysInPhase2 = Math.min(day - 10, 5);
+        points += daysInPhase2 * 0.5;
+        if (day <= 15) return points;
+
+        // 15-20 days: 1 per day
+        long daysInPhase3 = Math.min(day - 15, 5);
+        points += daysInPhase3 * 1.0;
+        if (day <= 20) return points;
+
+        // 20-25 days: 1.5 per day
+        long daysInPhase4 = Math.min(day - 20, 5);
+        points += daysInPhase4 * 1.5;
+        if (day <= 25) return points;
+
+        // 25-30 days: 3 per day
+        long daysInPhase5 = Math.min(day - 25, 5);
+        points += daysInPhase5 * 3.0;
+        if (day <= 30) return points;
+
+        // 30+ days: 5 per day
+        long daysInPhase6 = day - 30;
+        points += daysInPhase6 * 5.0;
+
+        return points;
     }
 
     /**
@@ -113,23 +156,11 @@ public class GlobalMobScalingSystem {
      * Update tier and apply upgrades based on total points.
      */
     private static void updateTierAndUpgrades(MobEntity mob, PowerProfile profile) {
-        int newTier = calculateTier(profile.totalPoints);
-        ServerWorld world = (ServerWorld) mob.getWorld();
-        long worldSeed = world.getSeed();
-        if (newTier > profile.tierLevel) {
-            profile.tierLevel = newTier;
-            // Reroll priority path with 10% chance
-            mod.universalmobwar.system.UpgradeSystem.maybeRerollPriorityPath(profile, worldSeed);
-        }
-        // Always select upgrades based on current points/tier
-        mod.universalmobwar.system.UpgradeSystem.selectUpgrades(profile, profile.priorityPath, worldSeed);
-        // Apply all chosen upgrades from the skill tree
-        for (String upgradeId : profile.chosenUpgrades) {
-            UpgradeNode node = mod.universalmobwar.system.UpgradeSystem.findUpgradeNode(profile.priorityPath, upgradeId);
-            if (node != null) {
-                mod.universalmobwar.system.UpgradeSystem.applyUpgradeNode(mob, node);
-            }
-        }
+        // New system: Apply upgrades directly based on points
+        mod.universalmobwar.system.UpgradeSystem.applyUpgrades(mob, profile);
+        
+        // Update tier level for display/logging (approximate based on points)
+        profile.tierLevel = calculateTier(profile.totalPoints);
     }
 
     /**
