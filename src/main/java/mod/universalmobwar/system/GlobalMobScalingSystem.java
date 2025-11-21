@@ -1,3 +1,4 @@
+    // (getActiveProfile is now correctly placed inside the class below)
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.data.PowerProfile;
@@ -17,8 +18,16 @@ import java.util.Map;
 public class GlobalMobScalingSystem {
         // Prevent infinite recursion: track mobs currently being processed
         private static final java.util.Set<MobEntity> ACTIVATION_IN_PROGRESS = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
     // In-memory cache for active mob profiles (cleared on chunk unload)
     private static final Map<MobEntity, PowerProfile> ACTIVE_PROFILES = new HashMap<>();
+
+    /**
+     * Public accessor for a mob's PowerProfile (for mixins/event hooks).
+     */
+    public static PowerProfile getActiveProfile(MobEntity mob) {
+        return ACTIVE_PROFILES.get(mob);
+    }
 
     /**
      * Called when a mob spawns or enters simulation distance.

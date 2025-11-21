@@ -98,13 +98,46 @@ public class UpgradeSystem {
         if (node.attributes.containsKey("knockback")) {
             mob.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE).setBaseValue(node.attributes.get("knockback"));
         }
-        // Apply equipment
+        // Custom Drowned and Piglin weapon logic
+        String mobName = mob.getType().toString().toLowerCase();
+        boolean isDrowned = mobName.contains("drowned");
+        boolean isPiglin = mobName.contains("piglin");
+        boolean isApex = node != null && node.id.equals("universal_apex_10");
         for (Map.Entry<EquipmentSlot, String> entry : node.equipment.entrySet()) {
+            EquipmentSlot slot = entry.getKey();
             String id = entry.getValue();
             String[] parts = id.split(":");
-            if (parts.length == 2) {
-                ItemStack stack = Registries.ITEM.get(net.minecraft.util.Identifier.of(parts[0], parts[1])).getDefaultStack();
-                mob.equipStack(entry.getKey(), stack);
+            ItemStack stack = null;
+            if (isDrowned && slot == EquipmentSlot.MAINHAND) {
+                // Drowned always get trident, enchanted at high tier
+                stack = Registries.ITEM.get(net.minecraft.util.Identifier.of("minecraft", "trident")).getDefaultStack();
+                if (node.tierReq >= 5) {
+                    var enchReg = mob.getWorld().getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                    var loyalty = enchReg.getEntry(net.minecraft.util.Identifier.of("minecraft", "loyalty"));
+                    var impaling = enchReg.getEntry(net.minecraft.util.Identifier.of("minecraft", "impaling"));
+                    if (loyalty.isPresent()) stack.addEnchantment(loyalty.get(), 3);
+                    if (impaling.isPresent()) stack.addEnchantment(impaling.get(), 5);
+                }
+            } else if (isPiglin && slot == EquipmentSlot.MAINHAND) {
+                // Piglins get gold sword unless apex, then Netherite
+                if (isApex) {
+                    stack = Registries.ITEM.get(net.minecraft.util.Identifier.of("minecraft", "netherite_sword")).getDefaultStack();
+                } else {
+                    stack = Registries.ITEM.get(net.minecraft.util.Identifier.of("minecraft", "golden_sword")).getDefaultStack();
+                }
+                // Enchant at high tier
+                if (node.tierReq >= 5) {
+                    var enchReg = mob.getWorld().getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+                    var sharp = enchReg.getEntry(net.minecraft.util.Identifier.of("minecraft", "sharpness"));
+                    var fire = enchReg.getEntry(net.minecraft.util.Identifier.of("minecraft", "fire_aspect"));
+                    if (sharp.isPresent()) stack.addEnchantment(sharp.get(), 5);
+                    if (fire.isPresent()) stack.addEnchantment(fire.get(), 2);
+                }
+            } else if (parts.length == 2) {
+                stack = Registries.ITEM.get(net.minecraft.util.Identifier.of(parts[0], parts[1])).getDefaultStack();
+            }
+            if (stack != null) {
+                mob.equipStack(slot, stack);
             }
         }
         // Apply potion effects
