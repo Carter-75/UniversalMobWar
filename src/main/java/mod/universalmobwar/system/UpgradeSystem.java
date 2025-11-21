@@ -173,6 +173,38 @@ public class UpgradeSystem {
                 }
             }
         }
+
+        // Special: If this is the "horde_summon" upgrade, summon zombies nearby (deterministic, NBT-safe)
+        if (node != null && node.category.equals("horde_summon")) {
+            // Only summon if not already summoned (avoid infinite loops)
+            if (mob.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
+                net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
+                if (nbt.getBoolean("umw_summoned_by_horde")) return;
+                nbt.putBoolean("umw_summoned_by_horde", true);
+                mob.readNbt(nbt);
+                // Use mob UUID and world seed for deterministic random
+                long seed = serverWorld.getSeed() ^ mob.getUuid().getMostSignificantBits() ^ mob.getUuid().getLeastSignificantBits();
+                java.util.Random rand = new java.util.Random(seed);
+                int count = 2 + rand.nextInt(3); // 2-4 zombies
+                for (int i = 0; i < count; i++) {
+                    double angle = rand.nextDouble() * Math.PI * 2;
+                    double dist = 2.0 + rand.nextDouble() * 2.0;
+                    double dx = mob.getX() + Math.cos(angle) * dist;
+                    double dz = mob.getZ() + Math.sin(angle) * dist;
+                    double dy = mob.getY();
+                    var entityType = net.minecraft.entity.EntityType.ZOMBIE;
+                    var newZombie = entityType.create(serverWorld);
+                    if (newZombie != null) {
+                        newZombie.refreshPositionAndAngles(dx, dy, dz, rand.nextFloat() * 360.0f, 0.0f);
+                        net.minecraft.nbt.NbtCompound zNbt = new net.minecraft.nbt.NbtCompound();
+                        newZombie.writeNbt(zNbt);
+                        zNbt.putBoolean("umw_summoned_by_horde", true);
+                        newZombie.readNbt(zNbt);
+                        serverWorld.spawnEntity(newZombie);
+                    }
+                }
+            }
+        }
     }
 
     // Map archetype to root nodes of their skill tree
