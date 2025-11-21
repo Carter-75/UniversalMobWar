@@ -196,6 +196,8 @@ public class UpgradeSystem {
                     var newZombie = entityType.create(serverWorld);
                     if (newZombie != null) {
                         newZombie.refreshPositionAndAngles(dx, dy, dz, rand.nextFloat() * 360.0f, 0.0f);
+                        // Mark summoned zombie so it can never horde summon
+                        HORDE_SUMMONED.add(newZombie.getUuid());
                         serverWorld.spawnEntity(newZombie);
                     }
                 }
