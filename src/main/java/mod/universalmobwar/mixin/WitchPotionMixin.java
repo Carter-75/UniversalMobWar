@@ -34,7 +34,13 @@ public abstract class WitchPotionMixin {
         if (witch.getRandom().nextInt(100) < chance) {
             // Throw special potion
             RegistryEntry<Potion> potion = Potions.POISON;
-            int pick = witch.getRandom().nextInt(8);
+            
+            int level = chance / 10;
+            double center = (level / 10.0) * 7.0;
+            int pick = (int) Math.round(center + witch.getRandom().nextGaussian() * 1.5);
+            if (pick < 0) pick = 0;
+            if (pick > 7) pick = 7;
+
             switch (pick) {
                 case 0 -> potion = Potions.WEAKNESS;
                 case 1 -> potion = Potions.SLOWNESS;

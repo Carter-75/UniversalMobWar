@@ -21,12 +21,12 @@ public class ArchetypeClassifier {
         register("husk", "g", "z");
         register("drowned", "g", "z", "trident");
         register("skeleton", "g", "pro", "bow");
-        register("stray", "g", "pro", "bow");
+        register("stray", "g", "bow", "pro");
         register("bogged", "g");
         register("wither_skeleton", "g");
         register("zombified_piglin", "g", "z");
         register("phantom", "g", "nw");
-        register("zoglin", "g", "z", "nw");
+        register("zoglin", "g", "nw", "z");
         register("zombie_villager", "g", "z");
         register("zombie_horse", "gp");
         register("skeleton_horse", "gp");
@@ -40,7 +40,7 @@ public class ArchetypeClassifier {
         register("ravager", "g", "nw");
         
         // Piglins
-        register("piglin", "g"); // Random Sword/Bow handled in getMobCategories
+        register("piglin", "g"); 
         register("piglin_brute", "g");
         
         // Arthropods
@@ -92,7 +92,7 @@ public class ArchetypeClassifier {
         register("goat", "gp");
         register("frog", "gp");
         register("tadpole", "gp");
-        register("allay", "gp"); // "ally" in user list
+        register("allay", "gp"); 
         register("armadillo", "gp");
         register("axolotl", "gp");
         register("bat", "gp", "nw");
@@ -110,6 +110,7 @@ public class ArchetypeClassifier {
         register("squid", "gp");
         register("tropical_fish", "gp");
         register("turtle", "gp");
+        register("trader_llama", "gp");
     }
 
     private static void register(String name, String... categories) {

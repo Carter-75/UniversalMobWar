@@ -33,9 +33,16 @@ public abstract class CreeperExplosionMixin {
             cloud.setDuration(cloud.getDuration() / 2);
             cloud.setRadiusGrowth(-cloud.getRadius() / (float)cloud.getDuration());
             
-            // Pick random effect
-            // weakness, slowness, poison, harming, slowness II, blindness, nausea, wither
-            int pick = creeper.getRandom().nextInt(8);
+            // Pick effect based on level (skewed)
+            // Level 1-10 (chance 10-100)
+            int level = chance / 10;
+            double center = (level / 10.0) * 7.0; // 0.7 to 7.0
+            
+            // Gaussian distribution centered on level
+            int pick = (int) Math.round(center + creeper.getRandom().nextGaussian() * 1.5);
+            if (pick < 0) pick = 0;
+            if (pick > 7) pick = 7;
+            
             StatusEffectInstance effect = switch (pick) {
                 case 0 -> new StatusEffectInstance(StatusEffects.WEAKNESS, 200, 0);
                 case 1 -> new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 0);
