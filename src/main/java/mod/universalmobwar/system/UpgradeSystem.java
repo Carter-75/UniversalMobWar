@@ -78,6 +78,9 @@ public class UpgradeSystem {
      */
     public static void applyUpgradeNode(MobEntity mob, UpgradeNode node) {
         if (node == null) return;
+        // Prevent recursion: do not apply upgrades if already upgraded
+        net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
+        if (nbt.getBoolean("umw_upgraded")) return;
         // Apply attributes (with hard caps)
         if (node.attributes.containsKey("health")) {
             double cap = Math.min(node.attributes.get("health"), node.healthCap);
@@ -178,10 +181,10 @@ public class UpgradeSystem {
         if (node != null && node.category.equals("horde_summon")) {
             // Only summon if not already summoned (avoid infinite loops)
             if (mob.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
-                net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
-                if (nbt.getBoolean("umw_summoned_by_horde")) return;
-                nbt.putBoolean("umw_summoned_by_horde", true);
-                mob.readNbt(nbt);
+                net.minecraft.nbt.NbtCompound hordeNbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
+                if (hordeNbt.getBoolean("umw_summoned_by_horde")) return;
+                hordeNbt.putBoolean("umw_summoned_by_horde", true);
+                mob.readNbt(hordeNbt);
                 // Use mob UUID and world seed for deterministic random
                 long seed = serverWorld.getSeed() ^ mob.getUuid().getMostSignificantBits() ^ mob.getUuid().getLeastSignificantBits();
                 java.util.Random rand = new java.util.Random(seed);

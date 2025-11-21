@@ -26,6 +26,11 @@ public class GlobalMobScalingSystem {
             ACTIVE_PROFILES.remove(mob);
             return;
         }
+        // Prevent infinite recursion: check NBT flag before activating
+        net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
+        if (nbt.getBoolean("umw_upgraded")) return;
+        nbt.putBoolean("umw_upgraded", true);
+        mob.readNbt(nbt);
         if (ACTIVE_PROFILES.containsKey(mob)) return;
         PowerProfile profile = new PowerProfile();
         // Copy base stats
