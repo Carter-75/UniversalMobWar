@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "universalmobwar",
-	"version": "2.0.0",
+	"version": "1.0.0",
 	"name": "Universal Mob War",
 	"description": "Mobs attack each other and evolve! Features: alliance system, mob leveling with equipment, customizable range, player immunity, and more. Total chaos with progression!",
 	"authors": ["Carter"],
@@ -19,9 +19,9 @@
 		"universalmobwar.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.16.5",
-		"fabric-api": ">=0.102.0+1.21.1",
-		"minecraft": "1.21.1"
+		"fabricloader": ">=0.15.10",
+		"minecraft": "1.21.x",
+		"fabric-api": "*"
 	},
 	"suggests": {
 		"modmenu": ">=7.2.0"
