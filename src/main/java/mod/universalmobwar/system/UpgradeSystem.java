@@ -137,7 +137,7 @@ public class UpgradeSystem {
         if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", cost);
         if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", cost);
         if (state.getLevel("resistance") < 4) addOpt(options, state, "resistance", "g", cost);
-        if (state.getLevel("invis_mastery") < 10) addOpt(options, state, "invis_mastery", "g", cost);
+        if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", cost);
         if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", cost);
     }
 
@@ -162,7 +162,7 @@ public class UpgradeSystem {
 
     private static void addCaveSpiderUpgrades(SimState state, List<Runnable> options, int[] costs) {
         int cost = getCost(state.getCategoryCount("cave_spider"), costs);
-        if (state.getLevel("poison_attack") < 2) addOpt(options, state, "poison_attack", "cave_spider", cost);
+        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", cost);
     }
 
     private static void addCreeperUpgrades(SimState state, List<Runnable> options, int[] costs) {
