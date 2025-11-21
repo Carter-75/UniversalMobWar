@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "universalmobwar",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"name": "Universal Mob War",
 	"description": "Mobs attack each other and evolve! Features: alliance system, mob leveling with equipment, customizable range, player immunity, and more. Total chaos with progression!",
 	"authors": ["Carter"],
