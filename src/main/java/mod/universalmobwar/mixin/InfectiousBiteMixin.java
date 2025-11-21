@@ -21,12 +21,16 @@ public abstract class InfectiousBiteMixin {
         if (!(attacker instanceof MobEntity mob)) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
-        if (profile.chosenUpgrades == null) return;
-        boolean hasInfect = profile.chosenUpgrades.stream().anyMatch(id -> id.equals("zombie_infect_4"));
-        if (!hasInfect) return;
+        
+        int level = profile.specialSkills.getOrDefault("hunger_attack", 0);
+        if (level <= 0) return;
+
         // Only apply to living targets
         if (target != null && target.isAlive()) {
-            target.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 20 * 20, 1)); // 20s, level 2
+            // Level 1 -> Hunger 1 (Amplifier 0)
+            // Level 2 -> Hunger 2 (Amplifier 1)
+            // Level 3 -> Hunger 3 (Amplifier 2)
+            target.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 10 * 20, level - 1)); // 10s duration
         }
     }
 }

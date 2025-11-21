@@ -17,63 +17,68 @@ public class ArchetypeClassifier {
 
     static {
         // Undead
-        register("zombie", "g", "gp", "z");
-        register("husk", "g", "gp", "z");
-        register("drowned", "g", "gp", "z", "trident");
-        register("skeleton", "g", "gp", "bow");
-        register("stray", "g", "gp", "bow");
-        register("bogged", "g", "gp", "bow");
-        register("wither_skeleton", "g", "gp", "sword");
-        register("zombified_piglin", "g", "gp", "sword");
-        register("phantom", "g", "gp", "nw");
-        register("zoglin", "g", "gp", "nw");
+        register("zombie", "g", "z");
+        register("husk", "g", "z");
+        register("drowned", "g", "z", "trident");
+        register("skeleton", "g", "pro", "bow");
+        register("stray", "g", "pro", "bow");
+        register("bogged", "g");
+        register("wither_skeleton", "g");
+        register("zombified_piglin", "g", "z");
+        register("phantom", "g", "nw");
+        register("zoglin", "g", "nw");
+        register("zombie_villager", "g", "z");
+        register("zombie_horse", "gp");
+        register("skeleton_horse", "gp");
         
         // Illagers
-        register("vindicator", "g", "gp", "axe");
-        register("pillager", "g", "gp", "bow");
-        register("evoker", "g", "gp", "nw");
-        register("witch", "g", "gp", "witch");
-        register("vex", "g", "gp", "sword");
-        register("ravager", "g", "gp", "nw");
+        register("vindicator", "g", "axe");
+        register("pillager", "g", "pro", "bow");
+        register("evoker", "g", "nw");
+        register("witch", "g", "nw", "pro");
+        register("vex", "g");
+        register("ravager", "g", "nw");
         
         // Piglins
-        register("piglin", "g", "gp"); // Random Sword/Bow handled in getMobCategories
-        register("piglin_brute", "g", "gp", "axe");
+        register("piglin", "g"); // Random Sword/Bow handled in getMobCategories
+        register("piglin_brute", "g");
         
         // Arthropods
-        register("spider", "g", "gp", "nw");
-        register("cave_spider", "g", "gp", "cave_spider", "nw");
-        register("silverfish", "g", "gp", "nw");
-        register("endermite", "g", "gp", "nw");
-        register("bee", "g", "gp", "nw");
+        register("spider", "g", "nw");
+        register("cave_spider", "g", "nw");
+        register("silverfish", "g", "nw");
+        register("endermite", "g", "nw");
+        register("bee", "g");
         
         // Nether
-        register("blaze", "g", "gp", "nw");
-        register("ghast", "g", "gp", "nw");
-        register("magma_cube", "g", "gp", "nw");
-        register("hoglin", "g", "gp", "nw");
+        register("blaze", "g", "pro", "nw");
+        register("ghast", "g");
+        register("magma_cube", "g", "nw");
+        register("hoglin", "g", "nw");
         register("strider", "gp");
         
         // End
-        register("enderman", "g", "gp", "nw");
-        register("shulker", "g", "gp", "nw");
+        register("enderman", "g");
+        register("shulker", "g", "nw", "pro");
         
         // Ocean
-        register("guardian", "g", "gp", "nw");
-        register("elder_guardian", "g", "gp", "nw");
+        register("guardian", "g");
+        register("elder_guardian", "g", "nw");
         
         // Others
-        register("creeper", "g", "gp", "creeper", "nw");
-        register("slime", "g", "gp", "nw");
-        register("iron_golem", "g", "gp", "nw");
-        register("snow_golem", "g", "gp", "nw");
+        register("creeper", "g", "nw");
+        register("slime", "g", "nw");
+        register("iron_golem", "g");
+        register("snow_golem", "g", "pro", "nw");
+        register("breeze", "g", "pro", "nw");
+        register("warden", "g");
         
         // Passives
         register("cow", "gp");
         register("sheep", "gp");
         register("pig", "gp");
         register("chicken", "gp");
-        register("wolf", "g", "gp", "nw");
+        register("wolf", "g", "nw");
         register("cat", "gp");
         register("horse", "gp");
         register("donkey", "gp");
@@ -81,13 +86,14 @@ public class ArchetypeClassifier {
         register("llama", "gp");
         register("panda", "gp");
         register("fox", "gp");
-        register("polar_bear", "g", "gp", "nw");
+        register("polar_bear", "g", "nw");
         register("villager", "gp");
         register("wandering_trader", "gp");
         register("goat", "gp");
         register("frog", "gp");
         register("tadpole", "gp");
-        register("allay", "gp");
+        register("allay", "gp"); // "ally" in user list
+        register("armadillo", "gp");
         register("axolotl", "gp");
         register("bat", "gp", "nw");
         register("camel", "gp");
@@ -104,7 +110,6 @@ public class ArchetypeClassifier {
         register("squid", "gp");
         register("tropical_fish", "gp");
         register("turtle", "gp");
-        register("warden", "g", "nw");
     }
 
     private static void register(String name, String... categories) {
@@ -144,7 +149,7 @@ public class ArchetypeClassifier {
         
         // Piglin Randomness (50/50 Sword or Bow)
         if (name.equals("piglin")) {
-            if (mob.getWorld().random.nextBoolean()) {
+            if (mob.getRandom().nextBoolean()) {
                 categories.add("sword");
             } else {
                 categories.add("bow");

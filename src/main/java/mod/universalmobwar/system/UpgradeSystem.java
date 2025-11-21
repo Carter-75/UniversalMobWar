@@ -510,8 +510,13 @@ public class UpgradeSystem {
         // Estimated max points for a full tree is around 350.
         float progress = profile.isMaxed ? 1.0f : (float)Math.min(profile.totalPoints / 350.0, 1.0); 
         
-        // Drop Chance: 50% -> 5%
-        float dropChance = 0.5f - (0.45f * progress); 
+        // Drop Chance: 50% -> 40% -> 30% -> 20% -> 10% -> 5%
+        float dropChance = 0.5f;
+        if (progress >= 1.0f) dropChance = 0.05f;
+        else if (progress >= 0.8f) dropChance = 0.10f;
+        else if (progress >= 0.6f) dropChance = 0.20f;
+        else if (progress >= 0.4f) dropChance = 0.30f;
+        else if (progress >= 0.2f) dropChance = 0.40f;
         
         for (EquipmentSlot slot : EquipmentSlot.values()) {
             mob.setEquipmentDropChance(slot, dropChance);
@@ -520,14 +525,16 @@ public class UpgradeSystem {
             ItemStack stack = mob.getEquippedStack(slot);
             if (!stack.isEmpty() && stack.isDamageable()) {
                 int maxDamage = stack.getMaxDamage();
+                // Linear interpolation from 0 damage (100% durability) to 95% damage (5% durability)
                 int damage = (int)(maxDamage * (0.95f * progress));
                 stack.setDamage(damage);
             }
         }
         
-        // Shield Chance: 0% -> 50%
+        // Shield Chance: 0% -> 100%
         if (profile.categories.contains("g")) {
-             if (mob.getRandom().nextFloat() < (progress * 0.5f)) {
+             // Synced to max mob tree (progress 0.0 -> 1.0)
+             if (mob.getRandom().nextFloat() < progress) {
                  mob.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
              }
         }
