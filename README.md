@@ -79,33 +79,71 @@ Use this command, then start a raid. The boss will spawn on the final wave with 
 
 ---
 
-## ⚙️ Settings (Replaces Game Rules)
 
-All former game rules are now settings in the config file and Mod Menu. You no longer need to use `/gamerule`—just adjust your settings and reload the config if needed.
+## ⚙️ Settings & Mod Menu (No More Gamerules)
 
-**Key settings:**
+All configuration is now handled via the config file or the in-game Mod Menu. **Gamerules are deprecated**—every option is a setting, and all are available in the Mod Menu UI for instant changes.
+
+**Key settings (all available in Mod Menu):**
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `modEnabled` | true | Master toggle for entire mod |
+| `scalingEnabled` | true | Enable global mob scaling system |
+| `dayScalingMultiplier` | 1.0 | World-day scaling multiplier |
+| `killScalingMultiplier` | 1.0 | Kill-based scaling multiplier |
+| `maxTier` | 20 | Maximum scaling tier (hard cap) |
+| `allowBossScaling` | true | Allow scaling for boss mobs |
+| `allowModdedScaling` | true | Allow scaling for modded mobs |
+| `restrictEffectsToMobTheme` | true | Only apply effects that fit mob archetype |
+| `debugLogging` | false | Enable debug logging |
 | `ignoreSameSpecies` | true | If true, same-species don't fight (strong alliances) |
 | `targetPlayers` | true | If false, mobs ignore players (spectator mode) |
 | `neutralMobsAlwaysAggressive` | false | Make neutral mobs (endermen, iron golems) always hostile |
 | `allianceSystemEnabled` | true | Enable alliance system |
 | `evolutionSystemEnabled` | true | Enable mob leveling and equipment |
 | `rangeMultiplier` | 1.0 | Detection range multiplier (0.01x to 100x) |
+| `maxLevel` | 100 | Maximum mob level (legacy evolution) |
+| `killsPerLevel` | 3 | Kills required per level |
+| `giveEquipmentToMobs` | true | Allow mobs to receive equipment upgrades |
+| `allianceDurationTicks` | 100 | Weak alliance duration (ticks) |
+| `sameSpeciesAllianceDurationTicks` | 400 | Strong alliance duration (ticks) |
+| `allianceRange` | 16.0 | Alliance detection range |
+| `allianceBreakChance` | 0.3 | Weak alliance break chance |
+| `sameSpeciesAllianceBreakChance` | 0.05 | Strong alliance break chance |
+| `excludedMobs` | [] | List of entity IDs to exclude |
+| `showTargetLines` | true | Show minion/target lines |
+| `showHealthBars` | true | Show mob health bars |
+| `showMobLabels` | true | Show mob name/level labels |
+| `showLevelParticles` | true | Show level-up particles |
 
-**To change settings:**
-- Use the Mod Menu in-game, or
-- Edit `config/universalmobwar.json` and use `/mobwar reload` to apply changes.
+**Performance & Visual Tuning:**
+- `targetingCacheMs`, `targetingMaxQueriesPerTick`, `mobDataSaveDebounceMs`, `enableBatching`, `enableAsyncTasks`, `maxParticlesPerConnection`, `maxDrawnMinionConnections`, `minFpsForVisuals` (see config file for advanced users)
+
+**How to change settings:**
+- Use the Mod Menu in-game (recommended)
+- Or edit `config/universalmobwar.json` and use `/mobwar reload` to apply changes
 
 **Examples:**
 ```json
 {
-  "ignoreSameSpecies": false,    // Enable chaos mode (same-species can fight)
-  "targetPlayers": false,        // Player immunity (spectate safely)
-  "rangeMultiplier": 5.0         // 5x detection range
+  "scalingEnabled": false,         // Disable all scaling (legacy evolution only)
+  "maxTier": 10,                   // Hard cap at tier 10
+  "allowModdedScaling": false,     // Only vanilla mobs scale
+  "excludedMobs": ["minecraft:villager"]
 }
 ```
+
+---
+
+## 🛡️ Hard Caps, Shields, Effects, and Deterministic Scaling
+
+- **Hard Caps:** All upgrades, stats, and tiers are capped by config (`maxTier`, `maxLevel`). No mob can exceed these limits.
+- **Shield Chance:** Some archetype upgrades grant a chance to spawn with a shield (see skill tree and archetype table).
+- **Potion Effects:** Upgrades may grant potion effects (e.g., resistance, strength, poison, fire resistance) based on archetype and tier. Effects are only applied if `restrictEffectsToMobTheme` is true, and are deterministic per mob/tier.
+- **Deterministic Scaling:** All scaling, upgrades, and effects are deterministic and based on world state, mob archetype, and config. No random stat inflation.
+- **Modded Mob Support:** All modded mobs are auto-classified to the closest vanilla archetype and follow its upgrade path.
+
+---
 
 ---
 
@@ -372,6 +410,32 @@ Mob (any type)
 
 - Equipment is upgraded automatically as mobs reach the required tier/level.
 - Drop chance for equipment: 10%
+
+---
+
+## 🏆 Max Tier Effects (Universal Path)
+
+At the highest tier (apex node), a mob receives:
+- **Full Netherite Armor** (helmet, chestplate, leggings, boots) with Protection IV, Unbreaking III, Thorns III, and Mending
+- **Netherite Sword** with Sharpness V, Unbreaking III, Looting III, Fire Aspect II, Knockback II, and Mending
+- **Shield** (100% chance) with Unbreaking III, Mending, Thorns III
+- **Permanent Effects:**
+  - Strength V
+  - Speed V
+  - Resistance III
+  - Regeneration III
+  - Fire Resistance
+  - Absorption
+  - Health Boost
+  - Water Breathing
+- **Stat Boosts:**
+  - Max Health: +500% (120 HP)
+  - Attack Damage: +500% (30 base)
+  - Armor: +20
+  - Movement Speed: +100% (0.40)
+  - Knockback Resistance: 100%
+- **10% chance for 20s Invisibility burst** on spawn/tier-up
+- **All effects and gear are deterministic and NBT-persistent**
 
 ---
 

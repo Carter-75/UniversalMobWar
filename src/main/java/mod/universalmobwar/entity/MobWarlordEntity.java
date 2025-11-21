@@ -381,13 +381,12 @@ public class MobWarlordEntity extends HostileEntity {
                                 
                                 // Send message to nearby players
                                 serverWorld.getPlayers().forEach(player -> {
-                                    if (player.squaredDistanceTo(minion) <= 1024) { // 32 block range
+                                    if (player.squaredDistanceTo(minion) <= 1024) // 32 block range
                                         player.sendMessage(
                                             Text.literal("⚔ A minion has betrayed the Warlord! ⚔")
                                                 .styled(style -> style.withColor(Formatting.RED).withBold(true)),
                                             true // Action bar
                                         );
-                                    }
                                 });
                             }
                         }
@@ -561,7 +560,7 @@ public class MobWarlordEntity extends HostileEntity {
         
         //noinspection deprecation
         UniversalMobWarMod.LOGGER.debug("Mob Warlord converted {} into a minion! (UUID: {})", 
-            killedMob.getType().getRegistryEntry().registryKey().getValue(), 
+            net.minecraft.registry.Registries.ENTITY_TYPE.getId(killedMob.getType()), 
             killedMob.getUuid());
     }
     

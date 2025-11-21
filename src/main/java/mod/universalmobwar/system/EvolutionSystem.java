@@ -30,14 +30,13 @@ public class EvolutionSystem {
     private static final Identifier ARMOR_MODIFIER_ID = Identifier.of("universalmobwar", "armor_bonus");
     private static final Identifier KNOCKBACK_MODIFIER_ID = Identifier.of("universalmobwar", "knockback_bonus");
     
-    /**
-     * Called when a mob kills another mob. Increases kill count and levels up if needed.
-     * OPTIMIZED: Smart scheduled with 0.25s minimum delay, prevents operation overlaps.
-     * ANTI-STARVATION: Won't queue if queue is full (drops operation - mob will retry next kill).
-     */
+    
+    // (Removed duplicate onMobKill methods. Only the correct implementation remains below.)
     public static void onMobKill(MobEntity killer, LivingEntity victim) {
+        if (!mod.universalmobwar.config.ModConfig.getInstance().scalingEnabled) {
+            return;
+        }
         String killerId = killer.getUuid().toString();
-        
         // SMART SCHEDULING: Only process if not overlapping with other operations
         if (!OperationScheduler.canExecuteEvolution(killerId)) {
             // ANTI-STARVATION: Queue is either full or operation on cooldown
@@ -53,11 +52,17 @@ public class EvolutionSystem {
             }
             return;
         }
-        
         // Execute immediately if allowed
         processKillInternal(killer, victim);
         OperationScheduler.markEvolutionExecuted(killerId);
     }
+        /**
+         * Cleanup any evolution-related caches or scheduled tasks (call when scaling is disabled or on world unload).
+         */
+        public static void cleanup() {
+            // No persistent cache in this class, but if future state is added, clear it here.
+            // Cancel scheduled tasks if needed (not tracked here, but placeholder for future).
+        }
     
     /**
      * Internal kill processing with stat and equipment updates.
