@@ -16,84 +16,95 @@ public class ArchetypeClassifier {
     private static final Map<String, Set<String>> MOB_CATEGORIES = new HashMap<>();
 
     static {
-        register("ally", "gp");
-        register("armadillo", "gp");
+        // Undead
+        register("zombie", "g", "gp", "z");
+        register("husk", "g", "gp", "z");
+        register("drowned", "g", "gp", "z", "trident");
+        register("skeleton", "g", "gp", "bow");
+        register("stray", "g", "gp", "bow");
+        register("bogged", "g", "gp", "bow");
+        register("wither_skeleton", "g", "gp", "sword");
+        register("zombified_piglin", "g", "gp", "sword");
+        register("phantom", "g", "gp", "nw");
+        register("zoglin", "g", "gp", "nw");
+        
+        // Illagers
+        register("vindicator", "g", "gp", "axe");
+        register("pillager", "g", "gp", "bow");
+        register("evoker", "g", "gp", "nw");
+        register("witch", "g", "gp", "witch");
+        register("vex", "g", "gp", "sword");
+        register("ravager", "g", "gp", "nw");
+        
+        // Piglins
+        register("piglin", "g", "gp"); // Random Sword/Bow handled in getMobCategories
+        register("piglin_brute", "g", "gp", "axe");
+        
+        // Arthropods
+        register("spider", "g", "gp", "nw");
+        register("cave_spider", "g", "gp", "cave_spider", "nw");
+        register("silverfish", "g", "gp", "nw");
+        register("endermite", "g", "gp", "nw");
+        register("bee", "g", "gp", "nw");
+        
+        // Nether
+        register("blaze", "g", "gp", "nw");
+        register("ghast", "g", "gp", "nw");
+        register("magma_cube", "g", "gp", "nw");
+        register("hoglin", "g", "gp", "nw");
+        register("strider", "gp");
+        
+        // End
+        register("enderman", "g", "gp", "nw");
+        register("shulker", "g", "gp", "nw");
+        
+        // Ocean
+        register("guardian", "g", "gp", "nw");
+        register("elder_guardian", "g", "gp", "nw");
+        
+        // Others
+        register("creeper", "g", "gp", "creeper", "nw");
+        register("slime", "g", "gp", "nw");
+        register("iron_golem", "g", "gp", "nw");
+        register("snow_golem", "g", "gp", "nw");
+        
+        // Passives
+        register("cow", "gp");
+        register("sheep", "gp");
+        register("pig", "gp");
+        register("chicken", "gp");
+        register("wolf", "g", "gp", "nw");
+        register("cat", "gp");
+        register("horse", "gp");
+        register("donkey", "gp");
+        register("mule", "gp");
+        register("llama", "gp");
+        register("panda", "gp");
+        register("fox", "gp");
+        register("polar_bear", "g", "gp", "nw");
+        register("villager", "gp");
+        register("wandering_trader", "gp");
+        register("goat", "gp");
+        register("frog", "gp");
+        register("tadpole", "gp");
+        register("allay", "gp");
         register("axolotl", "gp");
         register("bat", "gp", "nw");
-        register("bee", "g");
-        register("blaze", "g", "pro", "nw");
-        register("bogged", "g");
-        register("breeze", "g", "pro", "nw");
         register("camel", "gp");
-        register("cat", "gp");
-        register("cave_spider", "g", "nw");
-        register("chicken", "gp");
         register("cod", "gp");
-        register("cow", "gp");
-        register("creeper", "g", "nw");
         register("dolphin", "gp");
-        register("donkey", "gp");
-        register("drowned", "g", "z", "trident");
-        register("elder_guardian", "g", "nw");
-        register("enderman", "g");
-        register("endermite", "g", "nw");
-        register("evoker", "g", "nw");
-        register("fox", "gp");
-        register("frog", "gp");
-        register("ghast", "g");
         register("glow_squid", "gp");
-        register("goat", "gp");
-        register("guardian", "g");
-        register("hoglin", "g", "nw");
-        register("horse", "gp");
-        register("husk", "g", "z");
-        register("iron_golem", "g");
-        register("llama", "gp");
-        register("magma_cube", "g", "nw");
         register("mooshroom", "gp");
-        register("mule", "gp");
         register("ocelot", "gp");
-        register("panda", "gp");
         register("parrot", "gp");
-        register("phantom", "g", "nw");
-        register("pig", "gp");
-        register("piglin", "g");
-        register("piglin_brute", "g");
-        register("pillager", "g", "pro", "bow");
-        register("polar_bear", "g", "nw");
         register("pufferfish", "g", "nw");
         register("rabbit", "gp");
-        register("ravager", "g", "nw");
         register("salmon", "gp");
-        register("sheep", "gp");
-        register("shulker", "g", "nw", "pro");
-        register("silverfish", "g", "nw");
-        register("skeleton", "g", "pro", "bow");
-        register("skeleton_horse", "gp");
-        register("slime", "g", "nw");
         register("sniffer", "gp");
-        register("snow_golem", "g", "pro", "nw");
-        register("spider", "g", "nw");
         register("squid", "gp");
-        register("stray", "g", "bow", "pro");
-        register("strider", "gp");
-        register("tadpole", "gp");
-        register("trader_llama", "gp");
         register("tropical_fish", "gp");
         register("turtle", "gp");
-        register("vex", "g");
-        register("villager", "gp");
-        register("vindicator", "g", "axe");
-        register("wandering_trader", "gp");
-        register("warden", "g");
-        register("witch", "g", "nw", "pro");
-        register("wither_skeleton", "g");
-        register("wolf", "g", "nw");
-        register("zoglin", "g", "nw");
-        register("zombie", "g", "z");
-        register("zombie_horse", "gp");
-        register("zombie_villager", "g", "z");
-        register("zombified_piglin", "g", "z");
+        register("warden", "g", "nw");
     }
 
     private static void register(String name, String... categories) {
@@ -108,26 +119,36 @@ public class ArchetypeClassifier {
              name = parts[parts.length - 1];
         }
 
-        if (MOB_CATEGORIES.containsKey(name)) {
-            return MOB_CATEGORIES.get(name);
-        }
-
-        // Fallback for unknown/modded mobs
         Set<String> categories = new HashSet<>();
-        double attack = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE) != null ?
-            mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE).getBaseValue() : 0.0;
-        
-        if (attack > 0) {
-            categories.add("g");
+
+        if (MOB_CATEGORIES.containsKey(name)) {
+            categories.addAll(MOB_CATEGORIES.get(name));
         } else {
-            categories.add("gp");
+            // Fallback for unknown/modded mobs
+            double attack = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE) != null ?
+                mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE).getBaseValue() : 0.0;
+            
+            if (attack > 0) {
+                categories.add("g");
+            } else {
+                categories.add("gp");
+            }
+            
+            // Check for held items to determine weapon type if not specified
+            if (!categories.contains("nw") && !categories.contains("bow") && !categories.contains("trident") && !categories.contains("axe")) {
+                 if (mob.getMainHandStack().isEmpty()) {
+                     categories.add("nw");
+                 }
+            }
         }
         
-        // Check for held items to determine weapon type if not specified
-        if (!categories.contains("nw") && !categories.contains("bow") && !categories.contains("trident") && !categories.contains("axe")) {
-             if (mob.getMainHandStack().isEmpty()) {
-                 categories.add("nw");
-             }
+        // Piglin Randomness (50/50 Sword or Bow)
+        if (name.equals("piglin")) {
+            if (mob.getWorld().random.nextBoolean()) {
+                categories.add("sword");
+            } else {
+                categories.add("bow");
+            }
         }
 
         return categories;

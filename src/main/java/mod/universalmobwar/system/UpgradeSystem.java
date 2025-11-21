@@ -262,12 +262,6 @@ public class UpgradeSystem {
 
     private static void addCaveSpiderUpgrades(SimState state, List<Runnable> options, int[] costs) {
         int cost = getCost(state.getCategoryCount("cave_spider"), costs);
-        // web 1-5
-        if (state.getLevel("web_shot") < 5) options.add(() -> {
-            state.incLevel("web_shot");
-            state.incCategoryCount("cave_spider");
-            state.spentPoints += cost;
-        });
         // poi 1-2 (Poison 2, Poison 3)
         if (state.getLevel("poison_attack") < 2) options.add(() -> {
             state.incLevel("poison_attack");
@@ -278,30 +272,6 @@ public class UpgradeSystem {
 
     private static void addCreeperUpgrades(SimState state, List<Runnable> options, int[] costs) {
         int cost = getCost(state.getCategoryCount("creeper"), costs);
-        // spd 1-5
-        if (state.getLevel("speed") < 5) options.add(() -> {
-            state.incLevel("speed");
-            state.incCategoryCount("creeper");
-            state.spentPoints += cost;
-        });
-        // ch 1-1
-        if (state.getLevel("charged") < 1) options.add(() -> {
-            state.incLevel("charged");
-            state.incCategoryCount("creeper");
-            state.spentPoints += cost;
-        });
-        // fuse 1-5
-        if (state.getLevel("fuse_reduction") < 5) options.add(() -> {
-            state.incLevel("fuse_reduction");
-            state.incCategoryCount("creeper");
-            state.spentPoints += cost;
-        });
-        // exp 1-5
-        if (state.getLevel("explosion_radius") < 5) options.add(() -> {
-            state.incLevel("explosion_radius");
-            state.incCategoryCount("creeper");
-            state.spentPoints += cost;
-        });
         // potion mastery 1-10 (Chance 10% -> 100%)
         if (state.getLevel("creeper_potion_mastery") < 10) options.add(() -> {
             state.incLevel("creeper_potion_mastery");
@@ -537,12 +507,16 @@ public class UpgradeSystem {
         }
         
         // Drop Chance & Durability
-        float progress = profile.isMaxed ? 1.0f : (float)Math.min(profile.totalPoints / 1000.0, 1.0); // Estimated max points prob less than 1000
-        float dropChance = 0.5f - (0.45f * progress); // 0.5 -> 0.05
+        // Estimated max points for a full tree is around 350.
+        float progress = profile.isMaxed ? 1.0f : (float)Math.min(profile.totalPoints / 350.0, 1.0); 
+        
+        // Drop Chance: 50% -> 5%
+        float dropChance = 0.5f - (0.45f * progress); 
+        
         for (EquipmentSlot slot : EquipmentSlot.values()) {
             mob.setEquipmentDropChance(slot, dropChance);
             
-            // Durability: 100% -> 5%
+            // Durability: 100% -> 5% (Damage: 0% -> 95%)
             ItemStack stack = mob.getEquippedStack(slot);
             if (!stack.isEmpty() && stack.isDamageable()) {
                 int maxDamage = stack.getMaxDamage();
@@ -551,9 +525,9 @@ public class UpgradeSystem {
             }
         }
         
-        // Shield Chance
+        // Shield Chance: 0% -> 50%
         if (profile.categories.contains("g")) {
-             if (mob.getWorld().random.nextFloat() < progress) {
+             if (mob.getRandom().nextFloat() < (progress * 0.5f)) {
                  mob.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
              }
         }
