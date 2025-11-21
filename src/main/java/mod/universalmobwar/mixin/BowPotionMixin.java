@@ -27,10 +27,15 @@ public abstract class BowPotionMixin {
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(skeleton);
         if (profile == null) return;
         
-        int chance = profile.specialSkills.getOrDefault("bow_potion_chance", 0);
-        if (chance <= 0) return;
+        int level = profile.specialSkills.getOrDefault("bow_potion_mastery", 0);
+        if (level <= 0) return;
         
-        if (skeleton.getRandom().nextInt(100) < chance) {
+        // Chance: "normal curve" 0% -> 100%
+        // Using sigmoid-like curve based on level 1-10
+        // Level 1: ~1%, Level 5: ~50%, Level 10: ~99%
+        double p = 1.0 / (1.0 + Math.exp(-1.0 * (level - 5.0)));
+        
+        if (skeleton.getRandom().nextDouble() < p) {
             // Pick effect
             RegistryEntry<Potion> potion = Potions.POISON;
             int pick = skeleton.getRandom().nextInt(5);
@@ -39,17 +44,14 @@ public abstract class BowPotionMixin {
                 case 1 -> potion = Potions.WEAKNESS;
                 case 2 -> potion = Potions.POISON;
                 case 3 -> potion = Potions.HARMING;
-                case 4 -> potion = Potions.STRONG_POISON; 
+                case 4 -> potion = Potions.STRONG_POISON; // Decay/Wither not always available as Potion, using Strong Poison as fallback or Wither if possible
             }
+            // Try to find Decay/Wither if possible, but standard Potions class might not expose it directly as a field if it's not a brewing recipe.
+            // However, we can try to use the registry if we really want "decay".
+            // For now, keeping Strong Poison as it's close (damage).
             
             ItemStack tippedStack = new ItemStack(Items.TIPPED_ARROW);
-            if (pick == 4) {
-                 // Custom Wither effect if needed, or just Strong Poison
-                 // Let's just use Strong Poison for simplicity as per switch
-                 tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
-            } else {
-                 tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
-            }
+            tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
 
             // Create Tipped Arrow with the stack
             ArrowEntity tippedArrow = new ArrowEntity(skeleton.getWorld(), skeleton, tippedStack, new ItemStack(Items.BOW));

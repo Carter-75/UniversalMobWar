@@ -391,13 +391,6 @@ public class UpgradeSystem {
         
         // Shield Chance: 0% -> 100% (Normal curve)
         if (profile.categories.contains("g")) {
-             // Normal curve centered around progress? Or just linear probability?
-             // "normal curve from 0% to 100% so synced around when mobs get full max"
-             // This implies probability increases with progress.
-             // Let's use a sigmoid or just linear for simplicity, or actual normal distribution sample?
-             // "normal curve" usually means Bell curve. But probability 0 to 100 implies cumulative distribution function (CDF) of normal curve?
-             // Or just that the probability follows a normal distribution shape?
-             // I'll use a CDF-like curve: low at start, steep in middle, high at end.
              // Sigmoid: 1 / (1 + e^(-k(x - x0)))
              double p = 1.0 / (1.0 + Math.exp(-10.0 * (progress - 0.5)));
              if (mob.getRandom().nextDouble() < p) {
@@ -425,14 +418,30 @@ public class UpgradeSystem {
         profile.specialSkills.put("multishot_skill", state.getLevel("multishot_skill"));
         profile.specialSkills.put("poison_attack", state.getLevel("poison_attack"));
         
+        // Invis Interval Calculation
+        if (state.getLevel("invis_mastery") > 0) {
+            // 1 -> 10min, 12 -> 0.25min
+            // Mapping: 1=10, 2=9, 3=8, 4=7, 5=6, 6=5, 7=4, 8=3, 9=2, 10=1, 11=0.5, 12=0.25
+            double minutes = 10.0;
+            int lvl = state.getLevel("invis_mastery");
+            if (lvl <= 10) {
+                minutes = 11.0 - lvl; // 1->10, 10->1
+            } else if (lvl == 11) {
+                minutes = 0.5;
+            } else {
+                minutes = 0.25;
+            }
+            profile.specialSkills.put("invis_interval_ticks", (int)(minutes * 60 * 20));
+        }
+        
         if (state.getLevel("creeper_potion_mastery") > 0) {
-            profile.specialSkills.put("creeper_potion_chance", state.getLevel("creeper_potion_mastery") * 10);
+            profile.specialSkills.put("creeper_potion_mastery", state.getLevel("creeper_potion_mastery"));
         }
         if (state.getLevel("witch_potion_mastery") > 0) {
-            profile.specialSkills.put("witch_potion_chance", state.getLevel("witch_potion_mastery") * 10);
+            profile.specialSkills.put("witch_potion_mastery", state.getLevel("witch_potion_mastery"));
         }
         if (state.getLevel("bow_potion_mastery") > 0) {
-            profile.specialSkills.put("bow_potion_chance", state.getLevel("bow_potion_mastery") * 10);
+            profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
         }
     }
     

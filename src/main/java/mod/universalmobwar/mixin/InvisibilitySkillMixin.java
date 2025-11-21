@@ -26,21 +26,31 @@ public abstract class InvisibilitySkillMixin {
         int level = profile.specialSkills.getOrDefault("invis_mastery", 0);
         if (level <= 0) return;
         
-        long time = mob.getWorld().getTime();
-        long lastTry = profile.specialSkills.getOrDefault("invis_last_try", 0);
+        int time = mob.age;
         
-        // Calculate Cooldown (in ticks)
-        // 10min -> 1min mapping
-        // Level 1: 10m = 12000 ticks
-        // Level 10: 1m = 1200 ticks
-        // Linear interpolation? Or step?
-        // User list: 10, 9, 8, 7, 6, 5, 4, 3, 2, 1.
-        double minutes = 11.0 - level; 
-        if (minutes < 1.0) minutes = 1.0;
-        long cooldown = (long)(minutes * 60 * 20);
+        // Track when invisibility ends
+        if (mob.hasStatusEffect(StatusEffects.INVISIBILITY)) {
+            profile.specialSkills.put("invis_end_time", time);
+            return;
+        }
+        
+        // "only after 1min not invis" (1200 ticks)
+        int lastInvis = profile.specialSkills.getOrDefault("invis_end_time", -999999);
+        if (time - lastInvis < 1200) return;
+        
+        int lastTry = profile.specialSkills.getOrDefault("invis_last_try", -999999);
+        
+        // Use calculated interval from UpgradeSystem if available, else fallback
+        int cooldown = profile.specialSkills.getOrDefault("invis_interval_ticks", 0);
+        if (cooldown == 0) {
+             // Fallback for old profiles or if not set
+             double minutes = 11.0 - level; 
+             if (minutes < 1.0) minutes = 1.0;
+             cooldown = (int)(minutes * 60 * 20);
+        }
         
         if (time - lastTry >= cooldown) {
-            profile.specialSkills.put("invis_last_try", (int)time); // Cast to int might overflow eventually but ok for logic
+            profile.specialSkills.put("invis_last_try", time);
             
             // 25% Chance
             if (mob.getRandom().nextFloat() < 0.25f) {

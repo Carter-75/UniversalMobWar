@@ -28,14 +28,16 @@ public abstract class WitchPotionMixin {
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(witch);
         if (profile == null) return;
         
-        int chance = profile.specialSkills.getOrDefault("witch_potion_chance", 0);
-        if (chance <= 0) return;
+        int level = profile.specialSkills.getOrDefault("witch_potion_mastery", 0);
+        if (level <= 0) return;
         
-        if (witch.getRandom().nextInt(100) < chance) {
+        // Chance: "normal curve" 0% -> 100%
+        double p = 1.0 / (1.0 + Math.exp(-1.0 * (level - 5.0)));
+        
+        if (witch.getRandom().nextDouble() < p) {
             // Throw special potion
             RegistryEntry<Potion> potion = Potions.POISON;
             
-            int level = chance / 10;
             double center = (level / 10.0) * 7.0;
             int pick = (int) Math.round(center + witch.getRandom().nextGaussian() * 1.5);
             if (pick < 0) pick = 0;
