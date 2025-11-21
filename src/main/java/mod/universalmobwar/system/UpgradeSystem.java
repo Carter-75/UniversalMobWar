@@ -15,6 +15,8 @@ import mod.universalmobwar.data.PowerProfile;
  * Handles hard caps, shield chance, potion effects, and sensible upgrades for each mob type.
  */
 public class UpgradeSystem {
+        // Track which mobs have already performed horde summon (prevents recursion, not NBT-based)
+        private static final java.util.Set<java.util.UUID> HORDE_SUMMONED = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     /**
      * Skill tree node for upgrades.
      */
@@ -78,9 +80,6 @@ public class UpgradeSystem {
      */
     public static void applyUpgradeNode(MobEntity mob, UpgradeNode node) {
         if (node == null) return;
-        // Prevent recursion: do not apply upgrades if already upgraded
-        net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
-        if (nbt.getBoolean("umw_upgraded")) return;
         // Apply attributes (with hard caps)
         if (node.attributes.containsKey("health")) {
             double cap = Math.min(node.attributes.get("health"), node.healthCap);
@@ -177,16 +176,14 @@ public class UpgradeSystem {
             }
         }
 
-        // Special: If this is the "horde_summon" upgrade, summon zombies nearby (deterministic, NBT-safe)
+        // Special: If this is the "horde_summon" upgrade, summon zombies nearby (deterministic, non-NBT, non-recursive)
         if (node != null && node.category.equals("horde_summon")) {
-            // Only summon if not already summoned (avoid infinite loops)
             if (mob.getWorld() instanceof net.minecraft.server.world.ServerWorld serverWorld) {
-                net.minecraft.nbt.NbtCompound hordeNbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
-                if (hordeNbt.getBoolean("umw_summoned_by_horde")) return;
-                hordeNbt.putBoolean("umw_summoned_by_horde", true);
-                mob.readNbt(hordeNbt);
+                java.util.UUID mobId = mob.getUuid();
+                if (HORDE_SUMMONED.contains(mobId)) return;
+                HORDE_SUMMONED.add(mobId);
                 // Use mob UUID and world seed for deterministic random
-                long seed = serverWorld.getSeed() ^ mob.getUuid().getMostSignificantBits() ^ mob.getUuid().getLeastSignificantBits();
+                long seed = serverWorld.getSeed() ^ mobId.getMostSignificantBits() ^ mobId.getLeastSignificantBits();
                 java.util.Random rand = new java.util.Random(seed);
                 int count = 2 + rand.nextInt(3); // 2-4 zombies
                 for (int i = 0; i < count; i++) {
@@ -199,10 +196,6 @@ public class UpgradeSystem {
                     var newZombie = entityType.create(serverWorld);
                     if (newZombie != null) {
                         newZombie.refreshPositionAndAngles(dx, dy, dz, rand.nextFloat() * 360.0f, 0.0f);
-                        net.minecraft.nbt.NbtCompound zNbt = new net.minecraft.nbt.NbtCompound();
-                        newZombie.writeNbt(zNbt);
-                        zNbt.putBoolean("umw_summoned_by_horde", true);
-                        newZombie.readNbt(zNbt);
                         serverWorld.spawnEntity(newZombie);
                     }
                 }

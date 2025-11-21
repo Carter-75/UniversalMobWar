@@ -15,6 +15,8 @@ import java.util.Map;
  * This system is only active if ModConfig.scalingEnabled is true.
  */
 public class GlobalMobScalingSystem {
+        // Prevent infinite recursion: track mobs currently being processed
+        private static final java.util.Set<MobEntity> ACTIVATION_IN_PROGRESS = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     // In-memory cache for active mob profiles (cleared on chunk unload)
     private static final Map<MobEntity, PowerProfile> ACTIVE_PROFILES = new HashMap<>();
 
@@ -26,31 +28,33 @@ public class GlobalMobScalingSystem {
             ACTIVE_PROFILES.remove(mob);
             return;
         }
-        // Prevent infinite recursion: check NBT flag before activating
-        net.minecraft.nbt.NbtCompound nbt = mob.writeNbt(new net.minecraft.nbt.NbtCompound());
-        if (nbt.getBoolean("umw_upgraded")) return;
-        nbt.putBoolean("umw_upgraded", true);
-        mob.readNbt(nbt);
-        if (ACTIVE_PROFILES.containsKey(mob)) return;
-        PowerProfile profile = new PowerProfile();
-        // Copy base stats
-        profile.baseHealth = mob.getMaxHealth();
-        profile.baseDamage = getBaseDamage(mob);
-        profile.baseSpeed = mob.getMovementSpeed();
-        profile.baseArmor = mob.getArmor();
-        profile.baseKnockbackResist = mob.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE) != null ?
-            mob.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE).getBaseValue() : 0.0;
-        // Calculate scaling points
-        profile.dayScalingPoints = calculateDayScalingPoints(world);
-        profile.killScalingPoints = 0;
-        profile.totalPoints = profile.dayScalingPoints;
-        profile.tierLevel = 0;
-        profile.archetype = mod.universalmobwar.system.ArchetypeClassifier.detectArchetype(mob);
-        profile.priorityPath = mod.universalmobwar.system.ArchetypeClassifier.detectPriorityPath(mob);
-        ACTIVE_PROFILES.put(mob, profile);
-        updateTierAndUpgrades(mob, profile);
-        if (ModConfig.getInstance().debugLogging) {
-            mod.universalmobwar.UniversalMobWarMod.LOGGER.info("[UMW] Mob activated: {} archetype={} tier={}", mob.getType(), profile.archetype, profile.tierLevel);
+        // Prevent infinite recursion: skip if already processing this mob
+        if (ACTIVATION_IN_PROGRESS.contains(mob)) return;
+        ACTIVATION_IN_PROGRESS.add(mob);
+        try {
+            if (ACTIVE_PROFILES.containsKey(mob)) return;
+            PowerProfile profile = new PowerProfile();
+            // Copy base stats
+            profile.baseHealth = mob.getMaxHealth();
+            profile.baseDamage = getBaseDamage(mob);
+            profile.baseSpeed = mob.getMovementSpeed();
+            profile.baseArmor = mob.getArmor();
+            profile.baseKnockbackResist = mob.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE) != null ?
+                mob.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE).getBaseValue() : 0.0;
+            // Calculate scaling points
+            profile.dayScalingPoints = calculateDayScalingPoints(world);
+            profile.killScalingPoints = 0;
+            profile.totalPoints = profile.dayScalingPoints;
+            profile.tierLevel = 0;
+            profile.archetype = mod.universalmobwar.system.ArchetypeClassifier.detectArchetype(mob);
+            profile.priorityPath = mod.universalmobwar.system.ArchetypeClassifier.detectPriorityPath(mob);
+            ACTIVE_PROFILES.put(mob, profile);
+            updateTierAndUpgrades(mob, profile);
+            if (ModConfig.getInstance().debugLogging) {
+                mod.universalmobwar.UniversalMobWarMod.LOGGER.info("[UMW] Mob activated: {} archetype={} tier={}", mob.getType(), profile.archetype, profile.tierLevel);
+            }
+        } finally {
+            ACTIVATION_IN_PROGRESS.remove(mob);
         }
     }
 
