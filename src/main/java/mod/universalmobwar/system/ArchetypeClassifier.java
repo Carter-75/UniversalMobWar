@@ -26,7 +26,7 @@ public class ArchetypeClassifier {
         register("wither_skeleton", "g");
         register("zombified_piglin", "g", "z");
         register("phantom", "g", "nw");
-        register("zoglin", "g", "nw");
+        register("zoglin", "g", "z", "nw");
         register("zombie_villager", "g", "z");
         register("zombie_horse", "gp");
         register("skeleton_horse", "gp");
