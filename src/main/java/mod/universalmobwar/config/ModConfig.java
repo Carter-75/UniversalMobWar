@@ -65,8 +65,11 @@ public class ModConfig {
     public boolean showHealthBars = true;
     public boolean showMobLabels = true;
     public boolean showLevelParticles = true;
+    public boolean disableParticles = false; // New option to disable most particles
 
-    
+    // Performance presets
+    public boolean performanceMode = false; // Optimizes settings for low-end PCs
+
     private static final String CONFIG_FILE_NAME = "universalmobwar.json";
     private static ModConfig INSTANCE = null;
     

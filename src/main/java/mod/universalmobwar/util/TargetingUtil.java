@@ -44,19 +44,24 @@ public final class TargetingUtil {
 	}
 	
 	private static final Map<String, ChunkEntityCache> ENTITY_CACHE = new ConcurrentHashMap<>();
-	private static final long CACHE_DURATION_MS = 1500; // 1.5 second cache
+	private static final long CACHE_DURATION_MS = 2000; // Increased to 2 seconds for better performance
 	private static long lastCacheCleanup = 0;
 	
 	// Query rate limiting - max queries per tick across ALL mobs
 	private static int queriesThisTick = 0;
 	private static long currentTickTime = 0;
-	private static final int MAX_QUERIES_PER_TICK = 50;
+	private static final int MAX_QUERIES_PER_TICK = 30; // Reduced from 50 to 30
 
 	/**
 	 * OPTIMIZED: Finds nearest valid target using cached entity queries.
 	 * LOW OVERHEAD: Multiple early-exit paths and smart filtering.
 	 */
 	public static LivingEntity findNearestValidTarget(MobEntity self, double range, boolean ignoreSameSpecies, boolean targetPlayers) {
+		// Performance mode check: skip targeting every other tick for distant mobs
+		if (mod.universalmobwar.config.ModConfig.getInstance().performanceMode) {
+			if (self.age % 2 != 0 && self.getTarget() == null) return null;
+		}
+
 		long currentTime = System.currentTimeMillis();
 		
 		// Reset query counter every tick

@@ -2,129 +2,192 @@ package mod.universalmobwar.client;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
-import net.minecraft.client.gui.widget.ScrollableWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.text.Text;
 import mod.universalmobwar.config.ModConfig;
+import net.minecraft.client.gui.tooltip.Tooltip;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class UniversalMobWarConfigScreen extends Screen {
-    private ScrollableWidget scrollablePanel;
-    private int totalContentHeight = 0;
-    private double scrollOffset = 0.0;
+    private final Screen parent;
+    private ModConfig config;
+    
+    // Category buttons
+    private ButtonWidget btnGeneral;
+    private ButtonWidget btnScaling;
+    private ButtonWidget btnPerformance;
+    private ButtonWidget btnVisuals;
+    
+    private Category currentCategory = Category.GENERAL;
+    private final List<Object> activeWidgets = new ArrayList<>();
+
+    private enum Category {
+        GENERAL, SCALING, PERFORMANCE, VISUALS
+    }
 
     public UniversalMobWarConfigScreen(Screen parent) {
-        super(Text.literal("Universal Universal Mob War Config"));
+        super(Text.literal("Universal Mob War Config"));
+        this.parent = parent;
+        this.config = ModConfig.getInstance();
     }
 
     @Override
     protected void init() {
-        int panelWidth = 240;
-        int panelHeight = this.height - 40;
-        int panelX = (this.width - panelWidth) / 2;
-        int panelY = 30;
+        int y = 40;
+        int buttonWidth = 70;
+        int spacing = 5;
+        int startX = (this.width - (buttonWidth * 4 + spacing * 3)) / 2;
 
-        if (scrollablePanel != null) this.remove(scrollablePanel);
+        // Category Buttons
+        btnGeneral = ButtonWidget.builder(Text.literal("General"), button -> setCategory(Category.GENERAL))
+                .dimensions(startX, y, buttonWidth, 20).build();
+        
+        btnScaling = ButtonWidget.builder(Text.literal("Scaling"), button -> setCategory(Category.SCALING))
+                .dimensions(startX + buttonWidth + spacing, y, buttonWidth, 20).build();
+        
+        btnPerformance = ButtonWidget.builder(Text.literal("Performance"), button -> setCategory(Category.PERFORMANCE))
+                .dimensions(startX + (buttonWidth + spacing) * 2, y, buttonWidth, 20).build();
+        
+        btnVisuals = ButtonWidget.builder(Text.literal("Visuals"), button -> setCategory(Category.VISUALS))
+                .dimensions(startX + (buttonWidth + spacing) * 3, y, buttonWidth, 20).build();
 
-        scrollablePanel = new ScrollableWidget(panelX, panelY, panelWidth, panelHeight, Text.literal("Config Panel")) {
+        this.addDrawableChild(btnGeneral);
+        this.addDrawableChild(btnScaling);
+        this.addDrawableChild(btnPerformance);
+        this.addDrawableChild(btnVisuals);
+        
+        // Save & Exit Button
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save & Exit"), button -> {
+            config.save();
+            if (this.client != null) this.client.setScreen(this.parent);
+        }).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build());
 
+        refreshWidgets();
+    }
+
+    private void setCategory(Category category) {
+        this.currentCategory = category;
+        refreshWidgets();
+    }
+
+    private void refreshWidgets() {
+        // Remove old widgets
+        for (Object widget : activeWidgets) {
+            if (widget instanceof net.minecraft.client.gui.Drawable) {
+                this.remove((net.minecraft.client.gui.Element) widget);
+            }
+        }
+        activeWidgets.clear();
+
+        // Update button states
+        btnGeneral.active = currentCategory != Category.GENERAL;
+        btnScaling.active = currentCategory != Category.SCALING;
+        btnPerformance.active = currentCategory != Category.PERFORMANCE;
+        btnVisuals.active = currentCategory != Category.VISUALS;
+
+        int y = 80;
+        int x = this.width / 2 - 100;
+        int w = 200;
+        int h = 20;
+        int gap = 24;
+
+        switch (currentCategory) {
+            case GENERAL:
+                addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for the entire mod.");
+                y += gap;
+                addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val, "If true, zombies won't attack zombies.");
+                y += gap;
+                addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val, "If false, mobs ignore players (spectator mode).");
+                y += gap;
+                addCheckbox(x, y, "Neutral Mobs Hostile", config.neutralMobsAlwaysAggressive, val -> config.neutralMobsAlwaysAggressive = val, "Make iron golems, wolves, etc. always aggressive.");
+                y += gap;
+                addCheckbox(x, y, "Enable Alliances", config.allianceSystemEnabled, val -> config.allianceSystemEnabled = val, "Mobs form temporary alliances.");
+                y += gap;
+                addSlider(x, y, w, h, "Detection Range: ", config.rangeMultiplier, 0.1, 5.0, val -> config.rangeMultiplier = val);
+                break;
+
+            case SCALING:
+                addCheckbox(x, y, "Enable Scaling", config.scalingEnabled, val -> config.scalingEnabled = val, "Mobs get stronger over time and with kills.");
+                y += gap;
+                addCheckbox(x, y, "Boss Scaling", config.allowBossScaling, val -> config.allowBossScaling = val, "Allow bosses to scale.");
+                y += gap;
+                addCheckbox(x, y, "Modded Scaling", config.allowModdedScaling, val -> config.allowModdedScaling = val, "Allow modded mobs to scale.");
+                y += gap;
+                addSlider(x, y, w, h, "Day Multiplier: ", config.dayScalingMultiplier, 0.0, 10.0, val -> config.dayScalingMultiplier = val);
+                y += gap;
+                addSlider(x, y, w, h, "Kill Multiplier: ", config.killScalingMultiplier, 0.0, 10.0, val -> config.killScalingMultiplier = val);
+                y += gap;
+                addSlider(x, y, w, h, "Max Tier: ", (double)config.maxTier, 1, 100, val -> config.maxTier = val.intValue());
+                break;
+
+            case PERFORMANCE:
+                addCheckbox(x, y, "Performance Mode", config.performanceMode, val -> config.performanceMode = val, "Optimizes settings for low-end PCs (Recommended).");
+                y += gap;
+                addCheckbox(x, y, "Enable Batching", config.enableBatching, val -> config.enableBatching = val, "Process mobs in batches to reduce lag.");
+                y += gap;
+                addCheckbox(x, y, "Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val, "Use background threads for heavy calculations.");
+                y += gap;
+                addSlider(x, y, w, h, "Cache Duration (ms): ", (double)config.targetingCacheMs, 500, 5000, val -> config.targetingCacheMs = val.intValue());
+                y += gap;
+                addSlider(x, y, w, h, "Max Queries/Tick: ", (double)config.targetingMaxQueriesPerTick, 10, 200, val -> config.targetingMaxQueriesPerTick = val.intValue());
+                break;
+
+            case VISUALS:
+                addCheckbox(x, y, "Disable Particles", config.disableParticles, val -> config.disableParticles = val, "Removes most particles for better FPS.");
+                y += gap;
+                addCheckbox(x, y, "Show Target Lines", config.showTargetLines, val -> config.showTargetLines = val, "Draw lines between mobs and their targets.");
+                y += gap;
+                addCheckbox(x, y, "Show Health Bars", config.showHealthBars, val -> config.showHealthBars = val, "Show health bars above mobs.");
+                y += gap;
+                addCheckbox(x, y, "Show Mob Labels", config.showMobLabels, val -> config.showMobLabels = val, "Show names and levels.");
+                y += gap;
+                addCheckbox(x, y, "Level Up Particles", config.showLevelParticles, val -> config.showLevelParticles = val, "Show particles when mobs level up.");
+                break;
+        }
+    }
+
+    private void addCheckbox(int x, int y, String text, boolean checked, java.util.function.Consumer<Boolean> onSave, String tooltip) {
+        CheckboxWidget widget = CheckboxWidget.builder(Text.literal(text), this.textRenderer)
+                .pos(x, y)
+                .checked(checked)
+                .callback((checkbox, isChecked) -> onSave.accept(isChecked))
+                .tooltip(Tooltip.of(Text.literal(tooltip)))
+                .build();
+        this.addDrawableChild(widget);
+        activeWidgets.add(widget);
+    }
+
+    private void addSlider(int x, int y, int w, int h, String prefix, double value, double min, double max, java.util.function.Consumer<Double> onSave) {
+        SliderWidget widget = new SliderWidget(x, y, w, h, Text.literal(prefix + String.format("%.2f", value)), (value - min) / (max - min)) {
             @Override
-            protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
-                ModConfig config = ModConfig.getInstance();
-                int y = 10;
-                int x = 20;
-                int s = (int) scrollOffset;
-
-                CheckboxWidget enabled = CheckboxWidget.builder(Text.literal("Enable Universal Mob War"), textRenderer)
-                        .pos(x, y - s).checked(config.modEnabled).build();
-                enabled.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget scaling = CheckboxWidget.builder(Text.literal("Enable Global Mob Scaling System"), textRenderer)
-                        .pos(x, y - s).checked(config.scalingEnabled).build();
-                scaling.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget ignore = CheckboxWidget.builder(Text.literal("Same-species alliances (ignoreSameSpecies)"), textRenderer)
-                        .pos(x, y - s).checked(config.ignoreSameSpecies).build();
-                ignore.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget targetPlayers = CheckboxWidget.builder(Text.literal("Player immunity (targetPlayers)"), textRenderer)
-                        .pos(x, y - s).checked(config.targetPlayers).build();
-                targetPlayers.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget neutral = CheckboxWidget.builder(Text.literal("Neutral mobs always hostile"), textRenderer)
-                        .pos(x, y - s).checked(config.neutralMobsAlwaysAggressive).build();
-                neutral.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget alliance = CheckboxWidget.builder(Text.literal("Enable alliance system"), textRenderer)
-                        .pos(x, y - s).checked(config.allianceSystemEnabled).build();
-                alliance.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                CheckboxWidget evolution = CheckboxWidget.builder(Text.literal("Enable mob leveling"), textRenderer)
-                        .pos(x, y - s).checked(config.evolutionSystemEnabled).build();
-                evolution.render(context, mouseX, mouseY, delta);
-                y += 24;
-
-                RangeSlider rangeSlider = new RangeSlider(x, y - s, 200, 20, config.rangeMultiplier);
-                rangeSlider.render(context, mouseX, mouseY, delta);
-                y += 28;
-
-                totalContentHeight = y;
+            protected void updateMessage() {
+                double val = min + (max - min) * this.value;
+                if (max > 10) { // Integer slider
+                     setMessage(Text.literal(prefix + (int)val));
+                } else {
+                     setMessage(Text.literal(prefix + String.format("%.2f", val)));
+                }
             }
 
             @Override
-            protected int getContentsHeight() {
-                return totalContentHeight;
+            protected void applyValue() {
+                double val = min + (max - min) * this.value;
+                onSave.accept(val);
             }
-
-            @Override
-            protected double getDeltaYPerScroll() {
-                return 12.0;
-            }
-
-            @Override
-            public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-                double max = Math.max(0, totalContentHeight - this.height);
-                scrollOffset = Math.max(0, Math.min(scrollOffset - vertical * getDeltaYPerScroll(), max));
-                return true;
-            }
-
-            @Override
-            protected void appendClickableNarrations(NarrationMessageBuilder builder) {}
         };
-
-        this.addDrawableChild(scrollablePanel);
+        this.addDrawableChild(widget);
+        activeWidgets.add(widget);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderBackground(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 20, 0xFFFFFF);
-        super.render(ctx, mouseX, mouseY, delta);
-    }
-
-    private static class RangeSlider extends SliderWidget {
-        public RangeSlider(int x, int y, int w, int h, double initialValue) {
-            super(x, y, w, h, Text.literal(""), (initialValue - 0.01) / 99.99);
-            updateMessage();
-        }
-
-        @Override
-        protected void updateMessage() {
-            setMessage(Text.literal("Detection range multiplier: " + String.format("%.2f", getValue())));
-        }
-
-        @Override
-        protected void applyValue() {}
-
-        public double getValue() {
-            return 0.01 + this.value * 99.99;
-        }
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        this.renderBackground(context, mouseX, mouseY, delta);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 15, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Category: " + currentCategory.name()), this.width / 2, 65, 0xAAAAAA);
+        super.render(context, mouseX, mouseY, delta);
     }
 }

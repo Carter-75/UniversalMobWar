@@ -32,6 +32,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import mod.universalmobwar.config.ModConfig;
+import java.util.ArrayList;
 
 import java.util.*;
 
@@ -409,6 +411,7 @@ public class MobWarlordEntity extends HostileEntity {
      * Shows purple/dark purple lines so players can see who is allied.
      */
     private void drawParticleConnections() {
+        if (ModConfig.getInstance().disableParticles) return; // Performance optimization
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (this.age < 60) return; // Wait for full initialization
         
@@ -417,7 +420,7 @@ public class MobWarlordEntity extends HostileEntity {
             
             // OPTIMIZATION: Limit connections drawn based on minion count
             int drawnCount = 0;
-            int maxDraws = Math.min(15, minionUuids.size());
+            int maxDraws = Math.min(10, minionUuids.size()); // Reduced from 15 to 10
             
             for (UUID minionUuid : minionUuids) {
                 if (drawnCount++ >= maxDraws) break;
@@ -436,11 +439,11 @@ public class MobWarlordEntity extends HostileEntity {
                         
                         // Draw particle line from boss to minion
                         Vec3d direction = minionPos.subtract(bossPos);
-                        Vec3d step = direction.normalize().multiply(1.0); // OPTIMIZED: Particle every 1.0 blocks (was 0.5)
+                        Vec3d step = direction.normalize().multiply(1.5); // OPTIMIZED: Particle every 1.5 blocks (was 1.0)
                         
                         // OPTIMIZATION: Fewer particles per connection, scale with minion count
-                        int maxParticles = minionUuids.size() > 10 ? 8 : 15;
-                        int particleCount = Math.min((int)(distance / 1.0), maxParticles);
+                        int maxParticles = minionUuids.size() > 10 ? 5 : 10; // Reduced from 8/15
+                        int particleCount = Math.min((int)(distance / 1.5), maxParticles);
                         for (int i = 0; i < particleCount; i++) {
                             Vec3d particlePos = bossPos.add(step.multiply(i));
                             
@@ -885,7 +888,8 @@ public class MobWarlordEntity extends HostileEntity {
             double distanceToMinion = this.squaredDistanceTo(lowHealthMinion);
             
             // Check if we're in range to throw healing potion
-            if (distanceToMinion <= 256.0) { // 16 block range
+            if (distanceToMinion <= 256.0) // 16 block range
+                {
                 // Check if enemies are nearby that would also get healed
                 List<LivingEntity> nearbyEnemies = serverWorld.getEntitiesByClass(
                     LivingEntity.class,
@@ -1140,6 +1144,7 @@ public class MobWarlordEntity extends HostileEntity {
     }
     
     private void spawnParticles() {
+        if (ModConfig.getInstance().disableParticles) return; // Performance optimization
         if (this.getWorld() == null) return;
         if (this.age < 60) return; // Wait 3 seconds for full initialization
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
@@ -1149,7 +1154,7 @@ public class MobWarlordEntity extends HostileEntity {
             if (serverWorld.getServer() != null && !serverWorld.isClient) {
                 serverWorld.spawnParticles(ParticleTypes.WITCH,
                     this.getX(), this.getY() + 2.0, this.getZ(),
-                    5, 0.5, 0.5, 0.5, 0.05);
+                    2, 0.5, 0.5, 0.5, 0.05); // Reduced from 5 to 2
             }
         } catch (Exception e) {
             // Silently ignore particle errors during initialization
