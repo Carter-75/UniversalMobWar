@@ -1,0 +1,59 @@
+import subprocess
+import sys
+import os
+
+def build_project():
+    print("Starting build with maximum debug info...")
+    
+    # Determine the correct gradlew command based on OS
+    gradlew = "gradlew.bat" if os.name == 'nt' else "./gradlew"
+    
+    # Check if gradlew exists
+    if not os.path.exists(gradlew):
+        print(f"Error: {gradlew} not found in current directory.")
+        return
+
+    # Set JAVA_HOME to the detected valid JDK
+    # Found via 'where.exe java': C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot\bin\java.exe
+    java_home = r"C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot"
+    if os.path.exists(java_home):
+        print(f"Setting JAVA_HOME to: {java_home}")
+        os.environ['JAVA_HOME'] = java_home
+    else:
+        print(f"Warning: Could not find JDK at {java_home}. Using system default.")
+
+    # Command with debug flags
+    # --info: High level of detail
+    # --stacktrace: Print stack traces for exceptions
+    command = [gradlew, "build", "--info", "--stacktrace"]
+    
+    print(f"Running command: {' '.join(command)}")
+    
+    try:
+        with open("build_log.txt", "w") as log_file:
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=os.getcwd()
+            )
+            
+            # Stream output to console and file
+            for line in process.stdout:
+                print(line, end='')
+                log_file.write(line)
+                
+            process.wait()
+            
+            if process.returncode == 0:
+                print("\nBuild SUCCESSFUL!")
+            else:
+                print(f"\nBuild FAILED with exit code {process.returncode}")
+                print("Check build_log.txt for full details.")
+            
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    build_project()
