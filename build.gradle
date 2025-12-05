@@ -23,3 +23,13 @@ java {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
+
+sourceSets {
+	main {
+		java {
+			srcDirs += [
+				'src/client/java'
+			]
+		}
+	}
+}
