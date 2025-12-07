@@ -8,7 +8,7 @@ Actual: DefaultDaemonContext[uid=dfd4bb86-3aee-4801-b061-609bbebd6b52,javaHome=C
 
   Looking for a different daemon...
 The client will now receive all logging from the daemon (pid: 14444). The daemon log file: C:\Users\carte\.gradle\daemon\8.10.2\daemon-14444.out.log
-Starting 10th build in daemon [uptime: 11 mins 39.773 secs, performance: 99%, GC rate: 0.02/s, heap usage: 2% of 2 GiB]
+Starting 14th build in daemon [uptime: 18 mins 33.955 secs, performance: 99%, GC rate: 0.02/s, heap usage: 3% of 2 GiB]
 Using 20 worker leases.
 Now considering [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar] as hierarchies to watch
 Watching the file system is configured to be enabled if available
@@ -58,8 +58,8 @@ Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with InstrumentationAn
 Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with MergeInstrumentationAnalysisTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with InstrumentationAnalysisTransform
-Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with MergeInstrumentationAnalysisTransform
+Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with InstrumentationAnalysisTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with MergeInstrumentationAnalysisTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with ExternalDependencyInstrumentingArtifactTransform
@@ -70,59 +70,59 @@ Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with InstrumentationAna
 Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with MergeInstrumentationAnalysisTransform
 Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with InstrumentationAnalysisTransform
-Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with InstrumentationAnalysisTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with MergeInstrumentationAnalysisTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with InstrumentationAnalysisTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with InstrumentationAnalysisTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with MergeInstrumentationAnalysisTransform
-Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with InstrumentationAnalysisTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with MergeInstrumentationAnalysisTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with InstrumentationAnalysisTransform
-Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with MergeInstrumentationAnalysisTransform
+Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with InstrumentationAnalysisTransform
-Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with MergeInstrumentationAnalysisTransform
+Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with InstrumentationAnalysisTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with MergeInstrumentationAnalysisTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with InstrumentationAnalysisTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with MergeInstrumentationAnalysisTransform
+Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with InstrumentationAnalysisTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with MergeInstrumentationAnalysisTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with InstrumentationAnalysisTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with MergeInstrumentationAnalysisTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with InstrumentationAnalysisTransform
+Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with MergeInstrumentationAnalysisTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with InstrumentationAnalysisTransform
+Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with MergeInstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with InstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with MergeInstrumentationAnalysisTransform
-Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with InstrumentationAnalysisTransform
-Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with MergeInstrumentationAnalysisTransform
+Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with InstrumentationAnalysisTransform
+Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
+Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with MergeInstrumentationAnalysisTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with InstrumentationAnalysisTransform
-Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with MergeInstrumentationAnalysisTransform
-Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with InstrumentationAnalysisTransform
-Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with ExternalDependencyInstrumentingArtifactTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with MergeInstrumentationAnalysisTransform
+Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with ExternalDependencyInstrumentingArtifactTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with ExternalDependencyInstrumentingArtifactTransform
 Fabric Loom: 1.6.12
 (kotlinx.metadata.jvm.KotlinClassMetadata) with version (0.9.0-1.9.21-40) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-metadata-jvm/0.9.0/123e86fd82d3a49afd0a41df1288a40c969f11b2/kotlinx-metadata-jvm-0.9.0.jar)
@@ -134,8 +134,8 @@ Fabric Loom: 1.6.12
 (com.google.gson.Gson) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.10.1/b3add478d4382b78ea20b1671390a858002feb6c/gson-2.10.1.jar)
 (com.google.common.base.Preconditions) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/33.0.0-jre/161ba27964a62f241533807a46b8711b13c1d94b/guava-33.0.0-jre.jar)
 (org.apache.commons.io.FileUtils) with version (2.15.1) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.15.1/f11560da189ab563a5c8e351941415430e9304ea/commons-io-2.15.1.jar)
-Creating new SharedServiceManager(579207759)
-Creating new SharedServiceManager(727928713)
+Creating new SharedServiceManager(505039692)
+Creating new SharedServiceManager(1439746255)
 :setting up loom dependencies
 Applying installer data from C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar
 Found another installer JSON in (C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar), ignoring
@@ -144,7 +144,7 @@ Configuring compiler arguments for Java
 Adding mixin to classpath of AP config: annotationProcessor
 Adding mixin to classpath of AP config: testAnnotationProcessor
 Could not find refmap definition, will be using default name: universal-mob-war-refmap.json
-Closing SharedServiceManager(727928713)
+Closing SharedServiceManager(1439746255)
 sourcesJar task was not found, not remapping sources
 Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
 All projects evaluated.
@@ -152,8 +152,8 @@ Task name matched 'build'
 Selected primary task 'build' from project :
 Tasks to be executed: [task ':compileJava', task ':processResources', task ':classes', task ':jar', task ':remapJar', task ':remapSourcesJar', task ':assemble', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':test', task ':validateAccessWidener', task ':check', task ':build']
 Tasks that were excluded: []
-Resolve mutations for :compileJava (Thread[#1631,Execution worker,5,main]) started.
-:compileJava (Thread[#1631,Execution worker,5,main]) started.
+Resolve mutations for :compileJava (Thread[#2310,Execution worker,5,main]) started.
+:compileJava (Thread[#2310,Execution worker,5,main]) started.
 
 > Task :compileJava UP-TO-DATE
 Caching disabled for task ':compileJava' because:
@@ -161,78 +161,78 @@ Caching disabled for task ':compileJava' because:
 Skipping task ':compileJava' as it is up-to-date.
 No compile result for :compileJava
 No compile result for :compileJava
-Resolve mutations for :processResources (Thread[#1631,Execution worker,5,main]) started.
-:processResources (Thread[#1631,Execution worker,5,main]) started.
+Resolve mutations for :processResources (Thread[#2310,Execution worker,5,main]) started.
+:processResources (Thread[#2310,Execution worker,5,main]) started.
 
 > Task :processResources UP-TO-DATE
 Caching disabled for task ':processResources' because:
   Build cache is disabled
   Not worth caching
 Skipping task ':processResources' as it is up-to-date.
-Resolve mutations for :classes (Thread[#1631,Execution worker,5,main]) started.
-:classes (Thread[#1631,Execution worker,5,main]) started.
+Resolve mutations for :classes (Thread[#2310,Execution worker,5,main]) started.
+:classes (Thread[#2310,Execution worker,5,main]) started.
 
 > Task :classes UP-TO-DATE
 Skipping task ':classes' as it has no actions.
-Resolve mutations for :jar (Thread[#1631,Execution worker,5,main]) started.
-:jar (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :jar (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:jar (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :jar UP-TO-DATE
 Caching disabled for task ':jar' because:
   Build cache is disabled
   Not worth caching
 Skipping task ':jar' as it is up-to-date.
-Resolve mutations for :remapJar (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:remapJar (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :remapJar (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:remapJar (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :remapJar UP-TO-DATE
 Caching disabled for task ':remapJar' because:
   Build cache is disabled
   Caching has not been enabled for the task
 Skipping task ':remapJar' as it is up-to-date.
-Resolve mutations for :remapSourcesJar (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:remapSourcesJar (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :remapSourcesJar (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:remapSourcesJar (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :remapSourcesJar SKIPPED
 Skipping task ':remapSourcesJar' as task onlyIf 'Task is enabled' is false.
-Closing SharedServiceManager(579207759)
-Resolve mutations for :assemble (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:assemble (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Closing SharedServiceManager(505039692)
+Resolve mutations for :assemble (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:assemble (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :assemble UP-TO-DATE
 Skipping task ':assemble' as it has no actions.
-Resolve mutations for :compileTestJava (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:compileTestJava (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :compileTestJava (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:compileTestJava (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :compileTestJava NO-SOURCE
 Skipping task ':compileTestJava' as it has no source files and no previous output files.
-Resolve mutations for :processTestResources (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:processTestResources (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :processTestResources (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:processTestResources (Thread[#2322,Execution worker Thread 12,5,main]) started.
 
 > Task :processTestResources NO-SOURCE
 Skipping task ':processTestResources' as it has no source files and no previous output files.
-Resolve mutations for :testClasses (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:testClasses (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :testClasses (Thread[#2322,Execution worker Thread 12,5,main]) started.
+:testClasses (Thread[#2324,Execution worker Thread 14,5,main]) started.
 
 > Task :testClasses UP-TO-DATE
 Skipping task ':testClasses' as it has no actions.
-Resolve mutations for :test (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:test (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :test (Thread[#2324,Execution worker Thread 14,5,main]) started.
+:test (Thread[#2324,Execution worker Thread 14,5,main]) started.
 
 > Task :test NO-SOURCE
 Skipping task ':test' as it has no source files and no previous output files.
-Resolve mutations for :validateAccessWidener (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:validateAccessWidener (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :validateAccessWidener (Thread[#2324,Execution worker Thread 14,5,main]) started.
+:validateAccessWidener (Thread[#2324,Execution worker Thread 14,5,main]) started.
 
 > Task :validateAccessWidener NO-SOURCE
 Skipping task ':validateAccessWidener' as it has no source files and no previous output files.
-Resolve mutations for :check (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:check (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :check (Thread[#2324,Execution worker Thread 14,5,main]) started.
+:check (Thread[#2324,Execution worker Thread 14,5,main]) started.
 
 > Task :check UP-TO-DATE
 Skipping task ':check' as it has no actions.
-Resolve mutations for :build (Thread[#1649,Execution worker Thread 19,5,main]) started.
-:build (Thread[#1649,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :build (Thread[#2324,Execution worker Thread 14,5,main]) started.
+:build (Thread[#2324,Execution worker Thread 14,5,main]) started.
 
 > Task :build UP-TO-DATE
 Skipping task ':build' as it has no actions.

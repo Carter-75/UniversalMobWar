@@ -13,14 +13,17 @@ def build_project():
         print(f"Error: {gradlew} not found in current directory.")
         return
 
-    # Set JAVA_HOME to the detected valid JDK
-    # Found via 'where.exe java': C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot\bin\java.exe
-    java_home = r"C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot"
-    if os.path.exists(java_home):
-        print(f"Setting JAVA_HOME to: {java_home}")
-        os.environ['JAVA_HOME'] = java_home
+    # Set JAVA_HOME if not already set
+    if 'JAVA_HOME' not in os.environ:
+        # Fallback to known path
+        java_home = r"C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot"
+        if os.path.exists(java_home):
+            print(f"Setting JAVA_HOME to: {java_home}")
+            os.environ['JAVA_HOME'] = java_home
+        else:
+            print(f"Warning: Could not find JDK at {java_home}. Using system default.")
     else:
-        print(f"Warning: Could not find JDK at {java_home}. Using system default.")
+        print(f"Using existing JAVA_HOME: {os.environ['JAVA_HOME']}")
 
     # Command with debug flags
     # --info: High level of detail
