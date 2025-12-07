@@ -10,24 +10,22 @@
 
 ## 📋 Features Overview
 
-- **Global Mob Scaling (NEW):**
-  - All mobs scale with world days & kills (nonlinear, deterministic, no config lag)
-  - Power Profile: hidden stats, day/kill points, upgrades, tier, archetype
-  - World-day exponential scaling, kill-based progression, universal & archetype upgrades
-  - Tier system: nonlinear, internal, unlocks stronger upgrades
-  - Toggle in config/Mod Menu, no perf impact when off, works with legacy evolution
-
-- **Evolution System (Legacy):**
-  - Mobs level up from kills (max 100), gain stats & equipment
-  - Stat bonuses: +0.5 hearts, +10% damage, +0.5% speed, armor/knockback, gear upgrades
-  - Creative mode protection
+- **Unified Evolution System (v2.0):**
+  - **Day Scaling:** Mobs spawn stronger based on the world day (configurable).
+  - **Kill Scaling:** Mobs level up by killing others (3 kills = 1 level).
+  - **Hyper-Lethality:** Damage scales faster than Armor to prevent stalemates.
+  - **Gear Progression:** Mobs equip better armor and weapons as they level up.
+  - **Stalemate Breaker:** If a fight lasts >15s, the attacker gains Berserk buffs (Strength/Speed) to force a conclusion.
 
 - **Combat & AI:**
-  - All mobs attack other species, prioritize Warlord bosses
-  - Alliance system: strong (same species), weak (cross-species/chaos)
+  - **Universal Targeting:** Mobs attack anything that isn't their species (configurable).
+  - **Smart Targeting:** Optimized AI that filters targets efficiently (no lag).
+  - **Alliance System:** Mobs can form alliances to team up against stronger foes.
+  - **Player Immunity:** Option to make mobs ignore players (Spectator Mode).
+
 - **Customization:**
-  - All options are available as settings in the config file and Mod Menu
-  - No need to use `/gamerule` for configuration—everything is configurable via settings
+  - All options are available via Mod Menu or `config/universalmobwar.json`.
+  - **Gamerules:** `universalMobWarEnabled`, `universalMobWarEvolution`, etc.
 
 ---
 
@@ -246,127 +244,59 @@ Look in Creative Inventory → Spawn Eggs tab → **Mob Warlord Spawn Egg** (wit
 
 ---
 
-## 🧬 Unified Mob Progression & Skill Tree
+## 🧬 Unified Mob Progression & Skill Tree System (v3.0)
 
-All mobs use a single, unified progression system that combines world scaling, kill-based leveling, and archetype-specific upgrades. There is no split between "legacy" and "global"—everything is part of one seamless system.
+The new **Evolution System** implements a complex, day-based skill tree that allows mobs to evolve unique traits, gear, and abilities over time.
 
-### Mob Progression Flow
+### 📈 Skill Point Accumulation
+Mobs gain "Skill Points" (poi) based on the age of the world (World Days).
+- **Days 0-10:** 0.1 points/day
+- **Days 11-15:** 0.5 points/day
+- **Days 16-20:** 1.0 points/day
+- **Days 21-25:** 1.5 points/day
+- **Days 26-30:** 3.0 points/day
+- **Days 31+:** 5.0 points/day (Max scaling)
 
-```
-Mob Spawn
-   |
-   v
-[Base Stats]
-   |
-   v
-+ World Days → Scaling Points
-+ Kills      → Scaling Points
-   |
-   v
-[Total Points] → [Tier Level]
-   |
-   v
-[Archetype Path]
-   |
-   v
-Skill Tree (Upgrades unlocked by Tier)
-```
+### 🌳 Skill Trees
+Mobs spend points on upgrades in specific trees based on their type.
 
-### Full Skill Tree Diagram
+#### 1. General Tree (All Hostile Mobs)
+Cost: 2 points per upgrade.
+- **Healing:** Regeneration I → V
+- **Health Boost:** +2 HP per level (up to +20 HP)
+- **Resistance:** Resistance I → III + Fire Resistance
+- **Strength:** Strength I → IV
+- **Invisibility:** Chance to spawn invisible or gain invisibility bursts
+- **Shields:** Chance to equip shields in offhand
 
-```
-Mob (any type)
-│
-├── Universal Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Damage
-│   ├─ Tier 3: +Speed
-│   ├─ Tier 4: +Armor
-│   ├─ Tier 5: +Knockback Resist
-│   ├─ Tier 6: +Aggro Range
-│   ├─ Tier 7: +Immunity
-│   ├─ Tier 8: Special: All-Resist
-│   └─ Tier 9+: Special: AoE
-│
-├── Zombie Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Damage
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Infectious Bite
-│   ├─ Tier 5: Undead Fortitude
-│   └─ Tier 6+: Horde Summon
-│
-├── Skeleton Path
-│   ├─ Tier 1: +Speed
-│   ├─ Tier 2: +Damage
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Piercing Arrows
-│   ├─ Tier 5: Multi-Shot
-│   ├─ Tier 6: Dodge
-│   └─ Tier 7+: Sniper Shot
-│
-├── Creeper Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Speed
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Blast Radius
-│   ├─ Tier 5: Chain Explosion
-│   └─ Tier 6+: Charged Explosion
-│
-├── Spider Path
-│   ├─ Tier 1: +Speed
-│   ├─ Tier 2: +Jump
-│   ├─ Tier 3: +Climb
-│   ├─ Tier 4: Poison Bite
-│   ├─ Tier 5: Web Trap
-│   ├─ Tier 6: Leap Attack
-│   └─ Tier 7+: Venom Cloud
-│
-├── Witch Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Potion Power
-│   ├─ Tier 3: +Resistance
-│   ├─ Tier 4: Splash Range
-│   ├─ Tier 5: Debuff Potions
-│   ├─ Tier 6: Heal Ally
-│   └─ Tier 7+: Mass Hex
-│
-├── Illager Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Damage
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Summon Ally
-│   ├─ Tier 5: Evoker Fangs
-│   ├─ Tier 6: Totem Use
-│   └─ Tier 7+: Raid Banner
-│
-├── Nether Path
-│   ├─ Tier 1: +Fire Resist
-│   ├─ Tier 2: +Damage
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Lava Walk
-│   ├─ Tier 5: Nether Aura
-│   ├─ Tier 6: Wither Touch
-│   └─ Tier 7+: Hellfire Burst
-│
-├── End Path
-│   ├─ Tier 1: +Health
-│   ├─ Tier 2: +Teleport
-│   ├─ Tier 3: +Armor
-│   ├─ Tier 4: Levitate Attack
-│   ├─ Tier 5: Ender Swarm
-│   ├─ Tier 6: Blindness
-│   └─ Tier 7+: Void Pulse
-│
-└── Warden Path
-    ├─ Tier 1: +Health
-    ├─ Tier 2: +Sonic Boom
-    ├─ Tier 3: +Armor
-    ├─ Tier 4: Scent Range
-    ├─ Tier 5: Blind Rage
-    ├─ Tier 6: Earthquake
-    └─ Tier 7+: Apex Predator
-```
+#### 2. Passive Tree (All Passive Mobs)
+Cost: 2 points per upgrade.
+- **Healing:** Regeneration I → III
+- **Health Boost:** +2 HP per level (up to +6 HP)
+- **Resistance:** Resistance I
+
+#### 3. Equipment Trees (Hostile Mobs with Gear)
+Mobs upgrade their gear with enchantments. Each upgrade costs points and adds a random enchantment level.
+- **Sword Tree:** Sharpness, Fire Aspect, Knockback, Unbreaking, Smite, Bane of Arthropods, Looting.
+- **Bow Tree:** Power, Punch, Flame, Infinity, Unbreaking.
+- **Armor Tree:** Protection, Fire Protection, Blast Protection, Projectile Protection, Thorns, Unbreaking.
+
+#### 4. Special Archetype Trees
+- **Zombie Tree (z):**
+  - **Infectious Bite:** Inflicts Hunger on hit.
+  - **Horde Summon:** Chance to summon reinforcements when hurt.
+- **Projectile Tree (pro):**
+  - **Piercing:** Arrows pierce through enemies.
+  - **Multishot:** Fires multiple projectiles at once.
+
+### 🛡️ Gear Progression
+Mobs automatically equip better base gear as they level up:
+- **Wood → Stone → Iron → Diamond → Netherite**
+- Enchantments are applied on top of this base gear.
+
+---
+
+
 
 *Modded mobs auto-detect the closest vanilla archetype and follow its path.*
 
@@ -413,31 +343,7 @@ Mob (any type)
 
 ---
 
-## 🏆 Max Tier Effects (Universal Path)
 
-At the highest tier (apex node), a mob receives:
-- **Full Netherite Armor** (helmet, chestplate, leggings, boots) with Protection IV, Unbreaking III, Thorns III, and Mending
-- **Netherite Sword** with Sharpness V, Unbreaking III, Looting III, Fire Aspect II, Knockback II, and Mending
-- **Shield** (100% chance) with Unbreaking III, Mending, Thorns III
-- **Permanent Effects:**
-  - Strength V
-  - Speed V
-  - Resistance III
-  - Regeneration III
-  - Fire Resistance
-  - Absorption
-  - Health Boost
-  - Water Breathing
-- **Stat Boosts:**
-  - Max Health: +500% (120 HP)
-  - Attack Damage: +500% (30 base)
-  - Armor: +20
-  - Movement Speed: +100% (0.40)
-  - Knockback Resistance: 100%
-- **10% chance for 20s Invisibility burst** on spawn/tier-up
-- **All effects and gear are deterministic and NBT-persistent**
-
----
 
 ## 📊 Alliance System Details
 

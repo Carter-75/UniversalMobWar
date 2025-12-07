@@ -1,0 +1,165 @@
+This is skill tree to use fix how it is implemented rn!!!!!
+
+skill point gain per day starts at 0.1 after it hits 10 days then .5 each day instead after 5 days then 1 each day then after 5 days 1.5 each day then after 5 days 3 per day after 5 days 5 per day forever until the mob is max lvl then doesn't add anything, i will say points things will be labeled as poi.
+
+i will refer to p and h, n will have same things as h so all n are basically h
+p-passive no fighting by default 
+n-neutral needs toggle for neutral to hostile on or something the player does to get attacked by
+h-hostile all fighting
+
+The general skill trees below will be applied to even custom mobs from other mods, if that mob ever has the possibility of fighting, eg. has damage per hit amount other then 0, then it goes in g, otherwise gp.
+
+general skill tree(any mobs listed g or not listed in list below will go here) (g): poi 2, until full
+
+healing 1>2>3>4>5
+healthboost 1>2>3>4>5>6>7>8>9>10
+resis 1>2>3>resis 3 and fire resis 1
+invis 1 (10 sec max and only after 1min not invis and 25% chance, tries every 10min>9>8>7>6>5>4>3>2>1>.5>.25
+strength 1>2>3>4
+shield chance is normal curve from 0% to 100% so synced around when mobs get full max 
+(enchants: each item that mob has, has 50% drop then 40 then 30 then 20 then 10 then 5% where the lowest chance would be in sync to the max mob tree(if item drops it gets all enchant that r on it, the durability of item goes from max full down to 5% left where the 5% left is synced to when mobs hit the max mob tree
+
+(must get full enchant on that item before getting next tier item(going to next tier clears enchants so you have to get them again), eg normal mob wood sword then stone then iron then diamond then netherite, or just trident and that it for drowned, or piglin/piglin brute from gold sword to netherite) (each enchant will upgrade random path and you do not need to get done with the current path until going on new one, it's all random)
+
+sword: poi 1, 1, 2, 2, 3, 3, 4, 4, 5, until full
+sharp 1>2>3>4>5
+fire aspect 1>2
+mending 1
+unbreaking 1>2>3
+knockback 1>2
+Smite 1>2>3>4>5
+Bane of arthropods 1>2>3>4>5
+looting 1>2>3
+
+
+trident: poi 3, 3, 3, until full
+Impaling 1>2>3>4>5
+channeling 1
+unbreaking 1>2>3
+mending 1
+loyalty 1>2>3
+riptide 1>2>3
+
+bow: poi 2, 2, 2, ,3, 3, 3, 3, until full
+power 1>2>3>4>5
+flame 1
+punch 1>2
+infinity 1
+unbreaking 1>2>3
+mending 1
+(arrows of slowness, weakness, poison, harming, decay, in normal curve at prob 0% aka way skewed left then max 100% way skewed right) 
+
+armor: poi 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, until full
+protection 1>2>3>4
+fire protection 1>2>3>4
+blast protection 1>2>3>4
+projectile protection 1>2>3>4
+thorns 1>2>3
+unbreaking 1>2>3
+mending 1
+aqua infinity 1 (only helmet)
+respiration 1>2>3 (only helmet)
+swift sneak 1>2>3 (only leggings)
+feather falling 1>2>3>4 (only boots)
+soul speed 1>2>3 (boots only)
+depth strider 1>2>3 (boots only)
+frost walker 1>2 (boots only)
+)
+
+general p skill tree(any p mobs listed as g or not listed) (gp): poi 2, 2, 2, until full
+
+healing 1>2>3
+healthboost 1>2>3
+resis>1
+
+zombie type tree(z): 3, until full
+
+the infectios bite so hunger 1 to prey when prey get hit>hunger2>3
+the zombie horde summon (summons 1-3 extra while the extra dont summon the same 1-3 extra again and again) 1(25% for 1 extra of that mob type(not just zombie but the mob that was spawned)) >2 (50%) >3 75% for 1 else 2 >4 50% for 1 else 2 >5 25% 1 else 2 or 3 50% random >6 2 50% chance else 3 >7 2 25% else 3 >8 always 3
+
+Projectile type tree(pro): 2, until full
+
+piercing(goes thru others) 1 (hit one other mob behind) >2 (2 others) >3 3other >4 4other >5 5other
+multi shot 1 +1 projectile >2 +2 >3 +3 >4 +4
+
+(if something doesn't hold weapon then nw and gp doesn't by default)
+(unless said bow then not bow but sword, and for all mobs try to add to armor if able to aka try catch, do that with every weapon, bow, trident, etc)
+
+Ally (gp)
+Armadillo (gp)
+Axolotl (gp)
+Bat (gp, nw)
+Bee (g)
+Blaze (g,pro, nw)
+Bogged (g)
+Breeze (g,pro, nw)
+Camel (gp)
+Cat (gp)
+Gave spider (g, nw) more poison 1 (from normal vanilla poison 1 on hit to poison 2) >2 (poison 3) poi 3, until full
+Chicken (gp)
+Cod (gp)
+Cow (gp)
+Creeper (g) (lingering potions on explode, weakness, slowness, poison, harming, slowness II, blindness, nausea, wither, in normal curve at prob 0% aka way skewed left then max 100% way skewed right) 3, until full (nw)
+Dolphin (gp)
+Donkey (gp)
+Drowned (g, z) (holds trident)
+Elden guardian (g, nw)
+Enderman (g)
+Endermite (g, nw)
+Evoker (g, nw)
+Fox (gp)
+Frog (gp)
+Ghast (g)
+Glow squid (gp)
+Goat (gp)
+Guardian (g)
+Hoglin (g, nw)
+Horse (gp)
+Husk (g, z)
+Iron golem (g)
+Llama (gp)
+Magma cube (g, nw)
+Mooshroom (gp)
+Mule (gp)
+Ocelot (gp)
+Panda (gp)
+Parrot (gp)
+Phantom (g, nw)
+Pig (gp)
+Piglin (g)
+Piglin brute (g)
+Pillager (g, pro, bow)
+Polar bear (g, nw)
+Pufferfish (g, nw)
+Rabbit (gp)
+Ravager (g, nw)
+Salmon (gp)
+Sheep (gp)
+Shulker (g, nw, pro)
+Silverfish (g, nw)
+Skeleton (g, pro, bow)
+Skeleton horse (gp)
+Slime (g, nw)
+Sniffer (gp)
+Snow golem (g, pro, nw)
+Spider (g, nw)
+Squid (gp)
+Stray (g, bow, pro)
+Strider (gp)
+Tadpole (gp)
+Trader llama (gp)
+Tropical fish (gp)
+Turtle (gp)
+Vex (g)
+Villager (gp)
+Vindicator (g, uses axe and not sword)
+Wandering trader (gp)
+Wardon (g)
+Witch (g, nw, pro) (will throw weakness, slowness, poison, harming, slowness II, blindness, nausea, wither in normal curve chance 0-100% like others)
+Wither skeleton (g)
+Wolf (g, nw)
+Zoglin (g, nw, z)
+Zombie (g, z)
+Zombie horse (gp)
+Zombie villager (g, z)
+Zombified piglin (g, z)

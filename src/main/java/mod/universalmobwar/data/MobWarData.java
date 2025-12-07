@@ -25,8 +25,21 @@ public class MobWarData {
     // Combat stats
     private double damageDealt = 0;
     private double damageTaken = 0;
-    
+
+    // Skill Tree Data
+    private double skillPoints = 0;
+    private double spentPoints = 0;
+    private NbtCompound skillData = new NbtCompound();
+
     public MobWarData() {}
+
+    // Skill Tree Methods
+    public double getSkillPoints() { return skillPoints; }
+    public void setSkillPoints(double points) { this.skillPoints = points; }
+    public double getSpentPoints() { return spentPoints; }
+    public void setSpentPoints(double points) { this.spentPoints = points; }
+    public NbtCompound getSkillData() { return skillData; }
+    public void setSkillData(NbtCompound data) { this.skillData = data; }
     
     // Evolution methods
     public void addKill() {
@@ -141,6 +154,11 @@ public class MobWarData {
         nbt.putDouble("damageDealt", damageDealt);
         nbt.putDouble("damageTaken", damageTaken);
         
+        // Skill Tree Persistence
+        nbt.putDouble("skillPoints", skillPoints);
+        nbt.putDouble("spentPoints", spentPoints);
+        nbt.put("skillData", skillData);
+        
         if (currentTarget != null) {
             nbt.putUuid("currentTarget", currentTarget);
             nbt.putLong("lastTargetChangeTime", lastTargetChangeTime);
@@ -165,6 +183,11 @@ public class MobWarData {
         level = nbt.getInt("level");
         damageDealt = nbt.getDouble("damageDealt");
         damageTaken = nbt.getDouble("damageTaken");
+        
+        // Skill Tree Persistence
+        if (nbt.contains("skillPoints")) skillPoints = nbt.getDouble("skillPoints");
+        if (nbt.contains("spentPoints")) spentPoints = nbt.getDouble("spentPoints");
+        if (nbt.contains("skillData")) skillData = nbt.getCompound("skillData");
         
         if (nbt.containsUuid("currentTarget")) {
             currentTarget = nbt.getUuid("currentTarget");

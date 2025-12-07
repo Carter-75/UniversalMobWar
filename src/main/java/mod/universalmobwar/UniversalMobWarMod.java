@@ -3,6 +3,7 @@ package mod.universalmobwar;
 import mod.universalmobwar.command.MobWarCommand;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
+import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
@@ -33,7 +34,9 @@ import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mod.universalmobwar.system.GlobalMobScalingSystem;
+import mod.universalmobwar.system.EvolutionSystem;
+import mod.universalmobwar.system.SkillTreeEvents;
+
 public class UniversalMobWarMod implements ModInitializer {
 
 	public static final String MODID = "universalmobwar";
@@ -81,6 +84,9 @@ public class UniversalMobWarMod implements ModInitializer {
 	public void onInitialize() {
 		// Load config
 		ModConfig config = ModConfig.getInstance();
+		
+		// Register Skill Tree Events (Projectiles, etc.)
+		SkillTreeEvents.register();
 		
 		// Register Mob Warlord attributes
 		FabricDefaultAttributeRegistry.register(MOB_WARLORD, MobWarlordEntity.createMobWarlordAttributes());
@@ -272,9 +278,9 @@ public class UniversalMobWarMod implements ModInitializer {
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
 			if (!(entity instanceof MobEntity mob)) return;
 
-			// Global Mob Scaling System (new)
+			// Evolution System (Unified Scaling)
 			if (world instanceof ServerWorld serverWorld) {
-				GlobalMobScalingSystem.onMobActivated(mob, serverWorld);
+				EvolutionSystem.onMobSpawn(mob, serverWorld);
 			}
 
 			// Check if the mod is enabled
@@ -285,12 +291,14 @@ public class UniversalMobWarMod implements ModInitializer {
 			if (ModConfig.getInstance().isMobExcluded(mobId)) return;
 
 			GoalSelector targetSelector = ((MobEntityAccessor) mob).getTargetSelector();
+			GoalSelector goalSelector = ((MobEntityAccessor) mob).getGoalSelector();
 
 			// Check if our goal is already added to prevent duplicates on chunk reload
 			boolean alreadyHasGoal = targetSelector.getGoals().stream()
 				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
 
 			if (!alreadyHasGoal) {
+				// Add targeting goal
 				targetSelector.add(2, new UniversalTargetGoal(
 					mob,
 					() -> world.getGameRules().getBoolean(MOD_ENABLED_RULE),
@@ -299,6 +307,9 @@ public class UniversalMobWarMod implements ModInitializer {
 					() -> world.getGameRules().getBoolean(ALLIANCE_SYSTEM_RULE),
 					() -> ((double) world.getGameRules().getInt(RANGE_MULTIPLIER_RULE)) / 100.0
 				));
+				
+				// Add stalemate breaker goal (Priority 0 to ensure it always runs)
+				goalSelector.add(0, new StalemateBreakerGoal(mob));
 			}
 		});
 
