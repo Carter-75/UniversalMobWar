@@ -3,11 +3,27 @@
 import os
 import sys
 import subprocess
+import shutil
 
 def find_java_home():
+    # First honor existing JAVA_HOME
+    env_java = os.environ.get("JAVA_HOME")
+    if env_java and os.path.exists(env_java):
+        return env_java
+
+    # Next try to locate java on PATH
+    java_path = shutil.which("java")
+    if java_path:
+        # java_path is usually ...\\bin\\java.exe; JAVA_HOME is parent of bin
+        java_bin = os.path.dirname(java_path)
+        java_home = os.path.dirname(java_bin)
+        if os.path.exists(java_home):
+            return java_home
+
+    # Fallback candidates
     candidates = [
-        os.environ.get("JAVA_HOME"),
         r"C:\\Program Files\\Microsoft\\jdk-21.0.8.9-hotspot",
+        r"C:\\Program Files\\Java\\jdk-22",
         r"C:\\Java",
     ]
     for path in candidates:

@@ -66,11 +66,14 @@ public class UpgradeSystem {
         public final long seed;
         public final String translationKey;
         public final Set<String> tags;
+        public final Set<String> categories;
         
         public SimulationContext(MobEntity mob, double totalPoints) {
             this.seed = mob.getUuid().hashCode() ^ (long)totalPoints;
             this.translationKey = mob.getType().getTranslationKey();
             this.tags = new HashSet<>(mob.getCommandTags());
+            // Resolve archetype categories here so downstream checks use deterministic categories
+            this.categories = ArchetypeClassifier.getMobCategories(mob);
         }
     }
     
@@ -354,7 +357,7 @@ public class UpgradeSystem {
     private static void checkTierUpgrades(SimState state, SimulationContext context) {
         boolean isPiglinBrute = context.translationKey.contains("piglin_brute");
         boolean isWitch = context.translationKey.contains("witch");
-        boolean isNW = context.tags.contains("nw"); // Need to check tags from context?
+        boolean isNW = context.categories != null && context.categories.contains("nw");
         // Re-derive flags or pass them? 
         // For simplicity, we'll re-derive basic ones.
         // Actually, checkTierUpgrades needs to know if it uses sword/axe etc.
@@ -450,16 +453,57 @@ public class UpgradeSystem {
         // Pick a random upgrade within that group
         List<Integer> options = affordableByGroup.get(chosenGroup);
         
-        // Use weights within the group (e.g. for durability priority)
+        // Use weights within the group (with durability prioritization)
+        // If an option is a durability upgrade and the current equipped item's
+        // real durability% is below the purchased threshold, boost its weight.
         int totalGroupWeight = 0;
-        for (int i : options) totalGroupWeight += collector.weights.get(i);
-        
-        int r = mob.getRandom().nextInt(totalGroupWeight);
+        Map<Integer, Integer> adjustedWeights = new HashMap<>();
+        for (int i : options) {
+            int baseW = Math.max(1, collector.weights.get(i));
+            String id = collector.ids.get(i);
+            int weight = baseW;
+            try {
+                if (id.startsWith("durability_")) {
+                    String slot = id.substring("durability_".length());
+                    EquipmentSlot eq = switch (slot) {
+                        case "mainhand" -> EquipmentSlot.MAINHAND;
+                        case "offhand" -> EquipmentSlot.OFFHAND;
+                        case "head" -> EquipmentSlot.HEAD;
+                        case "chest" -> EquipmentSlot.CHEST;
+                        case "legs" -> EquipmentSlot.LEGS;
+                        case "feet" -> EquipmentSlot.FEET;
+                        default -> null;
+                    };
+                    if (eq != null) {
+                        ItemStack stk = mob.getEquippedStack(eq);
+                        if (!stk.isEmpty() && stk.isDamageable()) {
+                            int max = stk.getMaxDamage();
+                            int dmg = stk.getDamage();
+                            double remaining = (double)(max - dmg) / (double)max; // 0..1
+                            int targetLevel = state.getLevel(id);
+                            double targetPct = Math.max(0.01, targetLevel * 0.10);
+                            if (remaining < targetPct) {
+                                // item is below purchased durability; boost chance to repair it
+                                weight = baseW * 6; // big boost
+                            }
+                        } else if (stk.isEmpty()) {
+                            // Missing item: strongly prefer replacing/downgrading
+                            weight = baseW * 4;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // ignore weighting errors
+            }
+            adjustedWeights.put(i, weight);
+            totalGroupWeight += weight;
+        }
+
+        int r = mob.getRandom().nextInt(Math.max(1, totalGroupWeight));
         int currentWeight = 0;
         int choiceIndex = -1;
-        
         for (int i : options) {
-            currentWeight += collector.weights.get(i);
+            currentWeight += adjustedWeights.getOrDefault(i, collector.weights.get(i));
             if (r < currentWeight) {
                 choiceIndex = i;
                 break;
@@ -469,6 +513,13 @@ public class UpgradeSystem {
         if (choiceIndex == -1) choiceIndex = options.get(options.size() - 1);
         
         collector.apply(choiceIndex, state);
+        // Debug logging for one-step upgrades
+        if (ModConfig.getInstance().debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
+            MinecraftServer server = sw.getServer();
+            String msg = String.format("[UMW] OneStep: Mob=%s spent=%.2f/%.2f picked=%s (group=%s)", mob.getType().getTranslationKey(), state.spentPoints, data.getSkillPoints(), collector.ids.get(choiceIndex), collector.groups.get(choiceIndex));
+            Text text = Text.literal(msg);
+            for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) p.sendMessage(text, false);
+        }
         
         // Check Tiers
         checkTierUpgrades(state, context);
@@ -745,10 +796,12 @@ public class UpgradeSystem {
         boolean isPiglin = mob.getType().getTranslationKey().contains("piglin");
         
         // Sword
-        if (state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0) {
+        if ((state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0) && state.getItemTier("sword") >= 0) {
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
-            String itemId = tiers.get(Math.min(state.getItemTier("sword"), tiers.size() - 1));
-            ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
+            int tierIndex = state.getItemTier("sword");
+            if (tierIndex >= 0 && tierIndex < tiers.size()) {
+                String itemId = tiers.get(Math.min(tierIndex, tiers.size() - 1));
+                ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
             applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
             applyEnchant(mob, stack, "fire_aspect", state.getLevel("fire_aspect"));
             applyEnchant(mob, stack, "mending", state.getLevel("mending"));
@@ -758,13 +811,16 @@ public class UpgradeSystem {
             applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
             applyEnchant(mob, stack, "looting", state.getLevel("looting"));
             mob.equipStack(EquipmentSlot.MAINHAND, stack);
+            }
         }
         
         // Axe
-        if (state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0) {
+        if ((state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0) && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
-            String itemId = tiers.get(Math.min(state.getItemTier("axe"), tiers.size() - 1));
-            ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
+            int tierIndex = state.getItemTier("axe");
+            if (tierIndex >= 0 && tierIndex < tiers.size()) {
+                String itemId = tiers.get(Math.min(tierIndex, tiers.size() - 1));
+                ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
             applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
             applyEnchant(mob, stack, "smite", state.getLevel("smite"));
             applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
@@ -772,36 +828,42 @@ public class UpgradeSystem {
             applyEnchant(mob, stack, "mending", state.getLevel("mending"));
             applyEnchant(mob, stack, "efficiency", state.getLevel("efficiency"));
             mob.equipStack(EquipmentSlot.MAINHAND, stack);
+            }
         }
         
         // Armor
         if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
-            int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
-            ItemStack helm = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(HELMET_TIERS.get(headTier).split(":")[0], HELMET_TIERS.get(headTier).split(":")[1])));
-            applyArmorEnchants(mob, helm, state, "head");
-            applyEnchant(mob, helm, "aqua_affinity", state.getLevel("aqua_affinity"));
-            applyEnchant(mob, helm, "respiration", state.getLevel("respiration"));
-            mob.equipStack(EquipmentSlot.HEAD, helm);
-            
-            int chestTier = Math.min(state.getItemTier("chest"), CHEST_TIERS.size() - 1);
-            ItemStack chest = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(CHEST_TIERS.get(chestTier).split(":")[0], CHEST_TIERS.get(chestTier).split(":")[1])));
-            applyArmorEnchants(mob, chest, state, "chest");
-            mob.equipStack(EquipmentSlot.CHEST, chest);
-            
-            int legsTier = Math.min(state.getItemTier("legs"), LEGS_TIERS.size() - 1);
-            ItemStack legs = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(LEGS_TIERS.get(legsTier).split(":")[0], LEGS_TIERS.get(legsTier).split(":")[1])));
-            applyArmorEnchants(mob, legs, state, "legs");
-            applyEnchant(mob, legs, "swift_sneak", state.getLevel("swift_sneak"));
-            mob.equipStack(EquipmentSlot.LEGS, legs);
-            
-            int feetTier = Math.min(state.getItemTier("feet"), BOOTS_TIERS.size() - 1);
-            ItemStack boots = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(BOOTS_TIERS.get(feetTier).split(":")[0], BOOTS_TIERS.get(feetTier).split(":")[1])));
-            applyArmorEnchants(mob, boots, state, "feet");
-            applyEnchant(mob, boots, "feather_falling", state.getLevel("feather_falling"));
-            applyEnchant(mob, boots, "soul_speed", state.getLevel("soul_speed"));
-            applyEnchant(mob, boots, "depth_strider", state.getLevel("depth_strider"));
-            applyEnchant(mob, boots, "frost_walker", state.getLevel("frost_walker"));
-            mob.equipStack(EquipmentSlot.FEET, boots);
+            if (state.getItemTier("head") >= 0) {
+                int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
+                ItemStack helm = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(HELMET_TIERS.get(headTier).split(":")[0], HELMET_TIERS.get(headTier).split(":")[1])));
+                applyArmorEnchants(mob, helm, state, "head");
+                applyEnchant(mob, helm, "aqua_affinity", state.getLevel("aqua_affinity"));
+                applyEnchant(mob, helm, "respiration", state.getLevel("respiration"));
+                mob.equipStack(EquipmentSlot.HEAD, helm);
+            }
+            if (state.getItemTier("chest") >= 0) {
+                int chestTier = Math.min(state.getItemTier("chest"), CHEST_TIERS.size() - 1);
+                ItemStack chest = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(CHEST_TIERS.get(chestTier).split(":")[0], CHEST_TIERS.get(chestTier).split(":")[1])));
+                applyArmorEnchants(mob, chest, state, "chest");
+                mob.equipStack(EquipmentSlot.CHEST, chest);
+            }
+            if (state.getItemTier("legs") >= 0) {
+                int legsTier = Math.min(state.getItemTier("legs"), LEGS_TIERS.size() - 1);
+                ItemStack legs = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(LEGS_TIERS.get(legsTier).split(":")[0], LEGS_TIERS.get(legsTier).split(":")[1])));
+                applyArmorEnchants(mob, legs, state, "legs");
+                applyEnchant(mob, legs, "swift_sneak", state.getLevel("swift_sneak"));
+                mob.equipStack(EquipmentSlot.LEGS, legs);
+            }
+            if (state.getItemTier("feet") >= 0) {
+                int feetTier = Math.min(state.getItemTier("feet"), BOOTS_TIERS.size() - 1);
+                ItemStack boots = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(BOOTS_TIERS.get(feetTier).split(":")[0], BOOTS_TIERS.get(feetTier).split(":")[1])));
+                applyArmorEnchants(mob, boots, state, "feet");
+                applyEnchant(mob, boots, "feather_falling", state.getLevel("feather_falling"));
+                applyEnchant(mob, boots, "soul_speed", state.getLevel("soul_speed"));
+                applyEnchant(mob, boots, "depth_strider", state.getLevel("depth_strider"));
+                applyEnchant(mob, boots, "frost_walker", state.getLevel("frost_walker"));
+                mob.equipStack(EquipmentSlot.FEET, boots);
+            }
         }
         
         // Apply Equipment Stats (Durability & Drop Chance)
@@ -829,6 +891,10 @@ public class UpgradeSystem {
                  mob.equipStack(EquipmentSlot.OFFHAND, shield);
              }
         }
+
+        // NOTE: Removed automatic 'maxed' forcing of durability/drop chance.
+        // Durability and drop chance are now exclusively controlled by purchased
+        // `durability_<slot>` and `drop_chance_<slot>` levels and by tier multipliers.
 
         // Creeper Specifics
         if (mob instanceof net.minecraft.entity.mob.CreeperEntity creeper) {
@@ -887,12 +953,54 @@ public class UpgradeSystem {
 
     private static void applyEquipmentStats(MobEntity mob, SimState state, PowerProfile profile, EquipmentSlot slot, String slotName, String tierCat) {
         ItemStack stack = mob.getEquippedStack(slot);
-        if (stack.isEmpty()) return;
+        // If there is no stack currently equipped, it may have broken. Handle downgrade mechanic.
+        if (stack.isEmpty()) {
+            int lastAppliedTier = profile.specialSkills.getOrDefault("last_tier_" + slotName, -1);
+            if (lastAppliedTier >= 0) {
+                // Determine tier list for this category
+                List<String> tiers = getTiersForCategory(tierCat);
+                int prevTier = lastAppliedTier - 1;
+                if (prevTier < 0) {
+                    // If lowest tier is wood/gold, the item is lost; otherwise remain at lowest tier
+                    String lowest = tiers.isEmpty() ? "" : tiers.get(0);
+                    if (lowest.contains("wood") || lowest.contains("wooden") || lowest.contains("gold") || lowest.contains("golden")) {
+                        state.setItemTier(tierCat, -1);
+                        profile.specialSkills.put("last_tier_" + slotName, -1);
+                    } else {
+                        state.setItemTier(tierCat, 0);
+                        profile.specialSkills.put("last_tier_" + slotName, 0);
+                    }
+                } else {
+                    state.setItemTier(tierCat, prevTier);
+                    profile.specialSkills.put("last_tier_" + slotName, prevTier);
+                }
+
+                // Reset enchant progression and stats for this slot
+                resetEnchantsForSlotOnDowngrade(state, tierCat, slotName);
+                state.setLevel("durability_" + slotName, 0);
+                state.setLevel("drop_chance_" + slotName, 0);
+            }
+            return;
+        }
 
         // Drop Chance: Base 100% - (5% * level)
         int dropLvl = state.getLevel("drop_chance_" + slotName);
         float dropChance = Math.max(0.01f, 1.0f - (dropLvl * 0.05f));
-        mob.setEquipmentDropChance(slot, dropChance);
+
+        // Apply tier-based enchant drop multipliers (50% -> 40% -> 30% -> 20% -> 10% -> 5%)
+        int tier = state.getItemTier(tierCat);
+        double[] tierDrop = new double[] {0.5, 0.4, 0.3, 0.2, 0.1, 0.05};
+        double tierMultiplier = 1.0;
+        if (tier >= 0) {
+            int idx = Math.min(tier, tierDrop.length - 1);
+            tierMultiplier = tierDrop[idx];
+            // store for debugging/inspection
+            profile.specialSkills.put("tier_drop_mult_" + slotName, (int)(tierMultiplier * 100));
+        }
+
+        float finalDropChance = (float)(dropChance * tierMultiplier);
+        finalDropChance = Math.max(0.01f, Math.min(1.0f, finalDropChance));
+        mob.setEquipmentDropChance(slot, finalDropChance);
 
         // Durability Logic
         if (stack.isDamageable()) {
@@ -929,6 +1037,52 @@ public class UpgradeSystem {
                 
                 // Update persistent state
                 profile.specialSkills.put("last_dur_" + slotName, currentDurLvl);
+                // Debug: report durability application
+                try {
+                    if (ModConfig.getInstance().debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
+                        MinecraftServer server = sw.getServer();
+                        String msg = String.format("[UMW] Durability applied: mob=%s slot=%s level=%d => remaining=%.1f%%", mob.getType().getTranslationKey(), slotName, currentDurLvl, (1.0 - ((double)damage / (double)maxDamage)) * 100.0);
+                        Text text = Text.literal(msg);
+                        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) p.sendMessage(text, false);
+                    }
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    private static List<String> getTiersForCategory(String tierCat) {
+        return switch (tierCat) {
+            case "sword" -> SWORD_TIERS;
+            case "axe" -> AXE_TIERS;
+            case "helmet", "head" -> HELMET_TIERS;
+            case "chest" -> CHEST_TIERS;
+            case "legs" -> LEGS_TIERS;
+            case "feet" -> BOOTS_TIERS;
+            case "shield" -> List.of("minecraft:shield");
+            default -> List.of();
+        };
+    }
+
+    private static void resetEnchantsForSlotOnDowngrade(SimState state, String tierCat, String slotName) {
+        if (tierCat.equals("sword") || tierCat.equals("axe")) {
+            resetEnchants(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting", "efficiency"));
+        } else if (tierCat.equals("head") || tierCat.equals("chest") || tierCat.equals("legs") || tierCat.equals("feet") || tierCat.equals("armor")) {
+            // Reset per-slot armor enchants
+            List<String> shared = List.of("protection", "fire_protection", "blast_protection", "projectile_protection", "thorns", "armor_unbreaking", "armor_mending");
+            for (String s : shared) state.setLevel(s + "_" + slotName, 0);
+            // Reset extra slot-specific enchants
+            if (slotName.equals("head")) {
+                state.setLevel("aqua_affinity", 0);
+                state.setLevel("respiration", 0);
+            } else if (slotName.equals("legs")) {
+                state.setLevel("swift_sneak", 0);
+            } else if (slotName.equals("feet")) {
+                state.setLevel("feather_falling", 0);
+                state.setLevel("soul_speed", 0);
+                state.setLevel("depth_strider", 0);
+                state.setLevel("frost_walker", 0);
             }
         }
     }

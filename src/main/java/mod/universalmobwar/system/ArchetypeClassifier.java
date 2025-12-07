@@ -118,12 +118,17 @@ public class ArchetypeClassifier {
     }
 
     public static Set<String> getMobCategories(MobEntity mob) {
-        String name = mob.getType().getTranslationKey().replaceAll("^entity\\.|^minecraft\\.", "").toLowerCase();
-        // Handle modded names if needed, usually translation key is like entity.modid.name
-        if (name.contains(".")) {
-             String[] parts = name.split("\\.");
-             name = parts[parts.length - 1];
-        }
+           // Try to derive a stable short name for the mob to match our registration table.
+           // Translation keys may be like: "entity.minecraft.zombie" or "entity.modid.mobname".
+           String raw = mob.getType().getTranslationKey();
+           if (raw == null) raw = "";
+           // Normalize separators so we can split on either "." or ":"
+           raw = raw.replace(':', '.');
+           String name = raw.replaceAll("^entity\\.|^minecraft\\.", "").toLowerCase();
+           if (name.contains(".")) {
+               String[] parts = name.split("\\.");
+               name = parts[parts.length - 1];
+           }
 
         Set<String> categories = new HashSet<>();
 

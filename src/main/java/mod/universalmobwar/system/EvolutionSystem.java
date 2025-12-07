@@ -42,6 +42,14 @@ public class EvolutionSystem {
             data.setSkillPoints(totalPoints);
             
             profile.totalPoints = totalPoints;
+            // Optional debug logging
+            try {
+                if (mod.universalmobwar.config.ModConfig.getInstance().debugLogging && mob.getWorld() instanceof ServerWorld sw) {
+                    System.out.println("[UMW] Mob: " + mob.getType().getTranslationKey() + " points set to " + totalPoints + " (day="+day+", kills="+data.getKillCount()+")");
+                }
+            } catch (Exception e) {
+                // swallow logging failures
+            }
             
             // Initialize base stats if not set
             if (profile.baseHealth == 0) {
