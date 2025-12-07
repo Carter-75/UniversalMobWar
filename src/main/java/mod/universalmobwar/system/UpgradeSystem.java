@@ -68,6 +68,38 @@ public class UpgradeSystem {
             this.tags = new HashSet<>(mob.getCommandTags());
         }
     }
+    
+    private static class UpgradeCollector {
+        final List<String> ids = new ArrayList<>();
+        final List<String> cats = new ArrayList<>();
+        final List<Integer> costs = new ArrayList<>();
+        
+        void clear() {
+            ids.clear();
+            cats.clear();
+            costs.clear();
+        }
+        
+        void add(String id, String cat, int cost) {
+            ids.add(id);
+            cats.add(cat);
+            costs.add(cost);
+        }
+        
+        boolean isEmpty() {
+            return ids.isEmpty();
+        }
+        
+        int size() {
+            return ids.size();
+        }
+        
+        void apply(int index, SimState state) {
+            state.incLevel(ids.get(index));
+            state.incCategoryCount(cats.get(index));
+            state.spentPoints += costs.get(index);
+        }
+    }
 
     public static void applyUpgrades(MobEntity mob, PowerProfile profile) {
         // Synchronous fallback if async is not used
@@ -102,55 +134,55 @@ public class UpgradeSystem {
         
         // Main loop
         int safety = 0;
+        UpgradeCollector collector = new UpgradeCollector();
         while (state.spentPoints < totalPoints && safety++ < 10000) {
-            List<Runnable> possibleUpgrades = new ArrayList<>();
+            collector.clear();
             
-            if (isG) addGeneralUpgrades(state, possibleUpgrades, GENERAL_COSTS);
-            if (isGP) addGeneralPassiveUpgrades(state, possibleUpgrades, GENERAL_PASSIVE_COSTS);
-            if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS, context);
-            if (isPro) addProjectileUpgrades(state, possibleUpgrades, PROJECTILE_COSTS);
-            if (isCreeper) addCreeperUpgrades(state, possibleUpgrades, CREEPER_COSTS);
-            if (isWitch) addWitchUpgrades(state, possibleUpgrades, WITCH_COSTS);
+            if (isG) addGeneralUpgrades(state, collector, GENERAL_COSTS);
+            if (isGP) addGeneralPassiveUpgrades(state, collector, GENERAL_PASSIVE_COSTS);
+            if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
+            if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
+            if (isCreeper) addCreeperUpgrades(state, collector, CREEPER_COSTS);
+            if (isWitch) addWitchUpgrades(state, collector, WITCH_COSTS);
             
             if (useSword) {
-                addWeaponUpgrades(state, possibleUpgrades, SWORD_COSTS, "sword", 
+                addWeaponUpgrades(state, collector, SWORD_COSTS, "sword", 
                     List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"),
                     List.of(5, 2, 1, 3, 2, 5, 5, 3));
             }
             if (isTrident) {
-                addWeaponUpgrades(state, possibleUpgrades, TRIDENT_COSTS, "trident",
+                addWeaponUpgrades(state, collector, TRIDENT_COSTS, "trident",
                     List.of("impaling", "channeling", "unbreaking", "mending", "loyalty", "riptide"),
                     List.of(5, 1, 3, 1, 3, 3));
             }
             if (isBow) {
-                addWeaponUpgrades(state, possibleUpgrades, BOW_COSTS, "bow",
+                addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
                     List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
                     List.of(5, 1, 2, 1, 3, 1));
                 // Tipped arrows
                 int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
                 if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
-                     addOpt(possibleUpgrades, state, "bow_potion_mastery", "bow", cost);
+                     addOpt(collector, state, "bow_potion_mastery", "bow", cost);
                 }
             }
             if (useAxe) {
-                addWeaponUpgrades(state, possibleUpgrades, SWORD_COSTS, "axe",
+                addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
                     List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
                     List.of(5, 5, 5, 3, 1, 5));
             }
             
             if (isG) {
-                addArmorUpgrades(state, possibleUpgrades, ARMOR_COSTS);
+                addArmorUpgrades(state, collector, ARMOR_COSTS);
             }
 
-            if (possibleUpgrades.isEmpty()) {
+            if (collector.isEmpty()) {
                 profile.isMaxed = true;
                 break;
             }
 
             if (totalPoints - state.spentPoints < 1.0) break;
 
-            Runnable upgrade = possibleUpgrades.get(rand.nextInt(possibleUpgrades.size()));
-            upgrade.run();
+            collector.apply(rand.nextInt(collector.size()), state);
             
             // Check for Tier Upgrades
             checkTierUpgrades(state, useSword, isTrident, isBow, isAxe, context);
@@ -159,7 +191,7 @@ public class UpgradeSystem {
         return state;
     }
 
-    private static void addGeneralUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addGeneralUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("g"), costs);
         if (state.spentPoints + cost > 100000) return; // Safety
 
@@ -172,14 +204,14 @@ public class UpgradeSystem {
         if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", cost);
     }
 
-    private static void addGeneralPassiveUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("gp"), costs);
         if (state.getLevel("healing") < 3) addOpt(options, state, "healing", "gp", cost);
         if (state.getLevel("health_boost") < 3) addOpt(options, state, "health_boost", "gp", cost);
         if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", cost);
     }
 
-    private static void addZombieUpgrades(SimState state, List<Runnable> options, int[] costs, SimulationContext context) {
+    private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
         int cost = getCost(state.getCategoryCount("z"), costs);
         if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", cost);
         
@@ -187,23 +219,23 @@ public class UpgradeSystem {
         if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", cost);
     }
 
-    private static void addProjectileUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addProjectileUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("pro"), costs);
         if (state.getLevel("piercing_shot") < 5) addOpt(options, state, "piercing_shot", "pro", cost);
         if (state.getLevel("multishot_skill") < 4) addOpt(options, state, "multishot_skill", "pro", cost);
     }
     
-    private static void addCreeperUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("creeper"), costs);
         if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", cost);
     }
 
-    private static void addWitchUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("witch"), costs);
         if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", cost);
     }
 
-    private static void addWeaponUpgrades(SimState state, List<Runnable> options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
+    private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
         int cost = getCost(state.getCategoryCount(catName), costs);
         for (int i = 0; i < enchants.size(); i++) {
             String ench = enchants.get(i);
@@ -214,7 +246,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addArmorUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addArmorUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("armor"), costs);
         if (state.getLevel("protection") < 4) addOpt(options, state, "protection", "armor", cost);
         if (state.getLevel("fire_protection") < 4) addOpt(options, state, "fire_protection", "armor", cost);
@@ -233,12 +265,8 @@ public class UpgradeSystem {
         if (state.getLevel("frost_walker") < 2) addOpt(options, state, "frost_walker", "armor", cost);
     }
     
-    private static void addOpt(List<Runnable> options, SimState state, String id, String cat, int cost) {
-        options.add(() -> {
-            state.incLevel(id);
-            state.incCategoryCount(cat);
-            state.spentPoints += cost;
-        });
+    private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, int cost) {
+        options.add(id, cat, cost);
     }
 
     private static int getCost(int count, int[] costs) {
