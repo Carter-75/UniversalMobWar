@@ -532,21 +532,35 @@ Every Tick (for mobs with unspent points):
 
 4. Filter affordable upgrades
    - Keep only upgrades where cost <= availablePoints
+   - Separate into "cheap" (<5 pts) and "expensive" (>=10 pts)
 
-5. Choose one upgrade randomly
-   - Weighted by cost (cheaper = slightly higher chance)
+5. SMART SAVING MECHANIC (50% chance):
+   - If expensive upgrades (>=10 pts) are available
+   - AND mob still has more points coming
+   - 50% chance to SKIP cheap upgrades (<5 pts)
+   - This lets mob save for big purchases!
+   
+   Example:
+     Available: Health Boost (2 pts), Horde Summon (10 pts)
+     50% chance: Only consider Horde Summon
+     50% chance: Consider both options
+     
+   Result: Mob doesn't waste all points on tiny upgrades
+
+6. Choose one upgrade randomly
+   - From filtered list (possibly excluding cheap ones)
    - Apply upgrade immediately
 
-6. Deduct cost from budget
+7. Deduct cost from budget
    - spentPoints += upgradeCost
    - Save new spentPoints to PowerProfile
 
-7. Apply visual effects
+8. Apply visual effects
    - Equipment appears/changes on mob
    - Enchantment particles spawn
    - Health bar updates
 
-8. Repeat next tick (if points remaining)
+9. Repeat next tick (if points remaining)
 ```
 
 ### **Upgrade Priority System**

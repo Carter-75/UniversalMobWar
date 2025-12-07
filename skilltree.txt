@@ -171,13 +171,21 @@ Result: Modded mobs work seamlessly with General Tree!
 2. Every tick (1/20th second):
    a. Check: spentPoints < totalPoints?
    b. Collect all affordable upgrades
-   c. Choose one randomly (weighted by cost)
-   d. Apply upgrade immediately
-   e. Deduct cost: spentPoints += upgradeCost
-   f. Save to PowerProfile NBT
-   g. Visual effects (particles, equipment appears)
+   c. SMART SAVING: 50% chance to skip cheap upgrades (<5 pts)
+      when expensive ones (>=10 pts) are available
+   d. Choose one randomly from filtered list
+   e. Apply upgrade immediately
+   f. Deduct cost: spentPoints += upgradeCost
+   g. Save to PowerProfile NBT
+   h. Visual effects (particles, equipment appears)
 3. Repeat until spentPoints >= totalPoints (fully upgraded)
 4. New kills/days → More points → More upgrades!
+
+SMART SAVING EXAMPLE:
+  Available: Health Boost (2 pts), Horde Summon (10 pts)
+  50% chance: Skip Health Boost, save for Horde Summon
+  50% chance: Buy either upgrade
+  Result: Mob sometimes saves for expensive upgrades!
 
 EXAMPLE SPENDING SEQUENCE:
 Day 15, 20 kills = 26.5 total points

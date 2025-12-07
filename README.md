@@ -22,6 +22,7 @@ Mobs gain **Skill Points** over time and through combat. Points are **spent like
   - Mobs start with a "point budget" based on day + kills
   - Each upgrade **costs points** (e.g., Health Boost = 2 pts, Sharpness I = 3 pts)
   - Spent points are **deducted** from available points (like money!)
+  - **Smart Saving:** 50% chance to skip cheap upgrades (<5 pts) when expensive ones (>=10 pts) are available
   - When all points are spent, mob is fully upgraded
   - New points from days/kills allow more upgrades
 
@@ -91,6 +92,19 @@ Example: Zombie on Day 15 with 10 Kills
 3. New Points Unlock More Upgrades:
    Zombie kills 5 more mobs → +5 pts → New Balance: 6.5 pts
    Can now purchase: Sharpness II (3 pts), Fire Aspect I (4 pts), etc.
+
+4. Smart Saving Example:
+   Zombie has 50 pts total, 15 pts spent, 35 pts available
+   Available Upgrades:
+     - Health Boost IV (2 pts) ← CHEAP
+     - Healing III (3 pts) ← CHEAP
+     - Horde Summon I (10 pts) ← EXPENSIVE
+     - Shield Chance I (8 pts) ← MODERATE
+   
+   50% Chance: Skip cheap upgrades, buy Horde Summon or Shield
+   50% Chance: Buy any affordable upgrade (including cheap ones)
+   
+   Result: Mob intelligently saves for big upgrades sometimes!
 ```
 
 ### **🌐 General Tree (ALL Mobs + Modded)**

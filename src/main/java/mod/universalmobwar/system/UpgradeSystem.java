@@ -147,18 +147,45 @@ public class UpgradeSystem {
 
         // Find affordable options
         List<Integer> affordable = new ArrayList<>();
+        List<Integer> expensive = new ArrayList<>(); // Track expensive upgrades (>= 10 pts)
+        
         for (int i = 0; i < collector.size(); i++) {
-            if (collector.costs.get(i) <= availablePoints) {
+            double cost = collector.costs.get(i);
+            if (cost <= availablePoints) {
                 affordable.add(i);
+                if (cost >= 10.0) {
+                    expensive.add(i);
+                }
             }
         }
 
         if (affordable.isEmpty()) return;
 
-        // Pick one randomly (simplified - just take first affordable)
-        int index = affordable.get(0);
-        if (affordable.size() > 1) {
-            index = affordable.get(mob.getRandom().nextInt(affordable.size()));
+        // SMART SAVING MECHANIC:
+        // If mob has expensive upgrades available (>=10 pts) and current available points < total budget,
+        // there's a 50% chance to SKIP cheap upgrades (<5 pts) to save for expensive ones
+        List<Integer> finalChoices = new ArrayList<>(affordable);
+        
+        if (!expensive.isEmpty() && availablePoints < (profile.totalPoints - data.getSpentPoints())) {
+            // Filter out cheap upgrades with 50% chance (save for expensive ones)
+            if (mob.getRandom().nextDouble() < 0.5) {
+                List<Integer> nonCheap = new ArrayList<>();
+                for (int idx : affordable) {
+                    if (collector.costs.get(idx) >= 5.0) {
+                        nonCheap.add(idx);
+                    }
+                }
+                // Only use filtered list if it's not empty (always have fallback)
+                if (!nonCheap.isEmpty()) {
+                    finalChoices = nonCheap;
+                }
+            }
+        }
+
+        // Pick one randomly from final choices
+        int index = finalChoices.get(0);
+        if (finalChoices.size() > 1) {
+            index = finalChoices.get(mob.getRandom().nextInt(finalChoices.size()));
         }
 
         // Apply the upgrade
