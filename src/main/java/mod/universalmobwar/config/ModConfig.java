@@ -16,7 +16,20 @@ import java.util.List;
  */
 @Config(name = "universalmobwar")
 public class ModConfig implements ConfigData {
-    // Global Mob Scaling System
+    // ========== CORE GAMEPLAY ==========
+    @ConfigEntry.Category("core")
+    @ConfigEntry.Gui.Tooltip
+    public boolean modEnabled = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean targetPlayers = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean ignoreSameSpecies = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean neutralMobsAlwaysAggressive = false;
+    @ConfigEntry.Gui.Tooltip
+    public double rangeMultiplier = 1.0;
+
+    // ========== MOB SCALING SYSTEM ==========
     @ConfigEntry.Category("scaling")
     @ConfigEntry.Gui.Tooltip
     public boolean scalingEnabled = true;
@@ -33,17 +46,49 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip
     public boolean restrictEffectsToMobTheme = true;
 
-    // Debug and performance
-    @ConfigEntry.Category("debug")
+    // ========== EVOLUTION & PROGRESSION ==========
+    @ConfigEntry.Category("progression")
     @ConfigEntry.Gui.Tooltip
-    public boolean debugUpgradeLog = true;
+    public boolean evolutionSystemEnabled = true;
     @ConfigEntry.Gui.Tooltip
-    public boolean debugLogging = false;
+    public int maxLevel = 100;
     @ConfigEntry.Gui.Tooltip
-    public boolean disableNaturalMobSpawns = false;
+    public int killsPerLevel = 3;
+    @ConfigEntry.Gui.Tooltip
+    public boolean giveEquipmentToMobs = true;
 
-    // Advanced performance tuning
+    // ========== ALLIANCE SYSTEM ==========
+    @ConfigEntry.Category("alliances")
+    @ConfigEntry.Gui.Tooltip
+    public boolean allianceSystemEnabled = true;
+    @ConfigEntry.Gui.Tooltip
+    public int allianceDurationTicks = 100;
+    @ConfigEntry.Gui.Tooltip
+    public int sameSpeciesAllianceDurationTicks = 400;
+    @ConfigEntry.Gui.Tooltip
+    public double allianceRange = 16.0;
+    @ConfigEntry.Gui.Tooltip
+    public double allianceBreakChance = 0.3;
+    @ConfigEntry.Gui.Tooltip
+    public double sameSpeciesAllianceBreakChance = 0.05;
+
+    // ========== VISUAL EFFECTS ==========
+    @ConfigEntry.Category("visuals")
+    @ConfigEntry.Gui.Tooltip
+    public boolean showTargetLines = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean showHealthBars = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean showMobLabels = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean showLevelParticles = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean disableParticles = false;
+
+    // ========== PERFORMANCE & DEBUG ==========
     @ConfigEntry.Category("performance")
+    @ConfigEntry.Gui.Tooltip
+    public boolean performanceMode = false;
     @ConfigEntry.Gui.Tooltip
     public int targetingCacheMs = 1500;
     @ConfigEntry.Gui.Tooltip
@@ -60,70 +105,20 @@ public class ModConfig implements ConfigData {
     public int maxDrawnMinionConnections = 15;
     @ConfigEntry.Gui.Tooltip
     public int minFpsForVisuals = 30;
-    @ConfigEntry.Gui.Tooltip
-    public boolean performanceMode = false;
 
-    // General settings
-    @ConfigEntry.Category("general")
     @ConfigEntry.Gui.Tooltip
-    public boolean modEnabled = true;
+    public boolean debugUpgradeLog = true;
     @ConfigEntry.Gui.Tooltip
-    public boolean ignoreSameSpecies = true;
+    public boolean debugLogging = false;
     @ConfigEntry.Gui.Tooltip
-    public boolean targetPlayers = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean neutralMobsAlwaysAggressive = false;
-    @ConfigEntry.Gui.Tooltip
-    public boolean allianceSystemEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean evolutionSystemEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public double rangeMultiplier = 1.0;
+    public boolean disableNaturalMobSpawns = false;
 
-    // Evolution system settings
-    @ConfigEntry.Category("evolution")
-    @ConfigEntry.Gui.Tooltip
-    public int maxLevel = 100;
-    @ConfigEntry.Gui.Tooltip
-    public int killsPerLevel = 3;
-    @ConfigEntry.Gui.Tooltip
-    public boolean giveEquipmentToMobs = true;
-
-    // Alliance system settings
-    @ConfigEntry.Category("alliance")
-    @ConfigEntry.Gui.Tooltip
-    public int allianceDurationTicks = 100;
-    @ConfigEntry.Gui.Tooltip
-    public int sameSpeciesAllianceDurationTicks = 400;
-    @ConfigEntry.Gui.Tooltip
-    public double allianceRange = 16.0;
-    @ConfigEntry.Gui.Tooltip
-    public double allianceBreakChance = 0.3;
-    @ConfigEntry.Gui.Tooltip
-    public double sameSpeciesAllianceBreakChance = 0.05;
-
-    // Mob exclusions
+    // ========== MOB MANAGEMENT ==========
     @ConfigEntry.Category("mobs")
     @ConfigEntry.Gui.Tooltip
     public List<String> excludedMobs = new ArrayList<>();
-
-    // Special mobs for upgrades
-    @ConfigEntry.Category("mobs")
     @ConfigEntry.Gui.Tooltip
     public List<String> specialMobs = Arrays.asList("witch", "creeper", "cave_spider");
-
-    // Visual settings
-    @ConfigEntry.Category("visuals")
-    @ConfigEntry.Gui.Tooltip
-    public boolean showTargetLines = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showHealthBars = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showMobLabels = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showLevelParticles = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean disableParticles = false;
 
     // Upgrade cost arrays (hidden from GUI)
     @ConfigEntry.Gui.Excluded
