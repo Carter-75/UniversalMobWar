@@ -1,7 +1,9 @@
 package mod.universalmobwar.system;
 
+import mod.universalmobwar.config.ModConfig;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -28,7 +30,8 @@ public class UpgradeSystem {
     private static final int[] ZOMBIE_COSTS = {3};
     private static final int[] PROJECTILE_COSTS = {2};
     private static final int[] CREEPER_COSTS = {3};
-    private static final int[] WITCH_COSTS = {3}; // Assumed 3 based on others
+    private static final int[] WITCH_COSTS = {3};
+    private static final int[] CAVE_SPIDER_COSTS = {3}; // poi 3, until full
     
     // Item Tiers
     private static final List<String> SWORD_TIERS = List.of("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
@@ -128,6 +131,7 @@ public class UpgradeSystem {
         boolean isNW = cats.contains("nw");
         boolean isWitch = context.translationKey.contains("witch");
         boolean isCreeper = context.translationKey.contains("creeper");
+        boolean isCaveSpider = context.translationKey.contains("cave_spider");
         
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch;
         boolean useAxe = isAxe;
@@ -135,7 +139,7 @@ public class UpgradeSystem {
         // Main loop
         int safety = 0;
         UpgradeCollector collector = new UpgradeCollector();
-        while (state.spentPoints < totalPoints && safety++ < 10000) {
+        while (state.spentPoints < totalPoints && safety++ < 1000000) {
             collector.clear();
             
             if (isG) addGeneralUpgrades(state, collector, GENERAL_COSTS);
@@ -144,6 +148,7 @@ public class UpgradeSystem {
             if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
             if (isCreeper) addCreeperUpgrades(state, collector, CREEPER_COSTS);
             if (isWitch) addWitchUpgrades(state, collector, WITCH_COSTS);
+            if (isCaveSpider) addCaveSpiderUpgrades(state, collector, CAVE_SPIDER_COSTS);
             
             if (useSword) {
                 addWeaponUpgrades(state, collector, SWORD_COSTS, "sword", 
@@ -193,7 +198,7 @@ public class UpgradeSystem {
 
     private static void addGeneralUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("g"), costs);
-        if (state.spentPoints + cost > 100000) return; // Safety
+        // if (state.spentPoints + cost > 100000) return; // Safety removed for high scaling
 
         if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", cost);
         if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", cost);
@@ -233,6 +238,12 @@ public class UpgradeSystem {
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("witch"), costs);
         if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", cost);
+    }
+
+    private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
+        int cost = getCost(state.getCategoryCount("cave_spider"), costs);
+        // Poison 1 -> 2 -> 3
+        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", cost);
     }
 
     private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
@@ -495,6 +506,8 @@ public class UpgradeSystem {
         if (state.getLevel("bow_potion_mastery") > 0) {
             profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
         }
+        
+        spawnUpgradeParticles(mob);
     }
     
     private static void applyArmorEnchants(MobEntity mob, ItemStack stack, SimState state) {
@@ -509,10 +522,20 @@ public class UpgradeSystem {
 
     private static void applyEnchant(MobEntity mob, ItemStack stack, String id, int level) {
         if (level <= 0) return;
-        var registry = mob.getWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
-        var entry = registry.getEntry(Identifier.of("minecraft", id));
+        var registry = mob.getWorld().getRegistryManager().get(net.minecraft.registry.RegistryKeys.ENCHANTMENT);
+        var entry = registry.getEntry(net.minecraft.util.Identifier.of("minecraft", id));
         if (entry.isPresent()) {
             stack.addEnchantment(entry.get(), level);
+        }
+    }
+
+    private static void spawnUpgradeParticles(MobEntity mob) {
+        if (!ModConfig.getInstance().showLevelParticles) return;
+        if (mob.getWorld().isClient) return;
+        
+        if (mob.getWorld() instanceof ServerWorld world) {
+            world.spawnParticles(ParticleTypes.ENCHANT, mob.getX(), mob.getY() + mob.getHeight(), mob.getZ(), 10, 0.5, 0.5, 0.5, 0.1);
+            world.spawnParticles(ParticleTypes.WAX_ON, mob.getX(), mob.getY() + mob.getHeight() / 2, mob.getZ(), 5, 0.5, 0.5, 0.5, 0.1);
         }
     }
     
