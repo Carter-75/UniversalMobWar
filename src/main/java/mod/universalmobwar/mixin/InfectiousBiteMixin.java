@@ -11,8 +11,32 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.server.world.ServerWorld;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
 @Mixin(ZombieEntity.class)
 public abstract class InfectiousBiteMixin {
+
+    @Inject(method = "onKilledOther", at = @At("HEAD"))
+    private void universalmobwar$onKilledOther(ServerWorld world, LivingEntity other, CallbackInfo ci) {
+        if (other instanceof VillagerEntity villager) {
+            ZombieEntity zombie = (ZombieEntity)(Object)this;
+            PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(zombie);
+            if (profile != null) {
+                int level = profile.specialSkills.getOrDefault("infectious_bite", 0);
+                if (level > 0) {
+                    float chance = level * 0.10f;
+                    if (zombie.getRandom().nextFloat() < chance) {
+                        // Force conversion regardless of difficulty
+                        villager.convertTo(net.minecraft.entity.EntityType.ZOMBIE_VILLAGER, false);
+                        // We don't cancel, so vanilla might try to convert again?
+                        // convertTo handles "isRemoved" check, so calling it twice is safe (second call does nothing).
+                    }
+                }
+            }
+        }
+    }
 
     @Inject(method = "tryAttack", at = @At("RETURN"))
     private void universalmobwar$onAttack(Entity target, CallbackInfoReturnable<Boolean> cir) {

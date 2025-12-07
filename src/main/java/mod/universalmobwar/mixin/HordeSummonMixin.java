@@ -41,36 +41,18 @@ public abstract class HordeSummonMixin {
         int count = 0;
         float r = mob.getRandom().nextFloat();
         
-        switch (level) {
-            case 1: // 25% for 1
-                if (r < 0.25f) count = 1;
-                break;
-            case 2: // 50% for 1
-                if (r < 0.50f) count = 1;
-                break;
-            case 3: // 75% for 1 else 2 (Assuming 100% trigger)
-                count = (r < 0.75f) ? 1 : 2;
-                break;
-            case 4: // 50% for 1 else 2
-                count = (r < 0.50f) ? 1 : 2;
-                break;
-            case 5: // 25% 1 else 2 or 3 (50% split of remainder?)
-                if (r < 0.25f) count = 1;
-                else count = (mob.getRandom().nextBoolean()) ? 2 : 3;
-                break;
-            case 6: // 2 50% else 3
-                count = (r < 0.50f) ? 2 : 3;
-                break;
-            case 7: // 2 25% else 3
-                count = (r < 0.25f) ? 2 : 3;
-                break;
-            case 8: // Always 3
-                count = 3;
-                break;
-            default:
-                if (level > 8) count = 3;
-                break;
+        float chance = 0.0f;
+        if (level == 1) chance = 0.10f;
+        else if (level == 2) chance = 0.20f;
+        else if (level == 3) chance = 0.30f;
+        else if (level == 4) chance = 0.40f;
+        else if (level >= 5) chance = 0.50f;
+        
+        if (r < chance) {
+            count = 1;
         }
+        
+
         
         if (count > 0 && self.getWorld() instanceof ServerWorld serverWorld) {
             EntityType<?> type = mob.getType();

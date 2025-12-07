@@ -28,6 +28,34 @@ public abstract class ProjectileSkillMixin {
                     if (piercing > 0) {
                         ((PersistentProjectileEntityAccessor) persistent).invokeSetPierceLevel((byte) piercing);
                     }
+                    
+                    // Tipped Arrows (Bow Potion Mastery)
+                    int potionMastery = profile.specialSkills.getOrDefault("bow_potion_mastery", 0);
+                    if (potionMastery > 0 && persistent instanceof net.minecraft.entity.projectile.ArrowEntity arrow) {
+                         // Chance: "normal curve" 0% -> 100%
+                        double p = 1.0 / (1.0 + Math.exp(-1.0 * (potionMastery - 5.0)));
+                        
+                        if (mob.getRandom().nextDouble() < p) {
+                            double center = (potionMastery / 10.0) * 4.0; // 0 to 4
+                            int pick = (int) Math.round(center + mob.getRandom().nextGaussian() * 1.0);
+                            if (pick < 0) pick = 0;
+                            if (pick > 4) pick = 4;
+                            
+                            net.minecraft.entity.effect.StatusEffectInstance effect = switch (pick) {
+                                case 0 -> new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.SLOWNESS, 200, 0);
+                                case 1 -> new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WEAKNESS, 200, 0);
+                                case 2 -> new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.POISON, 200, 0);
+                                case 3 -> new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.INSTANT_DAMAGE, 1, 0);
+                                case 4 -> new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 0);
+                                default -> null;
+                            };
+                            
+                            if (effect != null) {
+                                arrow.addEffect(effect);
+                                // arrow.setColor(effect.getEffectType().value().getColor()); // Let vanilla handle color
+                            }
+                        }
+                    }
                 }
 
                 // Multishot (Only trigger if this is the "main" projectile to avoid recursion)

@@ -16,16 +16,20 @@ public class UpgradeSystem {
     // Cost arrays
     private static final int[] GENERAL_COSTS = {2}; 
     private static final int[] GENERAL_PASSIVE_COSTS = {2};
+    // Sword: poi 1, 1, 2, 2, 3, 3, 4, 4, 5, until full
     private static final int[] SWORD_COSTS = {1, 1, 2, 2, 3, 3, 4, 4, 5};
+    // Trident: poi 3, 3, 3, until full
     private static final int[] TRIDENT_COSTS = {3};
+    // Bow: poi 2, 2, 2, 3, 3, 3, 3, until full
     private static final int[] BOW_COSTS = {2, 2, 2, 3, 3, 3, 3};
+    // Armor: poi 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, until full
     private static final int[] ARMOR_COSTS = {2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5};
+    
     private static final int[] ZOMBIE_COSTS = {3};
     private static final int[] PROJECTILE_COSTS = {2};
-    private static final int[] CAVE_SPIDER_COSTS = {3};
     private static final int[] CREEPER_COSTS = {3};
-    private static final int[] WITCH_COSTS = {3}; // Assumed 3
-
+    private static final int[] WITCH_COSTS = {3}; // Assumed 3 based on others
+    
     // Item Tiers
     private static final List<String> SWORD_TIERS = List.of("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
     private static final List<String> GOLD_SWORD_TIERS = List.of("minecraft:golden_sword", "minecraft:netherite_sword");
@@ -36,21 +40,21 @@ public class UpgradeSystem {
     private static final List<String> LEGS_TIERS = List.of("minecraft:leather_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
     private static final List<String> BOOTS_TIERS = List.of("minecraft:leather_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
 
-    private static class SimState {
-        Map<String, Integer> levels = new HashMap<>();
-        Map<String, Integer> categoryCounts = new HashMap<>();
-        Map<String, Integer> itemTiers = new HashMap<>();
-        double spentPoints = 0;
+    public static class SimState {
+        public Map<String, Integer> levels = new HashMap<>();
+        public Map<String, Integer> categoryCounts = new HashMap<>();
+        public Map<String, Integer> itemTiers = new HashMap<>();
+        public double spentPoints = 0;
         
-        int getLevel(String id) { return levels.getOrDefault(id, 0); }
-        void setLevel(String id, int val) { levels.put(id, val); }
-        void incLevel(String id) { levels.put(id, getLevel(id) + 1); }
+        public int getLevel(String id) { return levels.getOrDefault(id, 0); }
+        public void setLevel(String id, int val) { levels.put(id, val); }
+        public void incLevel(String id) { levels.put(id, getLevel(id) + 1); }
         
-        int getCategoryCount(String cat) { return categoryCounts.getOrDefault(cat, 0); }
-        void incCategoryCount(String cat) { categoryCounts.put(cat, getCategoryCount(cat) + 1); }
+        public int getCategoryCount(String cat) { return categoryCounts.getOrDefault(cat, 0); }
+        public void incCategoryCount(String cat) { categoryCounts.put(cat, getCategoryCount(cat) + 1); }
         
-        int getItemTier(String type) { return itemTiers.getOrDefault(type, 0); }
-        void setItemTier(String type, int val) { itemTiers.put(type, val); }
+        public int getItemTier(String type) { return itemTiers.getOrDefault(type, 0); }
+        public void setItemTier(String type, int val) { itemTiers.put(type, val); }
     }
 
     public static void applyUpgrades(MobEntity mob, PowerProfile profile) {
@@ -58,7 +62,7 @@ public class UpgradeSystem {
         applyStateToMob(mob, state, profile);
     }
 
-    private static SimState simulate(MobEntity mob, PowerProfile profile) {
+    public static SimState simulate(MobEntity mob, PowerProfile profile) {
         SimState state = new SimState();
         double totalPoints = profile.totalPoints;
         long seed = mob.getUuid().hashCode() ^ (long)totalPoints; 
@@ -73,22 +77,21 @@ public class UpgradeSystem {
         boolean isTrident = cats.contains("trident");
         boolean isAxe = cats.contains("axe");
         boolean isNW = cats.contains("nw");
-        boolean isCaveSpider = mob.getType().getTranslationKey().contains("cave_spider");
-        boolean isCreeper = mob.getType().getTranslationKey().contains("creeper");
         boolean isWitch = mob.getType().getTranslationKey().contains("witch");
+        boolean isCreeper = mob.getType().getTranslationKey().contains("creeper");
         
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch;
         boolean useAxe = isAxe;
         
         // Main loop
-        while (state.spentPoints < totalPoints) {
+        int safety = 0;
+        while (state.spentPoints < totalPoints && safety++ < 10000) {
             List<Runnable> possibleUpgrades = new ArrayList<>();
             
             if (isG) addGeneralUpgrades(state, possibleUpgrades, GENERAL_COSTS);
             if (isGP) addGeneralPassiveUpgrades(state, possibleUpgrades, GENERAL_PASSIVE_COSTS);
             if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS);
             if (isPro) addProjectileUpgrades(state, possibleUpgrades, PROJECTILE_COSTS);
-            if (isCaveSpider) addCaveSpiderUpgrades(state, possibleUpgrades, CAVE_SPIDER_COSTS);
             if (isCreeper) addCreeperUpgrades(state, possibleUpgrades, CREEPER_COSTS);
             if (isWitch) addWitchUpgrades(state, possibleUpgrades, WITCH_COSTS);
             
@@ -106,6 +109,11 @@ public class UpgradeSystem {
                 addWeaponUpgrades(state, possibleUpgrades, BOW_COSTS, "bow",
                     List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
                     List.of(5, 1, 2, 1, 3, 1));
+                // Tipped arrows
+                int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
+                if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
+                     addOpt(possibleUpgrades, state, "bow_potion_mastery", "bow", cost);
+                }
             }
             if (useAxe) {
                 addWeaponUpgrades(state, possibleUpgrades, SWORD_COSTS, "axe",
@@ -113,14 +121,17 @@ public class UpgradeSystem {
                     List.of(5, 5, 5, 3, 1, 5));
             }
             
-            addArmorUpgrades(state, possibleUpgrades, ARMOR_COSTS);
+            if (isG) {
+                addArmorUpgrades(state, possibleUpgrades, ARMOR_COSTS);
+            }
 
             if (possibleUpgrades.isEmpty()) {
                 profile.isMaxed = true;
                 break;
             }
 
-            // Pick one
+            if (totalPoints - state.spentPoints < 1.0) break;
+
             Runnable upgrade = possibleUpgrades.get(rand.nextInt(possibleUpgrades.size()));
             upgrade.run();
             
@@ -133,12 +144,15 @@ public class UpgradeSystem {
 
     private static void addGeneralUpgrades(SimState state, List<Runnable> options, int[] costs) {
         int cost = getCost(state.getCategoryCount("g"), costs);
-        
+        if (state.spentPoints + cost > 100000) return; // Safety
+
         if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", cost);
         if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", cost);
-        if (state.getLevel("resistance") < 4) addOpt(options, state, "resistance", "g", cost);
+        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", cost); // 3 levels, lvl 3 adds fire res
+        // Invis 12 levels: 10m, 9m, ... 1m, 0.5m, 0.25m
         if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", cost);
         if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", cost);
+        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", cost);
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, List<Runnable> options, int[] costs) {
@@ -159,12 +173,7 @@ public class UpgradeSystem {
         if (state.getLevel("piercing_shot") < 5) addOpt(options, state, "piercing_shot", "pro", cost);
         if (state.getLevel("multishot_skill") < 4) addOpt(options, state, "multishot_skill", "pro", cost);
     }
-
-    private static void addCaveSpiderUpgrades(SimState state, List<Runnable> options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("cave_spider"), costs);
-        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", cost);
-    }
-
+    
     private static void addCreeperUpgrades(SimState state, List<Runnable> options, int[] costs) {
         int cost = getCost(state.getCategoryCount("creeper"), costs);
         if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", cost);
@@ -182,12 +191,6 @@ public class UpgradeSystem {
             int max = maxLevels.get(i);
             if (state.getLevel(ench) < max) {
                 addOpt(options, state, ench, catName, cost);
-            }
-        }
-        // Bow Potion Arrows
-        if (catName.equals("bow")) {
-            if (state.getLevel("bow_potion_mastery") < 10) {
-                addOpt(options, state, "bow_potion_mastery", catName, cost);
             }
         }
     }
@@ -250,8 +253,6 @@ public class UpgradeSystem {
         // Armor Tier Logic
         int currentArmorTier = state.getItemTier("armor");
         if (currentArmorTier < HELMET_TIERS.size() - 1) {
-             // Require full enchants for armor too? "must get full enchant on that item before getting next tier item"
-             // This implies ALL armor enchants.
              if (isMaxed(state, List.of("protection", "fire_protection", "blast_protection", "projectile_protection", "thorns", "armor_unbreaking", "armor_mending",
                  "aqua_affinity", "respiration", "swift_sneak", "feather_falling", "soul_speed", "depth_strider", "frost_walker"),
                  List.of(4, 4, 4, 4, 3, 3, 1, 1, 3, 3, 4, 3, 3, 2))) {
@@ -300,7 +301,7 @@ public class UpgradeSystem {
             mob.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
                 net.minecraft.entity.effect.StatusEffects.RESISTANCE, 999999, state.getLevel("resistance") - 1));
         }
-        if (state.getLevel("resistance") >= 4) { // Level 4 gives Fire Resis 1
+        if (state.getLevel("resistance") >= 3) { // Level 3 gives Fire Resis 1
             mob.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
                 net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE, 999999, 0));
         }
@@ -400,13 +401,17 @@ public class UpgradeSystem {
 
         // Creeper Specifics
         if (mob instanceof CreeperEntity creeper) {
-            // NBT manipulation for creeper properties
             NbtCompound nbt = new NbtCompound();
             creeper.writeCustomDataToNbt(nbt);
-            // No charged creeper in new spec? "lingering potions on explode..."
-            // Prompt doesn't mention charged creeper.
-            // But it mentions "lingering potions on explode".
-            // I will handle that in Mixin.
+        }
+
+        // Shield Chance
+        int shieldLvl = state.getLevel("shield_chance");
+        if (shieldLvl > 0) {
+            float chance = shieldLvl * 0.05f;
+            if (mob.getRandom().nextFloat() < chance) {
+                mob.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, new ItemStack(net.minecraft.item.Items.SHIELD));
+            }
         }
 
         // Save special skills to PowerProfile for Mixins

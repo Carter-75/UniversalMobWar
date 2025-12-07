@@ -28,16 +28,7 @@ public abstract class CaveSpiderMixin {
         int level = profile.specialSkills.getOrDefault("poison_attack", 0);
         if (level <= 0) return;
         
-        int amplifier = 0;
-        if (level == 1) amplifier = 1; // Poison 2
-        else if (level >= 2) amplifier = 2; // Poison 3
-        
-        if (amplifier > 0) {
-            // Duration? Vanilla uses 7s (Normal) or 15s (Hard).
-            // Let's keep vanilla duration logic or just set a fixed one?
-            // Vanilla: 7*20 or 15*20.
-            // I'll use 7 seconds (140 ticks) as base, maybe scale with difficulty if I want, but fixed is fine.
-            living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 140, amplifier), spider);
-        }
+        int duration = (2 + level) * 20;
+        living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, duration, 0), spider);
     }
 }

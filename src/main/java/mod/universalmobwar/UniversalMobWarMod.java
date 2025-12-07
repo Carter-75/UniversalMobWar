@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import mod.universalmobwar.system.EvolutionSystem;
-import mod.universalmobwar.system.SkillTreeEvents;
+// import mod.universalmobwar.system.SkillTreeEvents;
 
 public class UniversalMobWarMod implements ModInitializer {
 
@@ -86,7 +86,7 @@ public class UniversalMobWarMod implements ModInitializer {
 		ModConfig config = ModConfig.getInstance();
 		
 		// Register Skill Tree Events (Projectiles, etc.)
-		SkillTreeEvents.register();
+		// SkillTreeEvents.register();
 		
 		// Register Mob Warlord attributes
 		FabricDefaultAttributeRegistry.register(MOB_WARLORD, MobWarlordEntity.createMobWarlordAttributes());

@@ -41,6 +41,11 @@ public class MobWarData {
     public NbtCompound getSkillData() { return skillData; }
     public void setSkillData(NbtCompound data) { this.skillData = data; }
     
+    public PowerProfile getPowerProfile() {
+        if (skillData == null || skillData.isEmpty()) return null;
+        return PowerProfile.fromNbt(skillData);
+    }
+    
     // Evolution methods
     public void addKill() {
         killCount++;
