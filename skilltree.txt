@@ -16,10 +16,21 @@ healthboost 1>2>3>4>5>6>7>8>9>10
 resis 1>2>3>resis 3 and fire resis 1
 invis 1 (10 sec max and only after 1min not invis and 25% chance, tries every 10min>9>8>7>6>5>4>3>2>1>.5>.25
 strength 1>2>3>4
-shield chance is normal curve from 0% to 100% so synced around when mobs get full max 
+shield chance 1 (20%) > 2 (40%) > 3 (60%) > 4 (80%) > 5 (100%)
 (enchants: each item that mob has, has 50% drop then 40 then 30 then 20 then 10 then 5% where the lowest chance would be in sync to the max mob tree(if item drops it gets all enchant that r on it, the durability of item goes from max full down to 5% left where the 5% left is synced to when mobs hit the max mob tree
 
-(must get full enchant on that item before getting next tier item(going to next tier clears enchants so you have to get them again), eg normal mob wood sword then stone then iron then diamond then netherite, or just trident and that it for drowned, or piglin/piglin brute from gold sword to netherite) (each enchant will upgrade random path and you do not need to get done with the current path until going on new one, it's all random)
+(must get full enchant on that item before getting next tier item(going to next tier clears enchants so you have to get them again).
+Progression Paths:
+- Standard: Wood -> Stone -> Iron -> Diamond -> Netherite
+- Piglin: Gold Sword -> Netherite Sword
+- Piglin Brute: Gold Axe -> Netherite Axe
+- Drowned: Trident (No tier changes)
+
+(Downgrade Mechanic: If an item breaks (0 durability), it doesn't disappear. Instead, it downgrades to the previous tier (e.g., Netherite -> Diamond) with 0 enchants. If Wood/Gold breaks, it is lost.)
+
+(Armor Upgrades: Each armor piece (Head, Chest, Legs, Feet) upgrades its tier INDEPENDENTLY once its specific enchantments are maxed.)
+
+(each enchant will upgrade random path and you do not need to get done with the current path until going on new one, it's all random)
 
 sword: poi 1, 1, 2, 2, 3, 3, 4, 4, 5, until full
 sharp 1>2>3>4>5
@@ -47,7 +58,11 @@ punch 1>2
 infinity 1
 unbreaking 1>2>3
 mending 1
-(arrows of slowness, weakness, poison, harming, decay, in normal curve at prob 0% aka way skewed left then max 100% way skewed right) 
+(arrows of slowness, weakness, poison, harming, decay: mastery 1 > ... > 10 (higher level = higher chance and potency)) 
+
+Equipment Stats (Per Item: Mainhand, Offhand, Head, Chest, Legs, Feet):
+Durability: 1 point per level. Level 0 = Broken (1 durability). Level 10 = Full Durability. (Chance to upgrade increases if durability is low).
+Drop Chance: 1 point per level. Level 0 = 100% Drop Chance. Level 20 = 1% Drop Chance (-5% per level).
 
 armor: poi 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, until full
 protection 1>2>3>4

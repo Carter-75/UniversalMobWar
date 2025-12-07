@@ -271,7 +271,9 @@ Cost: 2 points per upgrade.
 - **Resistance:** Resistance I → III + Fire Resistance
 - **Strength:** Strength I → IV
 - **Invisibility:** Chance to spawn invisible or gain invisibility bursts
-- **Shields:** Chance to equip shields in offhand (Automatic based on mob power level)
+- **Shields:** Chance to equip shields in offhand (Levels 1-5)
+- **Equipment Durability:** Per-item upgrades (Mainhand, Offhand, Armor). Starts at 1 durability (broken) and scales to 100% (Level 10). Mobs prioritize upgrading broken gear.
+- **Equipment Drop Chance:** Per-item upgrades. Starts at 100% drop chance and decreases by 5% per level (Level 20 = 0% chance).
 
 #### 2. Passive Tree (All Passive Mobs)
 Cost: 2 points per upgrade.
@@ -282,7 +284,7 @@ Cost: 2 points per upgrade.
 #### 3. Equipment Trees (Hostile Mobs with Gear)
 Mobs upgrade their gear with enchantments. Each upgrade costs points and adds a random enchantment level.
 - **Sword Tree:** Sharpness, Fire Aspect, Knockback, Unbreaking, Smite, Bane of Arthropods, Looting.
-- **Bow Tree:** Power, Punch, Flame, Infinity, Unbreaking.
+- **Bow Tree:** Power, Punch, Flame, Infinity, Unbreaking, Potion Arrows (Mastery 1-10).
 - **Armor Tree:** Protection, Fire Protection, Blast Protection, Projectile Protection, Thorns, Unbreaking.
 
 #### 4. Special Archetype Trees
@@ -292,17 +294,38 @@ Mobs upgrade their gear with enchantments. Each upgrade costs points and adds a 
 - **Projectile Tree (pro):**
   - **Piercing:** Arrows pierce through enemies.
   - **Multishot:** Fires multiple projectiles at once.
-
-#### 5. Automatic Mastery (Progress Based)
-Certain abilities scale automatically with the mob's overall power level (0-100% progress), rather than costing skill points:
-- **Shield Chance:** Probability to spawn with a shield follows a normal curve synced to max progression.
-- **Potion Mastery (Witch/Creeper/Bow):** Probability to use special potion effects (Lingering clouds, Tipped arrows, Thrown potions) scales from 0% to 100% as the mob approaches max level.
+- **Potion Mastery Trees:**
+  - **Witch:** Throws stronger negative potions (Mastery 1-10).
+  - **Creeper:** Explosions leave lingering potion clouds (Mastery 1-10).
+  - **Cave Spider:** Increases poison level on hit (Mastery 1-10).
 
 ### 🛡️ Gear Progression
 Mobs automatically equip better base gear as they max out their current gear's potential.
-- **Progression:** Wood → Stone → Iron → Diamond → Netherite
-- **Mechanic:** Once a mob has maxed out all enchantments for its current tier (e.g., a full Sharpness V / Unbreaking III Wooden Sword), it automatically upgrades to the next material tier (Stone) and resets enchantments to begin the cycle again.
-- **Drop Chance:** Equipment drop chance decreases as the mob becomes more powerful (50% → 5%).
+
+- **Progression Paths:**
+  - **Standard:** Wood → Stone → Iron → Diamond → Netherite
+  - **Piglin:** Gold Sword → Netherite Sword
+  - **Piglin Brute:** Gold Axe → Netherite Axe
+  - **Drowned:** Trident (No tier changes)
+
+- **Per-Item Upgrades:**
+  - Each equipment slot (Head, Chest, Legs, Feet, Mainhand, Offhand) tracks its progress **independently**.
+  - Example: A Zombie might have a Diamond Helmet (because it maxed out Iron Helmet enchants) but still wear Iron Boots.
+  - Once a specific item has maxed out all available enchantments for its current tier, it automatically upgrades to the next material tier and resets enchantments.
+
+- **Downgrade on Break:**
+  - If a mob's item breaks (reaches 0 durability), it is **not lost**.
+  - Instead, it **downgrades** to the previous tier (e.g., Netherite Chestplate → Diamond Chestplate).
+  - The downgraded item starts with 0 enchantments.
+  - If a Wood or Gold item breaks, it is destroyed permanently.
+
+- **Drop Chance:** Equipment drop chance decreases as the mob becomes more powerful (100% → 1%).
+
+### ⏳ Visual Progression (New!)
+- Mobs no longer spawn instantly maxed out.
+- Instead, they spawn with a "Skill Point Budget" and spend it over time (approx. 2 upgrades per second).
+- You can watch a mob visually evolve: armor pieces appearing one by one, weapons upgrading from Wood to Netherite, and enchantments glowing as they are applied.
+- **Smart Spending:** Mobs have a chance to "save" points for expensive upgrades rather than spending everything on cheap ones immediately.
 
 ---
 

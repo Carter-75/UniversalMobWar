@@ -213,6 +213,11 @@ public class MobWarData {
     private static final String NBT_KEY = "UniversalMobWarData";
     
     public static MobWarData get(MobEntity mob) {
+        if (mob instanceof IMobWarDataHolder holder) {
+            return holder.getMobWarData();
+        }
+        
+        // Fallback (Should not happen with Mixin)
         NbtCompound nbt = mob.writeNbt(new NbtCompound());
         MobWarData data = new MobWarData();
         
@@ -224,7 +229,12 @@ public class MobWarData {
     }
     
     public static void save(MobEntity mob, MobWarData data) {
-        // Debounce removed to prevent data loss since we re-instantiate on every get()
+        if (mob instanceof IMobWarDataHolder holder) {
+            holder.setMobWarData(data);
+            return;
+        }
+        
+        // Fallback
         NbtCompound nbt = mob.writeNbt(new NbtCompound());
         nbt.put(NBT_KEY, data.writeNbt());
         mob.readNbt(nbt);

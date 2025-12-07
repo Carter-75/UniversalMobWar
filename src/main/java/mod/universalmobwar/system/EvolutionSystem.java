@@ -60,33 +60,18 @@ public class EvolutionSystem {
             final PowerProfile finalProfile = profile;
             
             // Apply Upgrades
-            if (mod.universalmobwar.config.ModConfig.getInstance().enableAsyncTasks) {
-                UpgradeSystem.simulateAsync(mob, finalProfile).thenAccept(state -> {
-                    if (mob.getServer() != null) {
-                        mob.getServer().execute(() -> {
-                            if (mob.isAlive()) {
-                                // Re-fetch data to avoid race conditions (e.g. kill count updates during async sim)
-                                MobWarData freshData = MobWarData.get(mob);
-                                
-                                // If the mob has already progressed further (e.g. another kill happened and finished faster),
-                                // don't overwrite with old data.
-                                if (freshData.getSkillPoints() > finalProfile.totalPoints) {
-                                    return;
-                                }
-                                
-                                UpgradeSystem.applyStateToMob(mob, state, finalProfile);
-                                freshData.setSkillData(finalProfile.writeNbt());
-                                freshData.setSkillPoints(finalProfile.totalPoints); // Ensure points are synced
-                                MobWarData.save(mob, freshData);
-                            }
-                        });
-                    }
-                });
-            } else {
-                UpgradeSystem.applyUpgrades(mob, finalProfile);
-                data.setSkillData(finalProfile.writeNbt());
-                MobWarData.save(mob, data);
+            // v2.1: We now apply upgrades incrementally in MobEntity.tick() via Mixin
+            // This allows for visual progression and "saving" logic.
+            // We just set the target points here.
+            
+            // Initialize profile with base stats if needed
+            if (profile.specialSkills.isEmpty()) {
+                 // First time init
+                 UpgradeSystem.saveStateToProfile(new UpgradeSystem.SimState(), profile);
             }
+            
+            data.setSkillData(profile.writeNbt());
+            MobWarData.save(mob, data);
         }
     }
 

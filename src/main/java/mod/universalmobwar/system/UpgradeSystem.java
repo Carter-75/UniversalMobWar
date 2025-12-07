@@ -34,14 +34,15 @@ public class UpgradeSystem {
     private static final int[] CAVE_SPIDER_COSTS = {3}; // poi 3, until full
     
     // Item Tiers
-    private static final List<String> SWORD_TIERS = List.of("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
-    private static final List<String> GOLD_SWORD_TIERS = List.of("minecraft:golden_sword", "minecraft:netherite_sword");
-    private static final List<String> AXE_TIERS = List.of("minecraft:wooden_axe", "minecraft:stone_axe", "minecraft:iron_axe", "minecraft:diamond_axe", "minecraft:netherite_axe");
+    public static final List<String> SWORD_TIERS = List.of("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
+    public static final List<String> GOLD_SWORD_TIERS = List.of("minecraft:golden_sword", "minecraft:netherite_sword");
+    public static final List<String> AXE_TIERS = List.of("minecraft:wooden_axe", "minecraft:stone_axe", "minecraft:iron_axe", "minecraft:diamond_axe", "minecraft:netherite_axe");
+    public static final List<String> GOLD_AXE_TIERS = List.of("minecraft:golden_axe", "minecraft:netherite_axe");
     
-    private static final List<String> HELMET_TIERS = List.of("minecraft:leather_helmet", "minecraft:iron_helmet", "minecraft:diamond_helmet", "minecraft:netherite_helmet");
-    private static final List<String> CHEST_TIERS = List.of("minecraft:leather_chestplate", "minecraft:iron_chestplate", "minecraft:diamond_chestplate", "minecraft:netherite_chestplate");
-    private static final List<String> LEGS_TIERS = List.of("minecraft:leather_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
-    private static final List<String> BOOTS_TIERS = List.of("minecraft:leather_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
+    public static final List<String> HELMET_TIERS = List.of("minecraft:leather_helmet", "minecraft:iron_helmet", "minecraft:diamond_helmet", "minecraft:netherite_helmet");
+    public static final List<String> CHEST_TIERS = List.of("minecraft:leather_chestplate", "minecraft:iron_chestplate", "minecraft:diamond_chestplate", "minecraft:netherite_chestplate");
+    public static final List<String> LEGS_TIERS = List.of("minecraft:leather_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
+    public static final List<String> BOOTS_TIERS = List.of("minecraft:leather_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
 
     public static class SimState {
         public Map<String, Integer> levels = new HashMap<>();
@@ -120,6 +121,41 @@ public class UpgradeSystem {
         double totalPoints = profile.totalPoints;
         Random rand = new Random(context.seed);
 
+        // Main loop
+        int safety = 0;
+        UpgradeCollector collector = new UpgradeCollector();
+        while (state.spentPoints < totalPoints && safety++ < 1000000) {
+            collector.clear();
+            collectOptions(state, collector, context, profile);
+
+            if (collector.isEmpty()) {
+                profile.isMaxed = true;
+                break;
+            }
+
+            // Filter affordable options
+            List<Integer> affordable = new ArrayList<>();
+            double remaining = totalPoints - state.spentPoints;
+            for (int i = 0; i < collector.size(); i++) {
+                if (collector.costs.get(i) <= remaining) {
+                    affordable.add(i);
+                }
+            }
+
+            if (affordable.isEmpty()) break;
+
+            // Pick random
+            int index = affordable.get(rand.nextInt(affordable.size()));
+            collector.apply(index, state);
+            
+            // Check for Tier Upgrades
+            checkTierUpgrades(state, context);
+        }
+        
+        return state;
+    }
+
+    private static void collectOptions(SimState state, UpgradeCollector collector, SimulationContext context, PowerProfile profile) {
         Set<String> cats = profile.categories;
         boolean isG = cats.contains("g");
         boolean isGP = cats.contains("gp");
@@ -132,63 +168,201 @@ public class UpgradeSystem {
         boolean isWitch = context.translationKey.contains("witch");
         boolean isCreeper = context.translationKey.contains("creeper");
         boolean isCaveSpider = context.translationKey.contains("cave_spider");
+        boolean isPiglinBrute = context.translationKey.contains("piglin_brute");
         
-        boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch;
-        boolean useAxe = isAxe;
+        boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch && !isPiglinBrute;
+        boolean useAxe = isAxe || isPiglinBrute;
+
+        if (isG) addGeneralUpgrades(state, collector, GENERAL_COSTS);
+        if (isGP) addGeneralPassiveUpgrades(state, collector, GENERAL_PASSIVE_COSTS);
+        if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
+        if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
+        if (isCreeper) addCreeperUpgrades(state, collector, CREEPER_COSTS);
+        if (isWitch) addWitchUpgrades(state, collector, WITCH_COSTS);
+        if (isCaveSpider) addCaveSpiderUpgrades(state, collector, CAVE_SPIDER_COSTS);
         
-        // Main loop
-        int safety = 0;
-        UpgradeCollector collector = new UpgradeCollector();
-        while (state.spentPoints < totalPoints && safety++ < 1000000) {
-            collector.clear();
-            
-            if (isG) addGeneralUpgrades(state, collector, GENERAL_COSTS);
-            if (isGP) addGeneralPassiveUpgrades(state, collector, GENERAL_PASSIVE_COSTS);
-            if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
-            if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
-            if (isCreeper) addCreeperUpgrades(state, collector, CREEPER_COSTS);
-            if (isWitch) addWitchUpgrades(state, collector, WITCH_COSTS);
-            if (isCaveSpider) addCaveSpiderUpgrades(state, collector, CAVE_SPIDER_COSTS);
-            
-            if (useSword) {
-                addWeaponUpgrades(state, collector, SWORD_COSTS, "sword", 
-                    List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"),
-                    List.of(5, 2, 1, 3, 2, 5, 5, 3));
+        if (useSword) {
+            addWeaponUpgrades(state, collector, SWORD_COSTS, "sword", 
+                List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"),
+                List.of(5, 2, 1, 3, 2, 5, 5, 3));
+        }
+        if (isTrident) {
+            addWeaponUpgrades(state, collector, TRIDENT_COSTS, "trident",
+                List.of("impaling", "channeling", "unbreaking", "mending", "loyalty", "riptide"),
+                List.of(5, 1, 3, 1, 3, 3));
+        }
+        if (isBow) {
+            addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
+                List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
+                List.of(5, 1, 2, 1, 3, 1));
+            // Tipped arrows
+            int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
+            if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
+                    addOpt(collector, state, "bow_potion_mastery", "bow", cost);
             }
-            if (isTrident) {
-                addWeaponUpgrades(state, collector, TRIDENT_COSTS, "trident",
-                    List.of("impaling", "channeling", "unbreaking", "mending", "loyalty", "riptide"),
-                    List.of(5, 1, 3, 1, 3, 3));
-            }
-            if (isBow) {
-                addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
-                    List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
-                    List.of(5, 1, 2, 1, 3, 1));
-            }
-            if (useAxe) {
-                addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
-                    List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
-                    List.of(5, 5, 5, 3, 1, 5));
-            }
-            
-            if (isG) {
-                addArmorUpgrades(state, collector, ARMOR_COSTS);
-            }
-
-            if (collector.isEmpty()) {
-                profile.isMaxed = true;
-                break;
-            }
-
-            if (totalPoints - state.spentPoints < 1.0) break;
-
-            collector.apply(rand.nextInt(collector.size()), state);
-            
-            // Check for Tier Upgrades
-            checkTierUpgrades(state, useSword, isTrident, isBow, isAxe, context);
+        }
+        if (useAxe) {
+            addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
+                List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
+                List.of(5, 5, 5, 3, 1, 5));
         }
         
+        if (isG) {
+            addArmorUpgrades(state, collector, ARMOR_COSTS);
+        }
+        
+        // Equipment Stats (Durability & Drop Chance)
+        boolean hasMain = useSword || useAxe || isBow || isTrident;
+        boolean hasOff = state.getLevel("shield_chance") > 0;
+        boolean hasArmor = isG;
+        addEquipmentStatsUpgrades(state, collector, hasMain, hasOff, hasArmor);
+    }
+
+    private static void checkTierUpgrades(SimState state, SimulationContext context) {
+        boolean isPiglinBrute = context.translationKey.contains("piglin_brute");
+        boolean isWitch = context.translationKey.contains("witch");
+        boolean isNW = context.tags.contains("nw"); // Need to check tags from context?
+        // Re-derive flags or pass them? 
+        // For simplicity, we'll re-derive basic ones.
+        // Actually, checkTierUpgrades needs to know if it uses sword/axe etc.
+        // Let's just check all categories in state.
+        
+        if (state.getCategoryCount("sword") > 0) {
+             boolean piglin = context.translationKey.contains("piglin");
+             List<String> tiers = piglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
+             int currentTier = state.getItemTier("sword");
+             if (currentTier < tiers.size() - 1) {
+                 if (isMaxed(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"), 
+                     List.of(5, 2, 1, 3, 2, 5, 5, 3))) {
+                     state.setItemTier("sword", currentTier + 1);
+                     resetEnchants(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"));
+                     state.setLevel("durability_mainhand", 0);
+                     state.setLevel("drop_chance_mainhand", 0);
+                 }
+             }
+        }
+        
+        if (state.getCategoryCount("axe") > 0) {
+            boolean piglin = context.translationKey.contains("piglin");
+            List<String> tiers = piglin ? GOLD_AXE_TIERS : AXE_TIERS;
+            int currentTier = state.getItemTier("axe");
+            if (currentTier < tiers.size() - 1) {
+                if (isMaxed(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
+                    List.of(5, 5, 5, 3, 1, 5))) {
+                    state.setItemTier("axe", currentTier + 1);
+                    resetEnchants(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"));
+                    state.setLevel("durability_mainhand", 0);
+                    state.setLevel("drop_chance_mainhand", 0);
+                }
+            }
+        }
+        
+        // Armor Tier Logic (Per Item)
+        checkArmorTier(state, "head", HELMET_TIERS, List.of("aqua_affinity", "respiration"), List.of(1, 3));
+        checkArmorTier(state, "chest", CHEST_TIERS, List.of(), List.of());
+        checkArmorTier(state, "legs", LEGS_TIERS, List.of("swift_sneak"), List.of(3));
+        checkArmorTier(state, "feet", BOOTS_TIERS, List.of("feather_falling", "soul_speed", "depth_strider", "frost_walker"), List.of(4, 3, 3, 2));
+    }
+
+    public static void performOneStep(MobEntity mob, mod.universalmobwar.data.MobWarData data) {
+        PowerProfile profile = data.getPowerProfile();
+        if (profile == null || profile.isMaxed) return;
+        
+        SimState state = loadStateFromProfile(profile);
+        state.spentPoints = data.getSpentPoints();
+        
+        double available = data.getSkillPoints() - state.spentPoints;
+        if (available < 1.0) return;
+        
+        SimulationContext context = new SimulationContext(mob, data.getSkillPoints());
+        UpgradeCollector collector = new UpgradeCollector();
+        
+        collectOptions(state, collector, context, profile);
+        
+        if (collector.isEmpty()) {
+            profile.isMaxed = true;
+            data.setSkillData(profile.writeNbt());
+            return;
+        }
+        
+        // Filter affordable
+        List<Integer> affordableIndices = new ArrayList<>();
+        List<Integer> expensiveIndices = new ArrayList<>();
+        
+        for (int i = 0; i < collector.size(); i++) {
+            if (collector.costs.get(i) <= available) {
+                affordableIndices.add(i);
+            } else {
+                expensiveIndices.add(i);
+            }
+        }
+        
+        if (affordableIndices.isEmpty()) {
+            // Can't afford anything now.
+            return;
+        }
+        
+        // Saving Chance Logic: 50% chance to save if we have expensive options we can't afford yet
+        if (!expensiveIndices.isEmpty()) {
+            if (mob.getRandom().nextFloat() < 0.5f) {
+                return; 
+            }
+        }
+        
+        // Pick random affordable
+        int choiceIndex = affordableIndices.get(mob.getRandom().nextInt(affordableIndices.size()));
+        collector.apply(choiceIndex, state);
+        
+        // Check Tiers
+        checkTierUpgrades(state, context);
+        
+        // Save back
+        saveStateToProfile(state, profile);
+        data.setSpentPoints(state.spentPoints);
+        data.setSkillData(profile.writeNbt());
+        
+        // Apply visual
+        applyStateToMob(mob, state, profile);
+    }
+
+    public static SimState loadStateFromProfile(PowerProfile profile) {
+        SimState state = new SimState();
+        for (Map.Entry<String, Integer> entry : profile.specialSkills.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith("lvl_")) {
+                state.levels.put(key.substring(4), entry.getValue());
+            } else if (key.startsWith("cat_")) {
+                state.categoryCounts.put(key.substring(4), entry.getValue());
+            } else if (key.startsWith("tier_")) {
+                state.itemTiers.put(key.substring(5), entry.getValue());
+            } else {
+                // Legacy or direct skills, treat as level if not prefixed?
+                // Actually, applyStateToMob reads directly from state.levels.
+                // We should ensure we load everything.
+                state.levels.put(key, entry.getValue());
+            }
+        }
         return state;
+    }
+
+    public static void saveStateToProfile(SimState state, PowerProfile profile) {
+        // We store everything in specialSkills with prefixes to avoid collisions
+        // But applyStateToMob expects some keys without prefixes (like "horde_summon") in specialSkills?
+        // No, applyStateToMob reads from `state` and puts into `profile.specialSkills`.
+        // So we can just dump everything into specialSkills with prefixes for persistence.
+        // AND we should also put the raw values for the ones applyStateToMob expects to be there for Mixins.
+        
+        for (Map.Entry<String, Integer> e : state.levels.entrySet()) {
+            profile.specialSkills.put("lvl_" + e.getKey(), e.getValue());
+            // Also put raw for Mixins if needed (e.g. horde_summon)
+            profile.specialSkills.put(e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, Integer> e : state.categoryCounts.entrySet()) {
+            profile.specialSkills.put("cat_" + e.getKey(), e.getValue());
+        }
+        for (Map.Entry<String, Integer> e : state.itemTiers.entrySet()) {
+            profile.specialSkills.put("tier_" + e.getKey(), e.getValue());
+        }
     }
 
     private static void addGeneralUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -201,6 +375,7 @@ public class UpgradeSystem {
         // Invis 12 levels: 10m, 9m, ... 1m, 0.5m, 0.25m
         if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", cost);
         if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", cost);
+        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", cost);
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -225,11 +400,13 @@ public class UpgradeSystem {
     }
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Automatic mastery based on progress
+        int cost = getCost(state.getCategoryCount("creeper"), costs);
+        if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", cost);
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Automatic mastery based on progress
+        int cost = getCost(state.getCategoryCount("witch"), costs);
+        if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", cost);
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -251,21 +428,66 @@ public class UpgradeSystem {
 
     private static void addArmorUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("armor"), costs);
-        if (state.getLevel("protection") < 4) addOpt(options, state, "protection", "armor", cost);
-        if (state.getLevel("fire_protection") < 4) addOpt(options, state, "fire_protection", "armor", cost);
-        if (state.getLevel("blast_protection") < 4) addOpt(options, state, "blast_protection", "armor", cost);
-        if (state.getLevel("projectile_protection") < 4) addOpt(options, state, "projectile_protection", "armor", cost);
-        if (state.getLevel("thorns") < 3) addOpt(options, state, "thorns", "armor", cost);
-        if (state.getLevel("armor_unbreaking") < 3) addOpt(options, state, "armor_unbreaking", "armor", cost);
-        if (state.getLevel("armor_mending") < 1) addOpt(options, state, "armor_mending", "armor", cost);
         
+        // Per-slot shared enchants
+        addPerSlot(options, state, "protection", 4, cost);
+        addPerSlot(options, state, "fire_protection", 4, cost);
+        addPerSlot(options, state, "blast_protection", 4, cost);
+        addPerSlot(options, state, "projectile_protection", 4, cost);
+        addPerSlot(options, state, "thorns", 3, cost);
+        addPerSlot(options, state, "armor_unbreaking", 3, cost);
+        addPerSlot(options, state, "armor_mending", 1, cost);
+        
+        // Specific enchants (Head)
         if (state.getLevel("aqua_affinity") < 1) addOpt(options, state, "aqua_affinity", "armor", cost);
         if (state.getLevel("respiration") < 3) addOpt(options, state, "respiration", "armor", cost);
+        
+        // Specific enchants (Legs)
         if (state.getLevel("swift_sneak") < 3) addOpt(options, state, "swift_sneak", "armor", cost);
+        
+        // Specific enchants (Feet)
         if (state.getLevel("feather_falling") < 4) addOpt(options, state, "feather_falling", "armor", cost);
         if (state.getLevel("soul_speed") < 3) addOpt(options, state, "soul_speed", "armor", cost);
         if (state.getLevel("depth_strider") < 3) addOpt(options, state, "depth_strider", "armor", cost);
         if (state.getLevel("frost_walker") < 2) addOpt(options, state, "frost_walker", "armor", cost);
+    }
+    
+    private static void addPerSlot(UpgradeCollector options, SimState state, String baseId, int max, int cost) {
+        for (String slot : List.of("head", "chest", "legs", "feet")) {
+            if (state.getLevel(baseId + "_" + slot) < max) {
+                addOpt(options, state, baseId + "_" + slot, "armor", cost);
+            }
+        }
+    }
+    
+    private static void addEquipmentStatsUpgrades(SimState state, UpgradeCollector options, boolean main, boolean off, boolean armor) {
+        int cost = 1;
+        if (main) addStatUpgrades(state, options, "mainhand", cost);
+        if (off) addStatUpgrades(state, options, "offhand", cost);
+        if (armor) {
+            addStatUpgrades(state, options, "head", cost);
+            addStatUpgrades(state, options, "chest", cost);
+            addStatUpgrades(state, options, "legs", cost);
+            addStatUpgrades(state, options, "feet", cost);
+        }
+    }
+
+    private static void addStatUpgrades(SimState state, UpgradeCollector options, String slot, int cost) {
+        // Durability (0-10)
+        int durLvl = state.getLevel("durability_" + slot);
+        if (durLvl < 10) {
+            // Weighting: Lower durability = Higher chance
+            // Level 0: 10 entries. Level 9: 1 entry.
+            int weight = 10 - durLvl;
+            for (int i = 0; i < weight; i++) {
+                addOpt(options, state, "durability_" + slot, "stats", cost);
+            }
+        }
+        // Drop Chance (0-20)
+        int dropLvl = state.getLevel("drop_chance_" + slot);
+        if (dropLvl < 20) {
+            addOpt(options, state, "drop_chance_" + slot, "stats", cost);
+        }
     }
     
     private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, int cost) {
@@ -287,30 +509,58 @@ public class UpgradeSystem {
                     List.of(5, 2, 1, 3, 2, 5, 5, 3))) {
                     state.setItemTier("sword", currentTier + 1);
                     resetEnchants(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"));
+                    state.setLevel("durability_mainhand", 0); // Reset durability for new item
+                    state.setLevel("drop_chance_mainhand", 0);
                 }
             }
         }
         if (axe) {
+            boolean piglin = context.translationKey.contains("piglin");
+            List<String> tiers = piglin ? GOLD_AXE_TIERS : AXE_TIERS;
             int currentTier = state.getItemTier("axe");
-            if (currentTier < AXE_TIERS.size() - 1) {
+            if (currentTier < tiers.size() - 1) {
                 if (isMaxed(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
                     List.of(5, 5, 5, 3, 1, 5))) {
                     state.setItemTier("axe", currentTier + 1);
                     resetEnchants(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"));
+                    state.setLevel("durability_mainhand", 0);
+                    state.setLevel("drop_chance_mainhand", 0);
                 }
             }
         }
-        // Armor Tier Logic
-        int currentArmorTier = state.getItemTier("armor");
-        if (currentArmorTier < HELMET_TIERS.size() - 1) {
-             if (isMaxed(state, List.of("protection", "fire_protection", "blast_protection", "projectile_protection", "thorns", "armor_unbreaking", "armor_mending",
-                 "aqua_affinity", "respiration", "swift_sneak", "feather_falling", "soul_speed", "depth_strider", "frost_walker"),
-                 List.of(4, 4, 4, 4, 3, 3, 1, 1, 3, 3, 4, 3, 3, 2))) {
-                 
-                 state.setItemTier("armor", currentArmorTier + 1);
-                 resetEnchants(state, List.of("protection", "fire_protection", "blast_protection", "projectile_protection", "thorns", "armor_unbreaking", "armor_mending",
-                     "aqua_affinity", "respiration", "swift_sneak", "feather_falling", "soul_speed", "depth_strider", "frost_walker"));
-             }
+        // Armor Tier Logic (Per Item)
+        checkArmorTier(state, "head", HELMET_TIERS, List.of("aqua_affinity", "respiration"), List.of(1, 3));
+        checkArmorTier(state, "chest", CHEST_TIERS, List.of(), List.of());
+        checkArmorTier(state, "legs", LEGS_TIERS, List.of("swift_sneak"), List.of(3));
+        checkArmorTier(state, "feet", BOOTS_TIERS, List.of("feather_falling", "soul_speed", "depth_strider", "frost_walker"), List.of(4, 3, 3, 2));
+    }
+    
+    private static void checkArmorTier(SimState state, String slot, List<String> tiers, List<String> extraEnchants, List<Integer> extraMax) {
+        int currentTier = state.getItemTier(slot);
+        if (currentTier < tiers.size() - 1) {
+            // Check shared enchants for this slot
+            List<String> shared = List.of("protection", "fire_protection", "blast_protection", "projectile_protection", "thorns", "armor_unbreaking", "armor_mending");
+            List<Integer> sharedMax = List.of(4, 4, 4, 4, 3, 3, 1);
+            
+            boolean maxed = true;
+            for (int i = 0; i < shared.size(); i++) {
+                if (state.getLevel(shared.get(i) + "_" + slot) < sharedMax.get(i)) {
+                    maxed = false;
+                    break;
+                }
+            }
+            
+            if (maxed && isMaxed(state, extraEnchants, extraMax)) {
+                state.setItemTier(slot, currentTier + 1);
+                
+                // Reset enchants for this slot
+                for (String s : shared) state.setLevel(s + "_" + slot, 0);
+                for (String s : extraEnchants) state.setLevel(s, 0);
+                
+                // Reset stats
+                state.setLevel("durability_" + slot, 0);
+                state.setLevel("drop_chance_" + slot, 0);
+            }
         }
     }
     
@@ -377,7 +627,8 @@ public class UpgradeSystem {
         
         // Axe
         if (state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0) {
-            String itemId = AXE_TIERS.get(Math.min(state.getItemTier("axe"), AXE_TIERS.size() - 1));
+            List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
+            String itemId = tiers.get(Math.min(state.getItemTier("axe"), tiers.size() - 1));
             ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
             applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
             applyEnchant(mob, stack, "smite", state.getLevel("smite"));
@@ -389,26 +640,28 @@ public class UpgradeSystem {
         }
         
         // Armor
-        if (state.getCategoryCount("armor") > 0 || state.getItemTier("armor") > 0) {
-            int tier = Math.min(state.getItemTier("armor"), HELMET_TIERS.size() - 1);
-            
-            ItemStack helm = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(HELMET_TIERS.get(tier).split(":")[0], HELMET_TIERS.get(tier).split(":")[1])));
-            applyArmorEnchants(mob, helm, state);
+        if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
+            int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
+            ItemStack helm = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(HELMET_TIERS.get(headTier).split(":")[0], HELMET_TIERS.get(headTier).split(":")[1])));
+            applyArmorEnchants(mob, helm, state, "head");
             applyEnchant(mob, helm, "aqua_affinity", state.getLevel("aqua_affinity"));
             applyEnchant(mob, helm, "respiration", state.getLevel("respiration"));
             mob.equipStack(EquipmentSlot.HEAD, helm);
             
-            ItemStack chest = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(CHEST_TIERS.get(tier).split(":")[0], CHEST_TIERS.get(tier).split(":")[1])));
-            applyArmorEnchants(mob, chest, state);
+            int chestTier = Math.min(state.getItemTier("chest"), CHEST_TIERS.size() - 1);
+            ItemStack chest = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(CHEST_TIERS.get(chestTier).split(":")[0], CHEST_TIERS.get(chestTier).split(":")[1])));
+            applyArmorEnchants(mob, chest, state, "chest");
             mob.equipStack(EquipmentSlot.CHEST, chest);
             
-            ItemStack legs = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(LEGS_TIERS.get(tier).split(":")[0], LEGS_TIERS.get(tier).split(":")[1])));
-            applyArmorEnchants(mob, legs, state);
+            int legsTier = Math.min(state.getItemTier("legs"), LEGS_TIERS.size() - 1);
+            ItemStack legs = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(LEGS_TIERS.get(legsTier).split(":")[0], LEGS_TIERS.get(legsTier).split(":")[1])));
+            applyArmorEnchants(mob, legs, state, "legs");
             applyEnchant(mob, legs, "swift_sneak", state.getLevel("swift_sneak"));
             mob.equipStack(EquipmentSlot.LEGS, legs);
             
-            ItemStack boots = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(BOOTS_TIERS.get(tier).split(":")[0], BOOTS_TIERS.get(tier).split(":")[1])));
-            applyArmorEnchants(mob, boots, state);
+            int feetTier = Math.min(state.getItemTier("feet"), BOOTS_TIERS.size() - 1);
+            ItemStack boots = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(BOOTS_TIERS.get(feetTier).split(":")[0], BOOTS_TIERS.get(feetTier).split(":")[1])));
+            applyArmorEnchants(mob, boots, state, "feet");
             applyEnchant(mob, boots, "feather_falling", state.getLevel("feather_falling"));
             applyEnchant(mob, boots, "soul_speed", state.getLevel("soul_speed"));
             applyEnchant(mob, boots, "depth_strider", state.getLevel("depth_strider"));
@@ -416,36 +669,29 @@ public class UpgradeSystem {
             mob.equipStack(EquipmentSlot.FEET, boots);
         }
         
-        // Drop Chance & Durability
-        // Estimated max points for a full tree is around 350.
-        float progress = profile.isMaxed ? 1.0f : (float)Math.min(profile.totalPoints / 350.0, 1.0); 
-        
-        // Drop Chance: 50% -> 40% -> 30% -> 20% -> 10% -> 5%
-        float dropChance = 0.5f;
-        if (progress >= 1.0f) dropChance = 0.05f;
-        else if (progress >= 0.8f) dropChance = 0.10f;
-        else if (progress >= 0.6f) dropChance = 0.20f;
-        else if (progress >= 0.4f) dropChance = 0.30f;
-        else if (progress >= 0.2f) dropChance = 0.40f;
-        
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
-            mob.setEquipmentDropChance(slot, dropChance);
-            
-            // Durability: 100% -> 5% (Damage: 0% -> 95%)
-            ItemStack stack = mob.getEquippedStack(slot);
-            if (!stack.isEmpty() && stack.isDamageable()) {
-                int maxDamage = stack.getMaxDamage();
-                int damage = (int)(maxDamage * (0.95f * progress));
-                stack.setDamage(damage);
-            }
-        }
+        // Apply Equipment Stats (Durability & Drop Chance)
+        // We pass the tier category to track tier changes
+        String mainTierCat = state.getCategoryCount("axe") > 0 ? "axe" : "sword"; // Simple heuristic
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.MAINHAND, "mainhand", mainTierCat);
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.OFFHAND, "offhand", "shield");
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.HEAD, "head", "armor");
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.CHEST, "chest", "armor");
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.LEGS, "legs", "armor");
+        applyEquipmentStats(mob, state, profile, EquipmentSlot.FEET, "feet", "armor");
         
         // Shield Chance: 0% -> 100% (Normal curve)
-        if (profile.categories.contains("g")) {
-             // Sigmoid: 1 / (1 + e^(-k(x - x0)))
-             double p = 1.0 / (1.0 + Math.exp(-10.0 * (progress - 0.5)));
+        // Now handled via points (shield_chance level)
+        int shieldLvl = state.getLevel("shield_chance");
+        if (shieldLvl > 0) {
+             // Level 1-5. 
+             // Level 1: 20%, Level 5: 100%
+             double p = shieldLvl * 0.20;
              if (mob.getRandom().nextDouble() < p) {
-                 mob.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
+                 ItemStack shield = new ItemStack(Items.SHIELD);
+                 // Apply defensive enchants (Unbreaking/Mending) from Armor tree (using Chest stats as proxy for shield)
+                 applyEnchant(mob, shield, "unbreaking", state.getLevel("armor_unbreaking_chest"));
+                 applyEnchant(mob, shield, "mending", state.getLevel("armor_mending_chest"));
+                 mob.equipStack(EquipmentSlot.OFFHAND, shield);
              }
         }
 
@@ -480,31 +726,76 @@ public class UpgradeSystem {
             profile.specialSkills.put("invis_interval_ticks", (int)(minutes * 60 * 20));
         }
         
-        // Automatic Mastery Calculation (0-10 based on progress)
-        int masteryLevel = (int)(progress * 10.0f);
-        if (masteryLevel > 10) masteryLevel = 10;
-        
-        if (profile.categories.contains("bow")) {
-            profile.specialSkills.put("bow_potion_mastery", masteryLevel);
+        // Potion Mastery (Points Based)
+        if (state.getLevel("bow_potion_mastery") > 0) {
+            profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
         }
-        if (mob.getType().getTranslationKey().contains("creeper")) {
-            profile.specialSkills.put("creeper_potion_mastery", masteryLevel);
+        if (state.getLevel("creeper_potion_mastery") > 0) {
+            profile.specialSkills.put("creeper_potion_mastery", state.getLevel("creeper_potion_mastery"));
         }
-        if (mob.getType().getTranslationKey().contains("witch")) {
-            profile.specialSkills.put("witch_potion_mastery", masteryLevel);
+        if (state.getLevel("witch_potion_mastery") > 0) {
+            profile.specialSkills.put("witch_potion_mastery", state.getLevel("witch_potion_mastery"));
         }
         
         spawnUpgradeParticles(mob);
     }
     
-    private static void applyArmorEnchants(MobEntity mob, ItemStack stack, SimState state) {
-        applyEnchant(mob, stack, "protection", state.getLevel("protection"));
-        applyEnchant(mob, stack, "fire_protection", state.getLevel("fire_protection"));
-        applyEnchant(mob, stack, "blast_protection", state.getLevel("blast_protection"));
-        applyEnchant(mob, stack, "projectile_protection", state.getLevel("projectile_protection"));
-        applyEnchant(mob, stack, "thorns", state.getLevel("thorns"));
-        applyEnchant(mob, stack, "unbreaking", state.getLevel("armor_unbreaking"));
-        applyEnchant(mob, stack, "mending", state.getLevel("armor_mending"));
+    private static void applyArmorEnchants(MobEntity mob, ItemStack stack, SimState state, String slot) {
+        applyEnchant(mob, stack, "protection", state.getLevel("protection_" + slot));
+        applyEnchant(mob, stack, "fire_protection", state.getLevel("fire_protection_" + slot));
+        applyEnchant(mob, stack, "blast_protection", state.getLevel("blast_protection_" + slot));
+        applyEnchant(mob, stack, "projectile_protection", state.getLevel("projectile_protection_" + slot));
+        applyEnchant(mob, stack, "thorns", state.getLevel("thorns_" + slot));
+        applyEnchant(mob, stack, "unbreaking", state.getLevel("armor_unbreaking_" + slot));
+        applyEnchant(mob, stack, "mending", state.getLevel("armor_mending_" + slot));
+    }
+
+    private static void applyEquipmentStats(MobEntity mob, SimState state, PowerProfile profile, EquipmentSlot slot, String slotName, String tierCat) {
+        ItemStack stack = mob.getEquippedStack(slot);
+        if (stack.isEmpty()) return;
+
+        // Drop Chance: Base 100% - (5% * level)
+        int dropLvl = state.getLevel("drop_chance_" + slotName);
+        float dropChance = Math.max(0.01f, 1.0f - (dropLvl * 0.05f));
+        mob.setEquipmentDropChance(slot, dropChance);
+
+        // Durability Logic
+        if (stack.isDamageable()) {
+            int currentDurLvl = state.getLevel("durability_" + slotName);
+            int currentTier = state.getItemTier(tierCat);
+            
+            // Retrieve last applied state from persistent profile
+            int lastAppliedTier = profile.specialSkills.getOrDefault("last_tier_" + slotName, -1);
+            int lastAppliedDur = profile.specialSkills.getOrDefault("last_dur_" + slotName, -1);
+            
+            // If Tier changed, reset tracking (New Item = Fresh Start)
+            if (currentTier != lastAppliedTier) {
+                lastAppliedDur = -1;
+                profile.specialSkills.put("last_tier_" + slotName, currentTier);
+            }
+            
+            // Only apply durability if we have UPGRADED it (Current > Last)
+            // This prevents "healing" the item by re-applying the same level
+            if (currentDurLvl > lastAppliedDur) {
+                int maxDamage = stack.getMaxDamage();
+                int damage;
+                
+                if (currentDurLvl == 0) {
+                    damage = maxDamage - 1; // 1 durability left
+                } else {
+                    // Level 1 = 10%, Level 10 = 100%
+                    float percent = currentDurLvl * 0.10f;
+                    damage = maxDamage - (int)(maxDamage * percent);
+                    if (damage < 0) damage = 0;
+                    if (damage >= maxDamage) damage = maxDamage - 1;
+                }
+                
+                stack.setDamage(damage);
+                
+                // Update persistent state
+                profile.specialSkills.put("last_dur_" + slotName, currentDurLvl);
+            }
+        }
     }
 
     private static void applyEnchant(MobEntity mob, ItemStack stack, String id, int level) {

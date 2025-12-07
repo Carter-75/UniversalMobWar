@@ -5,7 +5,7 @@ Each mob follows a specific set of upgrade trees based on its "Archetype Tags".
 
 LEGEND:
 -------
-[g]   = General Hostile (Health, Healing, Resistance, Strength, Armor, Shield)
+[g]   = General Hostile (Health, Healing, Resistance, Strength, Armor, Shield (Chance 1-5), Equipment Durability/Drop Chance)
 [gp]  = General Passive (Health, Healing, Resistance)
 [z]   = Zombie (Hunger Attack, Horde Summon)
 [pro] = Projectile (Piercing, Multishot)
@@ -17,9 +17,9 @@ LEGEND:
 
 SPECIALIZED TREES:
 ------------------
-[witch]       = Witch Potion Mastery (Throws stronger negative potions)
-[creeper]     = Creeper Potion Mastery (Explosions leave lingering potion clouds)
-[cave_spider] = Poison Attack Mastery (Increases poison level on hit)
+[witch]       = Witch Potion Mastery 1-10 (Throws stronger negative potions)
+[creeper]     = Creeper Potion Mastery 1-10 (Explosions leave lingering potion clouds)
+[cave_spider] = Poison Attack Mastery 1-10 (Increases poison level on hit)
 
 ----------------------------------------------------------------------------------------------------
 
@@ -110,8 +110,8 @@ Piglin:             [g] (Randomly [swo] or [bow] at spawn)
   -> Usage: Versatile infantry. Can be melee or ranged.
 
 Piglin Brute:       [g]
-  -> Path: General Stats + Sword Upgrades (Applied to Axe) + Armor Set
-  -> Usage: Aggressive guard. High damage.
+  -> Path: General Stats + Axe Upgrades (Gold -> Netherite) + Armor Set
+  -> Usage: Aggressive guard. High damage. Uses Gold Axe -> Netherite Axe progression.
 
 ARTHROPODS
 ----------
