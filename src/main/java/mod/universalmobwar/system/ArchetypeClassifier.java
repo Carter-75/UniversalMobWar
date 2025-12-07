@@ -31,11 +31,7 @@ public class ArchetypeClassifier {
         register("zombie_horse", "gp");
         register("skeleton_horse", "gp");
         
-        // Illagers
-        register("vindicator", "g", "axe");
-        register("pillager", "g", "pro", "bow");
-        register("evoker", "g", "nw");
-        register("witch", "g", "nw", "pro", "witch");
+        register("witch", "g", "nw", "pro");
         register("vex", "g");
         register("ravager", "g", "nw");
         
@@ -45,7 +41,7 @@ public class ArchetypeClassifier {
         
         // Arthropods
         register("spider", "g", "nw");
-        register("cave_spider", "g", "nw", "cave_spider");
+        register("cave_spider", "g", "nw");
         register("silverfish", "g", "nw");
         register("endermite", "g", "nw");
         register("bee", "g");
@@ -66,7 +62,7 @@ public class ArchetypeClassifier {
         register("elder_guardian", "g", "nw");
         
         // Others
-        register("creeper", "g", "nw", "creeper");
+        register("creeper", "g", "nw");
         register("slime", "g", "nw");
         register("iron_golem", "g");
         register("snow_golem", "g", "pro", "nw");
@@ -162,11 +158,21 @@ public class ArchetypeClassifier {
             }
         }
 
+        // Debug logging for mob categories and archetype
+        if (mod.universalmobwar.config.ModConfig.getInstance().debugLogging) {
+            String archetype = detectArchetypeFromCategories(categories);
+            mod.universalmobwar.UniversalMobWarMod.LOGGER.info("Mob {} classified as archetype: {}, categories: {}", name, archetype, categories);
+        }
+
         return categories;
     }
 
     public static String detectArchetype(MobEntity mob) {
         Set<String> cats = getMobCategories(mob);
+        return detectArchetypeFromCategories(cats);
+    }
+
+    private static String detectArchetypeFromCategories(Set<String> cats) {
         if (cats.contains("z")) return "zombie";
         if (cats.contains("bow")) return "skeleton";
         if (cats.contains("g")) return "universal";
@@ -177,5 +183,15 @@ public class ArchetypeClassifier {
         String archetype = detectArchetype(mob);
         // Map archetype to upgrade path (for UpgradeSystem)
         return archetype;
+    }
+
+    public static void addSpecialTags() {
+        mod.universalmobwar.config.ModConfig config = mod.universalmobwar.config.ModConfig.getInstance();
+        for (String mob : config.specialMobs) {
+            Set<String> tags = MOB_CATEGORIES.get(mob);
+            if (tags != null) {
+                tags.add(mob); // add the mob name as tag, e.g. "witch" for witch
+            }
+        }
     }
 }

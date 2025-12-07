@@ -7,6 +7,7 @@ import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.system.EvolutionSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
@@ -34,8 +35,8 @@ import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import mod.universalmobwar.system.EvolutionSystem;
-// import mod.universalmobwar.system.SkillTreeEvents;
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 
 public class UniversalMobWarMod implements ModInitializer {
 
@@ -82,8 +83,12 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// Load config
+		// Register and load config
+		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 		ModConfig config = ModConfig.getInstance();
+		
+		// Add special tags based on config
+		mod.universalmobwar.system.ArchetypeClassifier.addSpecialTags();
 		
 		// Register Skill Tree Events (Projectiles, etc.)
 		// SkillTreeEvents.register();

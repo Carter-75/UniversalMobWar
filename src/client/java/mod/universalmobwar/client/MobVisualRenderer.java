@@ -90,9 +90,9 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
 
         // Line from mob to target
         consumer.vertex(matrix, (float)(start.x - cameraPos.x), (float)(start.y - cameraPos.y + 1.0), (float)(start.z - cameraPos.z))
-                .color(1, 0, 0, 1); // Red
+                .color(1, 0, 0, 1).normal(0, 1, 0);
         consumer.vertex(matrix, (float)(end.x - cameraPos.x), (float)(end.y - cameraPos.y + 1.0), (float)(end.z - cameraPos.z))
-                .color(1, 0, 0, 1);
+                .color(1, 0, 0, 1).normal(0, 1, 0);
 
         matrices.pop();
     }
@@ -140,8 +140,8 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
     }
 
     private void drawLine(VertexConsumer consumer, Matrix4f matrix, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a) {
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a);
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a);
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).normal(0, 1, 0);
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).normal(0, 1, 0);
     }
 
     private void drawMobLabel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, MobEntity mob) {
