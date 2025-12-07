@@ -1,44 +1,22 @@
 Initialized native services in: C:\Users\carte\.gradle\native
 Initialized jansi services in: C:\Users\carte\.gradle\native
 Received JVM installation metadata from 'C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot': {JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot, JAVA_VERSION=22.0.2, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=22.0.2+9, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=22.0.2+9, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
-Found daemon DaemonInfo{pid=43108, address=[6724b722-19ab-4a51-991d-e111e6b925bf port:60487, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765139136103, context=DefaultDaemonContext[uid=151b6092-019b-41a6-be64-174c5c7ac4bb,javaHome=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot,javaVersion=22,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\carte\.gradle\daemon,pid=43108,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2G,-Dfile.encoding=utf8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+Found daemon DaemonInfo{pid=38564, address=[e1a77a80-4bae-434e-b2df-65affc40ecf7 port:60778, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765139353545, context=DefaultDaemonContext[uid=a7e0106f-7513-4cd1-b3a1-c1d2a4f37c71,javaHome=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot,javaVersion=22,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\carte\.gradle\daemon,pid=38564,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2G,-Dfile.encoding=utf8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
 At least one daemon option is different.
 Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot (no JDK specified, using current Java home), daemonOpts=[--add-opens=java.base/java.util=ALL-UNNAMED, --add-opens=java.base/java.lang=ALL-UNNAMED, --add-opens=java.base/java.lang.invoke=ALL-UNNAMED, --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED, --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED, --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED, --add-opens=java.base/java.nio.charset=ALL-UNNAMED, --add-opens=java.base/java.net=ALL-UNNAMED, --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED, -Xmx2G, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
-Actual: DefaultDaemonContext[uid=151b6092-019b-41a6-be64-174c5c7ac4bb,javaHome=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot,javaVersion=22,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\carte\.gradle\daemon,pid=43108,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2G,-Dfile.encoding=utf8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+Actual: DefaultDaemonContext[uid=a7e0106f-7513-4cd1-b3a1-c1d2a4f37c71,javaHome=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot,javaVersion=22,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\carte\.gradle\daemon,pid=38564,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2G,-Dfile.encoding=utf8,-Duser.country=US,-Duser.language=en,-Duser.variant]
 
   Looking for a different daemon...
-Removing daemon from the registry due to communication failure. Daemon information: DaemonInfo{pid=35140, address=[6e14499b-0079-46e8-9e57-ce69256a8c7e port:60460, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765139310282, context=DefaultDaemonContext[uid=de95e979-8fb1-4a10-8775-3634dcdb421e,javaHome=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot,javaVersion=22,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\carte\.gradle\daemon,pid=35140,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2G,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]}
-Removing 0 daemon stop events from registry
-Previous Daemon (10832) stopped at Sun Dec 07 13:41:40 CST 2025 by user or operating system
-Previous Daemon (46908) stopped at Sun Dec 07 14:13:03 CST 2025 by user or operating system
-Previous Daemon (46224) stopped at Sun Dec 07 14:13:40 CST 2025 by user or operating system
-Previous Daemon (42224) stopped at Sun Dec 07 14:15:18 CST 2025 by user or operating system
-Previous Daemon (36284) stopped at Sun Dec 07 14:15:40 CST 2025 by user or operating system
-Previous Daemon (45504) stopped at Sun Dec 07 14:16:42 CST 2025 by user or operating system
-Previous Daemon (46576) stopped at Sun Dec 07 14:17:26 CST 2025 by user or operating system
-Previous Daemon (46468) stopped at Sun Dec 07 14:18:04 CST 2025 by user or operating system
-Previous Daemon (11884) stopped at Sun Dec 07 14:18:50 CST 2025 by user or operating system
-Previous Daemon (4212) stopped at Sun Dec 07 14:20:44 CST 2025 by user or operating system
-Previous Daemon (40832) stopped at Sun Dec 07 14:21:27 CST 2025 by user or operating system
-Previous Daemon (31224) stopped at Sun Dec 07 14:23:28 CST 2025 by user or operating system
-Previous Daemon (31836) stopped at Sun Dec 07 14:23:49 CST 2025 by user or operating system
-Previous Daemon (16852) stopped at Sun Dec 07 14:24:04 CST 2025 by user or operating system
-Previous Daemon (40004) stopped at Sun Dec 07 14:24:51 CST 2025 by user or operating system
-Previous Daemon (26264) stopped at Sun Dec 07 14:24:51 CST 2025 by user or operating system
-Previous Daemon (40312) stopped at Sun Dec 07 14:25:13 CST 2025 by user or operating system
-Previous Daemon (41692) stopped at Sun Dec 07 14:25:34 CST 2025 by user or operating system
-Previous Daemon (35140) stopped at Sun Dec 07 14:28:42 CST 2025 by user or operating system
-Starting a Gradle Daemon, 1 busy and 2 incompatible and 19 stopped Daemons could not be reused, use --status for details
-Starting process 'Gradle build daemon'. Working directory: C:\Users\carte\.gradle\daemon\8.10.2 Command: C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot\bin\java.exe --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED -Xmx2G -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -cp C:\Users\carte\.gradle\wrapper\dists\gradle-8.10.2-bin\a04bxjujx95o3nb99gddekhwo\gradle-8.10.2\lib\gradle-daemon-main-8.10.2.jar -javaagent:C:\Users\carte\.gradle\wrapper\dists\gradle-8.10.2-bin\a04bxjujx95o3nb99gddekhwo\gradle-8.10.2\lib\agents\gradle-instrumentation-agent-8.10.2.jar org.gradle.launcher.daemon.bootstrap.GradleDaemon 8.10.2
-Successfully started process 'Gradle build daemon'
-An attempt to start the daemon took 1.656 secs.
 The client will now receive all logging from the daemon (pid: 27820). The daemon log file: C:\Users\carte\.gradle\daemon\8.10.2\daemon-27820.out.log
-Starting build in new daemon [memory: 2 GiB]
+Starting 2nd build in daemon [uptime: 2 mins 47.128 secs, performance: 99%, GC rate: 0.13/s, heap usage: 1% of 2 GiB]
 Using 20 worker leases.
-Received JVM installation metadata from 'C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot': {JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot, JAVA_VERSION=22.0.2, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=22.0.2+9, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=22.0.2+9, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
-Watching the file system is configured to be enabled if available
 Now considering [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar] as hierarchies to watch
+Watching the file system is configured to be enabled if available
 File system watching is active
+Invalidating in-memory cache of C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\checksums\md5-checksums.bin
+Invalidating in-memory cache of C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\checksums\sha1-checksums.bin
+Invalidating in-memory cache of C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\checksums\sha256-checksums.bin
+Invalidating in-memory cache of C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\checksums\sha512-checksums.bin
 Starting Build
 Settings evaluated using settings file 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\settings.gradle'.
 Projects loaded. Root project using build file 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build.gradle'.
@@ -46,6 +24,7 @@ Included projects: [root project 'universal-mob-war']
 
 > Configure project :
 Evaluating root project 'universal-mob-war' using build file 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build.gradle'.
+Invalidating in-memory cache of C:\Users\carte\.gradle\caches\journal-1\file-access.bin
 Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with InstrumentationAnalysisTransform
 Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with InstrumentationAnalysisTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with InstrumentationAnalysisTransform
@@ -77,79 +56,81 @@ Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT
 Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with InstrumentationAnalysisTransform
 Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with MergeInstrumentationAnalysisTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with InstrumentationAnalysisTransform
+Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with ExternalDependencyInstrumentingArtifactTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with MergeInstrumentationAnalysisTransform
+Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with InstrumentationAnalysisTransform
 Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with MergeInstrumentationAnalysisTransform
+Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with InstrumentationAnalysisTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with MergeInstrumentationAnalysisTransform
+Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with InstrumentationAnalysisTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with MergeInstrumentationAnalysisTransform
 Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with InstrumentationAnalysisTransform
 Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with MergeInstrumentationAnalysisTransform
+Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with ExternalDependencyInstrumentingArtifactTransform
+Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with InstrumentationAnalysisTransform
 Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with InstrumentationAnalysisTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with InstrumentationAnalysisTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with InstrumentationAnalysisTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with MergeInstrumentationAnalysisTransform
+Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with InstrumentationAnalysisTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with MergeInstrumentationAnalysisTransform
+Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with InstrumentationAnalysisTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with MergeInstrumentationAnalysisTransform
-Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with ExternalDependencyInstrumentingArtifactTransform
-Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with InstrumentationAnalysisTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with MergeInstrumentationAnalysisTransform
-Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with InstrumentationAnalysisTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with MergeInstrumentationAnalysisTransform
+Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with InstrumentationAnalysisTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with MergeInstrumentationAnalysisTransform
+Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with InstrumentationAnalysisTransform
-Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with MergeInstrumentationAnalysisTransform
-Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with InstrumentationAnalysisTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with MergeInstrumentationAnalysisTransform
-Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with InstrumentationAnalysisTransform
+Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with MergeInstrumentationAnalysisTransform
+Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with InstrumentationAnalysisTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with MergeInstrumentationAnalysisTransform
+Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with InstrumentationAnalysisTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with MergeInstrumentationAnalysisTransform
+Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with InstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with MergeInstrumentationAnalysisTransform
+Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with InstrumentationAnalysisTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with MergeInstrumentationAnalysisTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with InstrumentationAnalysisTransform
+Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with MergeInstrumentationAnalysisTransform
+Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with InstrumentationAnalysisTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with MergeInstrumentationAnalysisTransform
-Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with InstrumentationAnalysisTransform
-Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with MergeInstrumentationAnalysisTransform
-Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
-Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with ExternalDependencyInstrumentingArtifactTransform
-Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
+Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with InstrumentationAnalysisTransform
+Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with MergeInstrumentationAnalysisTransform
+Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with ExternalDependencyInstrumentingArtifactTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with ExternalDependencyInstrumentingArtifactTransform
+Invalidating in-memory cache of C:\Users\carte\.gradle\caches\8.10.2\fileHashes\fileHashes.bin
+Invalidating in-memory cache of C:\Users\carte\.gradle\caches\8.10.2\fileHashes\resourceHashesCache.bin
 Fabric Loom: 1.6.12
 (kotlinx.metadata.jvm.KotlinClassMetadata) with version (0.9.0-1.9.21-40) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-metadata-jvm/0.9.0/123e86fd82d3a49afd0a41df1288a40c969f11b2/kotlinx-metadata-jvm-0.9.0.jar)
 (org.objectweb.asm.ClassVisitor) with version (9.6) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/9.6/aa205cf0a06dbd8e04ece91c0b37c3f5d567546a/asm-9.6.jar)
@@ -160,8 +141,8 @@ Fabric Loom: 1.6.12
 (com.google.gson.Gson) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.10.1/b3add478d4382b78ea20b1671390a858002feb6c/gson-2.10.1.jar)
 (com.google.common.base.Preconditions) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/33.0.0-jre/161ba27964a62f241533807a46b8711b13c1d94b/guava-33.0.0-jre.jar)
 (org.apache.commons.io.FileUtils) with version (2.15.1) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.15.1/f11560da189ab563a5c8e351941415430e9304ea/commons-io-2.15.1.jar)
-Creating new SharedServiceManager(677872835)
-Creating new SharedServiceManager(434243780)
+Creating new SharedServiceManager(1217084108)
+Creating new SharedServiceManager(205141844)
 :setting up loom dependencies
 Applying installer data from C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar
 Found another installer JSON in (C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar), ignoring
@@ -170,83 +151,60 @@ Configuring compiler arguments for Java
 Adding mixin to classpath of AP config: annotationProcessor
 Adding mixin to classpath of AP config: testAnnotationProcessor
 Could not find refmap definition, will be using default name: universal-mob-war-refmap.json
-Closing SharedServiceManager(434243780)
+Closing SharedServiceManager(205141844)
 sourcesJar task was not found, not remapping sources
 Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
 All projects evaluated.
 Task name matched 'build'
 Selected primary task 'build' from project :
-Starting process 'command 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe''. Working directory: C:\Users\carte\.gradle\.tmp\tmp-jvm3235751193976373992probe Command: C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe -Xmx32m -Xms32m -cp . JavaProbe
-Successfully started process 'command 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe''
-Received JVM installation metadata from 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2': {JAVA_HOME=C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2, JAVA_VERSION=17.0.17, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=17.0.17+10, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.17+10, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
-Starting process 'command 'C:\Java\bin\java.exe''. Working directory: C:\Users\carte\.gradle\.tmp\tmp-jvm4731535103130604105probe Command: C:\Java\bin\java.exe -Xmx32m -Xms32m -cp . JavaProbe
-Successfully started process 'command 'C:\Java\bin\java.exe''
-Received JVM installation metadata from 'C:\Java': {JAVA_HOME=C:\Java, JAVA_VERSION=21.0.7, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.7+6-LTS, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.7+6-LTS, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
 Tasks to be executed: [task ':compileJava', task ':processResources', task ':classes', task ':jar', task ':remapJar', task ':remapSourcesJar', task ':assemble', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':test', task ':validateAccessWidener', task ':check', task ':build']
 Tasks that were excluded: []
-Resolve mutations for :compileJava (Thread[#172,Execution worker,5,main]) started.
-:compileJava (Thread[#172,Execution worker,5,main]) started.
+Resolve mutations for :compileJava (Thread[#359,Execution worker,5,main]) started.
+:compileJava (Thread[#359,Execution worker,5,main]) started.
 
-> Task :compileJava UP-TO-DATE
+> Task :compileJava
 Caching disabled for task ':compileJava' because:
   Build cache is disabled
-Skipping task ':compileJava' as it is up-to-date.
-No compile result for :compileJava
-No compile result for :compileJava
-Resolve mutations for :processResources (Thread[#172,Execution worker,5,main]) started.
-:processResources (Thread[#190,Execution worker Thread 19,5,main]) started.
+  Gradle does not know how file 'build\loom-cache\mixin-map-net.fabricmc.yarn.1_21_1.1.21.1+build.3-v2.main.tiny' was created (output property 'mixin-ap-main-java'). Task output caching requires exclusive access to output paths to guarantee correctness (i.e. multiple tasks are not allowed to produce output in the same location).
+Task ':compileJava' is not up-to-date because:
+  Output property 'mixin-ap-main-java' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\loom-cache\mixin-map-net.fabricmc.yarn.1_21_1.1.21.1+build.3-v2.main.tiny has changed.
+The input changes require a full rebuild for incremental task ':compileJava'.
+Compilation mode: default, forking compiler
+Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
+Compiling with toolchain 'C:\Java'.
+Starting process 'Gradle Worker Daemon 1'. Working directory: C:\Users\carte\.gradle\workers Command: C:\Java\bin\java.exe --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED @C:\Users\carte\.gradle\.tmp\gradle-worker-classpath5704622911764444132txt -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Worker Daemon 1'
+Successfully started process 'Gradle Worker Daemon 1'
+Started Gradle worker daemon (1.602 secs) with fork options DaemonForkOptions{executable=C:\Java\bin\java.exe, minHeapSize=null, maxHeapSize=null, jvmArgs=[--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED, --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED], keepAliveMode=DAEMON}.
+
+This JVM does not support getting OS memory, so no OS memory status updates will be broadcast
+
+> Task :compileJava
+Compiling with JDK Java compiler API.
+Class dependency analysis for incremental compilation took 0.167 secs.
+Created classpath snapshot for incremental compilation in 0.534 secs.
+Resolve mutations for :processResources (Thread[#359,Execution worker,5,main]) started.
+:processResources (Thread[#359,Execution worker,5,main]) started.
 
 > Task :processResources UP-TO-DATE
 Caching disabled for task ':processResources' because:
   Build cache is disabled
   Not worth caching
 Skipping task ':processResources' as it is up-to-date.
-Resolve mutations for :classes (Thread[#190,Execution worker Thread 19,5,main]) started.
-:classes (Thread[#190,Execution worker Thread 19,5,main]) started.
+Resolve mutations for :classes (Thread[#359,Execution worker,5,main]) started.
+:classes (Thread[#359,Execution worker,5,main]) started.
 
-> Task :classes UP-TO-DATE
+> Task :classes
 Skipping task ':classes' as it has no actions.
-Resolve mutations for :jar (Thread[#190,Execution worker Thread 19,5,main]) started.
-:jar (Thread[#172,Execution worker,5,main]) started.
+Resolve mutations for :jar (Thread[#359,Execution worker,5,main]) started.
+:jar (Thread[#359,Execution worker,5,main]) started.
 
 > Task :jar UP-TO-DATE
 Caching disabled for task ':jar' because:
   Build cache is disabled
   Not worth caching
 Skipping task ':jar' as it is up-to-date.
-Resolve mutations for :remapJar (Thread[#172,Execution worker,5,main]) started.
-:remapJar (Thread[#172,Execution worker,5,main]) started.
-Resolve mutations for :remapSourcesJar (Thread[#173,Execution worker Thread 2,5,main]) started.
-Resolve mutations for :compileTestJava (Thread[#173,Execution worker Thread 2,5,main]) started.
-:compileTestJava (Thread[#173,Execution worker Thread 2,5,main]) started.
-
-> Task :compileTestJava NO-SOURCE
-Skipping task ':compileTestJava' as it has no source files and no previous output files.
-Resolve mutations for :processTestResources (Thread[#173,Execution worker Thread 2,5,main]) started.
-:processTestResources (Thread[#173,Execution worker Thread 2,5,main]) started.
-
-> Task :processTestResources NO-SOURCE
-Skipping task ':processTestResources' as it has no source files and no previous output files.
-Resolve mutations for :testClasses (Thread[#173,Execution worker Thread 2,5,main]) started.
-:testClasses (Thread[#173,Execution worker Thread 2,5,main]) started.
-
-> Task :testClasses UP-TO-DATE
-Skipping task ':testClasses' as it has no actions.
-Resolve mutations for :test (Thread[#173,Execution worker Thread 2,5,main]) started.
-:test (Thread[#173,Execution worker Thread 2,5,main]) started.
-
-> Task :test NO-SOURCE
-Skipping task ':test' as it has no source files and no previous output files.
-Resolve mutations for :validateAccessWidener (Thread[#173,Execution worker Thread 2,5,main]) started.
-:validateAccessWidener (Thread[#173,Execution worker Thread 2,5,main]) started.
-
-> Task :validateAccessWidener NO-SOURCE
-Skipping task ':validateAccessWidener' as it has no source files and no previous output files.
-Resolve mutations for :check (Thread[#173,Execution worker Thread 2,5,main]) started.
-:check (Thread[#189,Execution worker Thread 18,5,main]) started.
-
-> Task :check UP-TO-DATE
-Skipping task ':check' as it has no actions.
+Resolve mutations for :remapJar (Thread[#363,Execution worker Thread 5,5,main]) started.
+:remapJar (Thread[#363,Execution worker Thread 5,5,main]) started.
 
 > Task :remapJar
 Caching disabled for task ':remapJar' because:
@@ -256,259 +214,57 @@ Task ':remapJar' is not up-to-date because:
   Task has failed previously.
 Could not find refmap definition, will be using default name: universal-mob-war-refmap.json
 file or directory 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\src\test\resources', not found
+
+Resolve mutations for :remapSourcesJar (Thread[#360,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :compileTestJava (Thread[#360,Execution worker Thread 2,5,main]) started.
+:compileTestJava (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :compileTestJava NO-SOURCE
+Skipping task ':compileTestJava' as it has no source files and no previous output files.
+Resolve mutations for :processTestResources (Thread[#360,Execution worker Thread 2,5,main]) started.
+:processTestResources (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :processTestResources NO-SOURCE
+Skipping task ':processTestResources' as it has no source files and no previous output files.
+Resolve mutations for :testClasses (Thread[#360,Execution worker Thread 2,5,main]) started.
+:testClasses (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :testClasses UP-TO-DATE
+Skipping task ':testClasses' as it has no actions.
+Resolve mutations for :test (Thread[#360,Execution worker Thread 2,5,main]) started.
+:test (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :test NO-SOURCE
+Skipping task ':test' as it has no source files and no previous output files.
+Resolve mutations for :validateAccessWidener (Thread[#360,Execution worker Thread 2,5,main]) started.
+:validateAccessWidener (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :validateAccessWidener NO-SOURCE
+Skipping task ':validateAccessWidener' as it has no source files and no previous output files.
+Resolve mutations for :check (Thread[#360,Execution worker Thread 2,5,main]) started.
+:check (Thread[#360,Execution worker Thread 2,5,main]) started.
+
+> Task :check UP-TO-DATE
+Skipping task ':check' as it has no actions.
+
+> Task :remapJar
 Remapping C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\devlibs\universal-mob-war-2.0.0-dev.jar to C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar
 No jars to nest
-Failed to delete output file
-java.nio.file.FileSystemException: C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar: The process cannot access the file because it is being used by another process
-	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:92)
-	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
-	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
-	at java.base/sun.nio.fs.WindowsFileSystemProvider.implDelete(WindowsFileSystemProvider.java:273)
-	at java.base/sun.nio.fs.AbstractFileSystemProvider.deleteIfExists(AbstractFileSystemProvider.java:109)
-	at java.base/java.nio.file.Files.deleteIfExists(Files.java:1191)
-	at net.fabricmc.loom.task.RemapJarTask$RemapAction.execute(RemapJarTask.java:270)
-	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
-	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
-	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
-	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-	at java.base/java.lang.Thread.run(Thread.java:1570)
+:remapSourcesJar (Thread[#360,Execution worker Thread 2,5,main]) started.
 
-> Task :remapJar FAILED
+> Task :remapSourcesJar SKIPPED
+Skipping task ':remapSourcesJar' as task onlyIf 'Task is enabled' is false.
+Closing SharedServiceManager(1217084108)
+Resolve mutations for :assemble (Thread[#360,Execution worker Thread 2,5,main]) started.
+:assemble (Thread[#360,Execution worker Thread 2,5,main]) started.
 
-FAILURE: Build failed with an exception.
+> Task :assemble
+Skipping task ':assemble' as it has no actions.
+Resolve mutations for :build (Thread[#360,Execution worker Thread 2,5,main]) started.
+:build (Thread[#360,Execution worker Thread 2,5,main]) started.
 
-* What went wrong:
-Execution failed for task ':remapJar'.
-> A failure occurred while executing net.fabricmc.loom.task.RemapJarTask$RemapAction
-   > Failed to remap, java.nio.file.FileSystemException: C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar: The process cannot access the file because it is being used by another process
-
-* Try:
-> Run with --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':remapJar'.
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
-	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing net.fabricmc.loom.task.RemapJarTask$RemapAction
-	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
-	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
-	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
-	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
-	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
-	at org.gradle.internal.Either$Right.fold(Either.java:175)
-	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
-	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: java.lang.RuntimeException: Failed to remap, java.nio.file.FileSystemException: C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar: The process cannot access the file because it is being used by another process
-	at net.fabricmc.loom.util.ExceptionUtil.createDescriptiveWrapper(ExceptionUtil.java:59)
-	at net.fabricmc.loom.task.RemapJarTask$RemapAction.execute(RemapJarTask.java:275)
-	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
-	... 2 more
-Caused by: java.nio.file.FileSystemException: C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar: The process cannot access the file because it is being used by another process
-	at net.fabricmc.loom.util.ZipReprocessorUtil.reprocessZip(ZipReprocessorUtil.java:130)
-	at net.fabricmc.loom.task.AbstractRemapJarTask$AbstractRemapAction.rewriteJar(AbstractRemapJarTask.java:228)
-	at net.fabricmc.loom.task.RemapJarTask$RemapAction.execute(RemapJarTask.java:257)
-	... 28 more
-
+> Task :build
+Skipping task ':build' as it has no actions.
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 
@@ -516,6 +272,6 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD FAILED in 14s
-4 actionable tasks: 1 executed, 3 up-to-date
+BUILD SUCCESSFUL in 22s
+4 actionable tasks: 2 executed, 2 up-to-date
 Watched directory hierarchies: [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar]

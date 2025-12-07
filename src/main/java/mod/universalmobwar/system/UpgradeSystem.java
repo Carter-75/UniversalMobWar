@@ -22,34 +22,28 @@ import mod.universalmobwar.data.PowerProfile;
 
 public class UpgradeSystem {
 
-    // Cost arrays
-    private static final int[] GENERAL_COSTS = {2}; 
-    private static final int[] GENERAL_PASSIVE_COSTS = {2};
-    // Sword: poi 1, 1, 2, 2, 3, 3, 4, 4, 5, until full
-    private static final int[] SWORD_COSTS = {1, 1, 2, 2, 3, 3, 4, 4, 5};
-    // Trident: poi 3, 3, 3, until full
-    private static final int[] TRIDENT_COSTS = {3};
-    // Bow: poi 2, 2, 2, 3, 3, 3, 3, until full
-    private static final int[] BOW_COSTS = {2, 2, 2, 3, 3, 3, 3};
-    // Armor: poi 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, until full
-    private static final int[] ARMOR_COSTS = {2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5};
-    
-    private static final int[] ZOMBIE_COSTS = {3};
-    private static final int[] PROJECTILE_COSTS = {2};
-    private static final int[] CREEPER_COSTS = {3};
-    private static final int[] WITCH_COSTS = {3};
-    private static final int[] CAVE_SPIDER_COSTS = {3}; // poi 3, until full
-    
-    // Item Tiers
-    public static final List<String> SWORD_TIERS = List.of("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
-    public static final List<String> GOLD_SWORD_TIERS = List.of("minecraft:golden_sword", "minecraft:netherite_sword");
-    public static final List<String> AXE_TIERS = List.of("minecraft:wooden_axe", "minecraft:stone_axe", "minecraft:iron_axe", "minecraft:diamond_axe", "minecraft:netherite_axe");
-    public static final List<String> GOLD_AXE_TIERS = List.of("minecraft:golden_axe", "minecraft:netherite_axe");
-    
-    public static final List<String> HELMET_TIERS = List.of("minecraft:leather_helmet", "minecraft:iron_helmet", "minecraft:diamond_helmet", "minecraft:netherite_helmet");
-    public static final List<String> CHEST_TIERS = List.of("minecraft:leather_chestplate", "minecraft:iron_chestplate", "minecraft:diamond_chestplate", "minecraft:netherite_chestplate");
-    public static final List<String> LEGS_TIERS = List.of("minecraft:leather_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
-    public static final List<String> BOOTS_TIERS = List.of("minecraft:leather_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
+    // Cost arrays (modernized, all costs configurable via ModConfig)
+    private static final int[] GENERAL_COSTS = ModConfig.getInstance().generalUpgradeCosts;
+    private static final int[] GENERAL_PASSIVE_COSTS = ModConfig.getInstance().generalPassiveUpgradeCosts;
+    private static final int[] SWORD_COSTS = ModConfig.getInstance().swordUpgradeCosts;
+    private static final int[] TRIDENT_COSTS = ModConfig.getInstance().tridentUpgradeCosts;
+    private static final int[] BOW_COSTS = ModConfig.getInstance().bowUpgradeCosts;
+    private static final int[] ARMOR_COSTS = ModConfig.getInstance().armorUpgradeCosts;
+    private static final int[] ZOMBIE_COSTS = ModConfig.getInstance().zombieUpgradeCosts;
+    private static final int[] PROJECTILE_COSTS = ModConfig.getInstance().projectileUpgradeCosts;
+    private static final int[] CREEPER_COSTS = ModConfig.getInstance().creeperUpgradeCosts;
+    private static final int[] WITCH_COSTS = ModConfig.getInstance().witchUpgradeCosts;
+    private static final int[] CAVE_SPIDER_COSTS = ModConfig.getInstance().caveSpiderUpgradeCosts;
+
+    // Item Tiers (modernized, all tiers configurable via ModConfig)
+    public static final List<String> SWORD_TIERS = ModConfig.getInstance().swordTiers;
+    public static final List<String> GOLD_SWORD_TIERS = ModConfig.getInstance().goldSwordTiers;
+    public static final List<String> AXE_TIERS = ModConfig.getInstance().axeTiers;
+    public static final List<String> GOLD_AXE_TIERS = ModConfig.getInstance().goldAxeTiers;
+    public static final List<String> HELMET_TIERS = ModConfig.getInstance().helmetTiers;
+    public static final List<String> CHEST_TIERS = ModConfig.getInstance().chestTiers;
+    public static final List<String> LEGS_TIERS = ModConfig.getInstance().legsTiers;
+    public static final List<String> BOOTS_TIERS = ModConfig.getInstance().bootsTiers;
 
     public static class SimState {
         public Map<String, Integer> levels = new HashMap<>();
@@ -958,10 +952,5 @@ public class UpgradeSystem {
         }
     }
     
-    public static class UpgradeNode {
-        // Deprecated
-    }
-    
-    public static UpgradeNode findUpgradeNode(String archetype, String upgradeId) { return null; }
-    public static void maybeRerollPriorityPath(PowerProfile profile, long worldSeed) {}
+    // Remove deprecated UpgradeNode and legacy methods
 }
