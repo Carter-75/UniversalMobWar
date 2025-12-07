@@ -90,7 +90,7 @@ public class UpgradeSystem {
             
             if (isG) addGeneralUpgrades(state, possibleUpgrades, GENERAL_COSTS);
             if (isGP) addGeneralPassiveUpgrades(state, possibleUpgrades, GENERAL_PASSIVE_COSTS);
-            if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS);
+            if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS, mob);
             if (isPro) addProjectileUpgrades(state, possibleUpgrades, PROJECTILE_COSTS);
             if (isCreeper) addCreeperUpgrades(state, possibleUpgrades, CREEPER_COSTS);
             if (isWitch) addWitchUpgrades(state, possibleUpgrades, WITCH_COSTS);
@@ -162,10 +162,12 @@ public class UpgradeSystem {
         if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", cost);
     }
 
-    private static void addZombieUpgrades(SimState state, List<Runnable> options, int[] costs) {
+    private static void addZombieUpgrades(SimState state, List<Runnable> options, int[] costs, MobEntity mob) {
         int cost = getCost(state.getCategoryCount("z"), costs);
         if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", cost);
-        if (state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", cost);
+        
+        boolean isReinforcement = mob.getCommandTags().contains("umw_horde_reinforcement");
+        if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", cost);
     }
 
     private static void addProjectileUpgrades(SimState state, List<Runnable> options, int[] costs) {

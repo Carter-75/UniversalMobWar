@@ -89,9 +89,17 @@ public abstract class HordeSummonMixin {
                     
                     // Force profile creation/update
                     mod.universalmobwar.system.GlobalMobScalingSystem.onMobActivated(reinforcement, world);
+                    
+                    // Add persistent tag to prevent future skill acquisition
+                    reinforcement.addCommandTag("umw_horde_reinforcement");
+                    
                     PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(reinforcement);
                     if (profile != null) {
                         profile.specialSkills.put("horde_summon", 0);
+                        // Save back to NBT to persist the change
+                        mod.universalmobwar.data.MobWarData data = mod.universalmobwar.data.MobWarData.get(reinforcement);
+                        data.setSkillData(profile.writeNbt());
+                        mod.universalmobwar.data.MobWarData.save(reinforcement, data);
                     }
                     
                     // Target the same attacker
