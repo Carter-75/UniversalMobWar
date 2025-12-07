@@ -15,7 +15,9 @@ import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
-//
+/**
+ * Universal targeting AI goal for mobs to attack each other intelligently.
+ */
 public class UniversalTargetGoal extends TrackTargetGoal {
 
 	private final MobEntity mob;

@@ -14,7 +14,7 @@ public class UniversalMobWarModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // Register custom witch renderer for the Mob Warlord
-        // EntityRendererRegistry.register(UniversalMobWarMod.MOB_WARLORD, MobWarlordRenderer::new);
+        EntityRendererRegistry.register(UniversalMobWarMod.MOB_WARLORD, MobWarlordRenderer::new);
         
         // Register world render callback for visual features
         WorldRenderEvents.LAST.register(new MobVisualRenderer());

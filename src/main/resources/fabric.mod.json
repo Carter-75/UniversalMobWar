@@ -16,7 +16,8 @@
 		"modmenu": ["mod.universalmobwar.client.UniversalMobWarModMenu"]
 	},
 	"mixins": [
-		"universalmobwar.mixins.json"
+		"universalmobwar.mixins.json",
+		"universalmobwar.client.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.15.10",

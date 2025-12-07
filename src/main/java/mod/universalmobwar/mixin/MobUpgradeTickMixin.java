@@ -41,9 +41,20 @@ public abstract class MobUpgradeTickMixin extends LivingEntity {
                 if (deficit > 500) steps = 20;
                 else if (deficit > 100) steps = 5;
                 
-                for (int i = 0; i < steps; i++) {
-                    if (data.getSpentPoints() >= data.getSkillPoints()) break;
-                    UpgradeSystem.performOneStep(mob, data);
+                // Thread-safe upgrade process with safety counter
+                synchronized(data) {
+                    int safety = 0;
+                    for (int i = 0; i < steps && safety < 100; i++, safety++) {
+                        if (data.getSpentPoints() >= data.getSkillPoints()) break;
+                        UpgradeSystem.performOneStep(mob, data);
+                    }
+                    
+                    if (safety >= 100) {
+                        mod.universalmobwar.UniversalMobWarMod.LOGGER.warn(
+                            "Upgrade safety limit hit for mob {} (spent: {}, total: {})",
+                            mob.getType().getTranslationKey(), data.getSpentPoints(), data.getSkillPoints()
+                        );
+                    }
                 }
                 
                 MobWarData.save(mob, data);

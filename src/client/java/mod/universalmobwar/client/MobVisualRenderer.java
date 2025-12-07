@@ -1,6 +1,8 @@
 package mod.universalmobwar.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import mod.universalmobwar.config.ModConfig;
+import mod.universalmobwar.data.MobWarData;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
@@ -10,13 +12,14 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
-
-import java.util.List;
+import org.joml.Quaternionf;
 
 /**
  * Handles rendering of visual features: target lines, health bars, mob labels.
+ * Updated for Minecraft 1.21.1 rendering API
  */
 public class MobVisualRenderer implements WorldRenderEvents.Last {
 
@@ -31,7 +34,6 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
         if (client.getCurrentFps() < CONFIG.minFpsForVisuals) return;
 
         MatrixStack matrices = context.matrixStack();
-        VertexConsumerProvider vertexConsumers = context.consumers();
         Camera camera = context.camera();
         Vec3d cameraPos = camera.getPos();
 
@@ -45,11 +47,11 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
             double distance = entity.getPos().distanceTo(cameraPos);
             if (distance > 64.0) continue; // Only render within 64 blocks
 
-            renderForMob(matrices, vertexConsumers, camera, mob, distance);
+            renderForMob(matrices, context, camera, mob, distance);
         }
     }
 
-    private void renderForMob(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Camera camera, MobEntity mob, double distance) {
+    private void renderForMob(MatrixStack matrices, WorldRenderContext context, Camera camera, MobEntity mob, double distance) {
         Vec3d mobPos = mob.getPos();
         Vec3d cameraPos = camera.getPos();
 
@@ -57,7 +59,7 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
         if (CONFIG.showTargetLines) {
             LivingEntity target = mob.getTarget();
             if (target != null) {
-                drawTargetLine(matrices, vertexConsumers, camera, mobPos, target.getPos());
+                drawTargetLine(matrices, context, camera, mobPos, target.getPos());
             }
         }
 
@@ -65,105 +67,122 @@ public class MobVisualRenderer implements WorldRenderEvents.Last {
         if (distance < 32.0) {
             matrices.push();
             matrices.translate(mobPos.x - cameraPos.x, mobPos.y - cameraPos.y + mob.getHeight() + 0.5, mobPos.z - cameraPos.z);
-            matrices.multiply(camera.getRotation());
+            
+            // Correct billboard rotation for 1.21.1
+            Quaternionf rotation = camera.getRotation();
+            matrices.multiply(rotation);
+            matrices.scale(-1.0f, -1.0f, 1.0f);
 
             // Health bar
             if (CONFIG.showHealthBars) {
-                drawHealthBar(matrices, vertexConsumers, camera, mob);
+                drawHealthBar(matrices, context, mob);
             }
 
             // Mob labels
             if (CONFIG.showMobLabels) {
-                drawMobLabel(matrices, vertexConsumers, mob);
+                drawMobLabel(matrices, context, mob);
             }
 
             matrices.pop();
         }
     }
 
-    private void drawTargetLine(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Camera camera, Vec3d start, Vec3d end) {
+    private void drawTargetLine(MatrixStack matrices, WorldRenderContext context, Camera camera, Vec3d start, Vec3d end) {
         matrices.push();
         Vec3d cameraPos = camera.getPos();
 
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLines());
+        // Use LINES render layer (correct for 1.21.1)
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
-        // Line from mob to target
-        consumer.vertex(matrix, (float)(start.x - cameraPos.x), (float)(start.y - cameraPos.y + 1.0), (float)(start.z - cameraPos.z))
-                .color(1, 0, 0, 1).normal(0, 1, 0);
-        consumer.vertex(matrix, (float)(end.x - cameraPos.x), (float)(end.y - cameraPos.y + 1.0), (float)(end.z - cameraPos.z))
-                .color(1, 0, 0, 1).normal(0, 1, 0);
+        // Line from mob to target (red)
+        buffer.vertex(matrix, (float)(start.x - cameraPos.x), (float)(start.y - cameraPos.y + 1.0), (float)(start.z - cameraPos.z))
+                .color(255, 0, 0, 255);
+        buffer.vertex(matrix, (float)(end.x - cameraPos.x), (float)(end.y - cameraPos.y + 1.0), (float)(end.z - cameraPos.z))
+                .color(255, 0, 0, 255);
+
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.disableCull();
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(false);
+        BufferRenderer.drawWithGlobalProgram(buffer.end());
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
 
         matrices.pop();
     }
 
-    private void drawHealthBar(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Camera camera, MobEntity mob) {
+    private void drawHealthBar(MatrixStack matrices, WorldRenderContext context, MobEntity mob) {
         float health = mob.getHealth();
         float maxHealth = mob.getMaxHealth();
         if (maxHealth <= 0) return;
         float healthRatio = Math.max(0, Math.min(1, health / maxHealth));
 
-        Vec3d cameraPos = camera.getPos();
-        Vec3d mobPos = mob.getPos().add(0, mob.getHeight() + 0.5, 0);
-
         matrices.push();
-        matrices.translate(mobPos.x - cameraPos.x, mobPos.y - cameraPos.y, mobPos.z - cameraPos.z);
-        matrices.multiply(camera.getRotation()); // Billboard
+        matrices.translate(0, 0.3, 0); // Position above mob label
+        matrices.scale(0.02f, 0.02f, 0.02f);
 
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLines());
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
-        float barWidth = 1.0f;
-        float barHeight = 0.1f;
+        float barWidth = 40.0f;
+        float barHeight = 4.0f;
         float halfWidth = barWidth / 2;
 
-        // Background bar (black)
-        drawLine(consumer, matrix, -halfWidth, 0, 0, halfWidth, 0, 0, 0, 0, 0, 1);
-        drawLine(consumer, matrix, halfWidth, 0, 0, halfWidth, barHeight, 0, 0, 0, 0, 1);
-        drawLine(consumer, matrix, halfWidth, barHeight, 0, -halfWidth, barHeight, 0, 0, 0, 0, 1);
-        drawLine(consumer, matrix, -halfWidth, barHeight, 0, -halfWidth, 0, 0, 0, 0, 0, 1);
+        // Background bar (dark gray)
+        drawQuad(buffer, matrix, -halfWidth, 0, barWidth, barHeight, 0, 0, 0, 200);
 
         // Health bar (green/yellow/red)
         float healthWidth = barWidth * healthRatio;
-        float halfHealthWidth = healthWidth / 2;
         int color = healthRatio > 0.5 ? 0x00FF00 : healthRatio > 0.25 ? 0xFFFF00 : 0xFF0000;
-        float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8) & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
 
-        drawLine(consumer, matrix, -halfHealthWidth, 0, 0, halfHealthWidth, 0, 0, r, g, b, 1);
-        drawLine(consumer, matrix, halfHealthWidth, 0, 0, halfHealthWidth, barHeight, 0, r, g, b, 1);
-        drawLine(consumer, matrix, halfHealthWidth, barHeight, 0, -halfHealthWidth, barHeight, 0, r, g, b, 1);
-        drawLine(consumer, matrix, -halfHealthWidth, barHeight, 0, -halfHealthWidth, 0, 0, r, g, b, 1);
+        drawQuad(buffer, matrix, -halfWidth, 0, healthWidth, barHeight, r, g, b, 255);
+
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.disableCull();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        BufferRenderer.drawWithGlobalProgram(buffer.end());
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
 
         matrices.pop();
     }
 
-    private void drawLine(VertexConsumer consumer, Matrix4f matrix, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a) {
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).normal(0, 1, 0);
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).normal(0, 1, 0);
+    private void drawQuad(BufferBuilder buffer, Matrix4f matrix, float x, float y, float width, float height, int r, int g, int b, int a) {
+        buffer.vertex(matrix, x, y, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x, y + height, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x + width, y + height, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x + width, y, 0).color(r, g, b, a);
     }
 
-    private void drawMobLabel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, MobEntity mob) {
+    private void drawMobLabel(MatrixStack matrices, WorldRenderContext context, MobEntity mob) {
         MinecraftClient client = MinecraftClient.getInstance();
         TextRenderer textRenderer = client.textRenderer;
+        
+        MobWarData data = MobWarData.get(mob);
+        if (data == null) return;
 
-        // Get mob name
-        String name = mob.getType().getTranslationKey().replace("entity.minecraft.", "");
-        String label = name;
-
+        // Get display name from MobWarVisuals
+        Text displayName = MobWarVisuals.getMobDisplayName(mob);
+        
         matrices.push();
-        matrices.translate(0, 0.5, 0);
-        matrices.scale(0.02f, 0.02f, 0.02f); // Scale down
+        matrices.scale(0.02f, -0.02f, 0.02f); // Fixed scale for 1.21.1
 
         // Center the text
-        float x = -textRenderer.getWidth(label) / 2.0f;
-        textRenderer.draw(label, x, 0, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, 15728880);
+        float x = -textRenderer.getWidth(displayName) / 2.0f;
+        
+        // Draw with see-through mode (correct for 1.21.1)
+        VertexConsumerProvider.Immediate immediate = client.getBufferBuilders().getEntityVertexConsumers();
+        textRenderer.draw(displayName, x, 0, 0xFFFFFF, false, matrices.peek().getPositionMatrix(), 
+                         immediate, TextRenderer.TextLayerType.SEE_THROUGH, 0, 15728880);
+        immediate.draw();
 
         matrices.pop();
-    }
-
-    private void drawQuad(VertexConsumer consumer, MatrixStack matrices, float x, float y, float width, float height, int color) {
-        // Removed for now
     }
 }

@@ -62,7 +62,7 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	// Gamerule: true = mod is active (default). false = mod is completely disabled.
 	public static GameRules.Key<GameRules.BooleanRule> MOD_ENABLED_RULE;
-	// Removed misplaced import inside class body
+	
 	// Gamerule: true = ignore same-species (default). false = chaos (same-species allowed).
 	public static GameRules.Key<GameRules.BooleanRule> IGNORE_SAME_SPECIES_RULE;
 	
@@ -323,6 +323,13 @@ public class UniversalMobWarMod implements ModInitializer {
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
 				TargetingUtil.cleanupCache();
 				OperationScheduler.cleanup(); // Also cleanup operation scheduler
+			}
+			
+			// MEMORY LEAK FIX: Clean up dead mob UUIDs from AllianceSystem (every 60 seconds)
+			if (server.getTicks() % 1200 == 0) {
+				for (net.minecraft.server.world.ServerWorld world : server.getWorlds()) {
+					AllianceSystem.cleanupDeadMobs(world);
+				}
 			}
 		});
 

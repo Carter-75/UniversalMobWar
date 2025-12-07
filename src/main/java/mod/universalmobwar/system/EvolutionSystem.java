@@ -54,10 +54,12 @@ public class EvolutionSystem {
             // Initialize base stats if not set
             if (profile.baseHealth == 0) {
                 profile.baseHealth = mob.getAttributeValue(EntityAttributes.GENERIC_MAX_HEALTH);
-                profile.baseDamage = mob.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
-                // Default to 0 if attribute missing (e.g. passive mobs)
-                if (profile.baseDamage == 0 && mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE) == null) {
-                    profile.baseDamage = 0;
+                // Null check BEFORE accessing value
+                var attackAttr = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+                if (attackAttr != null) {
+                    profile.baseDamage = attackAttr.getBaseValue();
+                } else {
+                    profile.baseDamage = 0; // Default for passive mobs
                 }
             }
             

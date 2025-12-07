@@ -469,6 +469,8 @@ public class UpgradeSystem {
 
     public static SimState loadStateFromProfile(PowerProfile profile) {
         SimState state = new SimState();
+        // Load data from PowerProfile's specialSkills map
+        // Data is stored with prefixes: "lvl_", "cat_", "tier_"
         for (Map.Entry<String, Integer> entry : profile.specialSkills.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("lvl_")) {
@@ -477,33 +479,52 @@ public class UpgradeSystem {
                 state.categoryCounts.put(key.substring(4), entry.getValue());
             } else if (key.startsWith("tier_")) {
                 state.itemTiers.put(key.substring(5), entry.getValue());
-            } else {
-                // Legacy or direct skills, treat as level if not prefixed?
-                // Actually, applyStateToMob reads directly from state.levels.
-                // We should ensure we load everything.
-                state.levels.put(key, entry.getValue());
             }
+            // Skip raw unprefixed keys (duplicates from old saving logic)
         }
+        
+        // Load spent points if available
+        if (profile.specialSkills.containsKey("_spent_points")) {
+            state.spentPoints = profile.specialSkills.get("_spent_points");
+        }
+        
         return state;
     }
 
     public static void saveStateToProfile(SimState state, PowerProfile profile) {
-        // We store everything in specialSkills with prefixes to avoid collisions
-        // But applyStateToMob expects some keys without prefixes (like "horde_summon") in specialSkills?
-        // No, applyStateToMob reads from `state` and puts into `profile.specialSkills`.
-        // So we can just dump everything into specialSkills with prefixes for persistence.
-        // AND we should also put the raw values for the ones applyStateToMob expects to be there for Mixins.
+        // Clear old data to prevent duplication issues
+        profile.specialSkills.clear();
         
+        // Save levels with "lvl_" prefix
         for (Map.Entry<String, Integer> e : state.levels.entrySet()) {
             profile.specialSkills.put("lvl_" + e.getKey(), e.getValue());
-            // Also put raw for Mixins if needed (e.g. horde_summon)
-            profile.specialSkills.put(e.getKey(), e.getValue());
         }
+        
+        // Save category counts with "cat_" prefix
         for (Map.Entry<String, Integer> e : state.categoryCounts.entrySet()) {
             profile.specialSkills.put("cat_" + e.getKey(), e.getValue());
         }
+        
+        // Save item tiers with "tier_" prefix
         for (Map.Entry<String, Integer> e : state.itemTiers.entrySet()) {
             profile.specialSkills.put("tier_" + e.getKey(), e.getValue());
+        }
+        
+        // Save spent points for tracking
+        profile.specialSkills.put("_spent_points", state.spentPoints);
+        
+        // CRITICAL: For mixins that read directly from specialSkills (e.g., horde_summon),
+        // we MUST also store unprefixed versions of skill-specific upgrades
+        String[] mixinSkills = {
+            "horde_summon", "infectious_bite", "hunger_attack", "piercing_shot", 
+            "bow_potion_mastery", "multishot", "creeper_power", "cave_spider_poison_mastery",
+            "witch_potion_mastery", "witch_harming_upgrade", "equipment_break_mastery"
+        };
+        
+        for (String skill : mixinSkills) {
+            if (state.levels.containsKey(skill)) {
+                profile.specialSkills.put(skill, state.levels.get(skill));
+            }
         }
     }
 
@@ -735,16 +756,25 @@ public class UpgradeSystem {
             int tierIndex = state.getItemTier("sword");
             if (tierIndex >= 0 && tierIndex < tiers.size()) {
                 String itemId = tiers.get(Math.min(tierIndex, tiers.size() - 1));
-                ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
-            applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
-            applyEnchant(mob, stack, "fire_aspect", state.getLevel("fire_aspect"));
-            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
-            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
-            applyEnchant(mob, stack, "knockback", state.getLevel("knockback"));
-            applyEnchant(mob, stack, "smite", state.getLevel("smite"));
-            applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
-            applyEnchant(mob, stack, "looting", state.getLevel("looting"));
-            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack stack = new ItemStack(item);
+                            applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
+                            applyEnchant(mob, stack, "fire_aspect", state.getLevel("fire_aspect"));
+                            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
+                            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
+                            applyEnchant(mob, stack, "knockback", state.getLevel("knockback"));
+                            applyEnchant(mob, stack, "smite", state.getLevel("smite"));
+                            applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
+                            applyEnchant(mob, stack, "looting", state.getLevel("looting"));
+                            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                        }
+                    }
+                }
             }
         }
         
@@ -754,14 +784,23 @@ public class UpgradeSystem {
             int tierIndex = state.getItemTier("axe");
             if (tierIndex >= 0 && tierIndex < tiers.size()) {
                 String itemId = tiers.get(Math.min(tierIndex, tiers.size() - 1));
-                ItemStack stack = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(itemId.split(":")[0], itemId.split(":")[1])));
-            applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
-            applyEnchant(mob, stack, "smite", state.getLevel("smite"));
-            applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
-            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
-            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
-            applyEnchant(mob, stack, "efficiency", state.getLevel("efficiency"));
-            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack stack = new ItemStack(item);
+                            applyEnchant(mob, stack, "sharpness", state.getLevel("sharpness"));
+                            applyEnchant(mob, stack, "smite", state.getLevel("smite"));
+                            applyEnchant(mob, stack, "bane_of_arthropods", state.getLevel("bane_of_arthropods"));
+                            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
+                            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
+                            applyEnchant(mob, stack, "efficiency", state.getLevel("efficiency"));
+                            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                        }
+                    }
+                }
             }
         }
         
@@ -769,34 +808,74 @@ public class UpgradeSystem {
         if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
             if (state.getItemTier("head") >= 0) {
                 int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
-                ItemStack helm = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(HELMET_TIERS.get(headTier).split(":")[0], HELMET_TIERS.get(headTier).split(":")[1])));
-                applyArmorEnchants(mob, helm, state, "head");
-                applyEnchant(mob, helm, "aqua_affinity", state.getLevel("aqua_affinity"));
-                applyEnchant(mob, helm, "respiration", state.getLevel("respiration"));
-                mob.equipStack(EquipmentSlot.HEAD, helm);
+                String itemId = HELMET_TIERS.get(headTier);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack helm = new ItemStack(item);
+                            applyArmorEnchants(mob, helm, state, "head");
+                            applyEnchant(mob, helm, "aqua_affinity", state.getLevel("aqua_affinity"));
+                            applyEnchant(mob, helm, "respiration", state.getLevel("respiration"));
+                            mob.equipStack(EquipmentSlot.HEAD, helm);
+                        }
+                    }
+                }
             }
             if (state.getItemTier("chest") >= 0) {
                 int chestTier = Math.min(state.getItemTier("chest"), CHEST_TIERS.size() - 1);
-                ItemStack chest = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(CHEST_TIERS.get(chestTier).split(":")[0], CHEST_TIERS.get(chestTier).split(":")[1])));
-                applyArmorEnchants(mob, chest, state, "chest");
-                mob.equipStack(EquipmentSlot.CHEST, chest);
+                String itemId = CHEST_TIERS.get(chestTier);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack chest = new ItemStack(item);
+                            applyArmorEnchants(mob, chest, state, "chest");
+                            mob.equipStack(EquipmentSlot.CHEST, chest);
+                        }
+                    }
+                }
             }
             if (state.getItemTier("legs") >= 0) {
                 int legsTier = Math.min(state.getItemTier("legs"), LEGS_TIERS.size() - 1);
-                ItemStack legs = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(LEGS_TIERS.get(legsTier).split(":")[0], LEGS_TIERS.get(legsTier).split(":")[1])));
-                applyArmorEnchants(mob, legs, state, "legs");
-                applyEnchant(mob, legs, "swift_sneak", state.getLevel("swift_sneak"));
-                mob.equipStack(EquipmentSlot.LEGS, legs);
+                String itemId = LEGS_TIERS.get(legsTier);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack legs = new ItemStack(item);
+                            applyArmorEnchants(mob, legs, state, "legs");
+                            applyEnchant(mob, legs, "swift_sneak", state.getLevel("swift_sneak"));
+                            mob.equipStack(EquipmentSlot.LEGS, legs);
+                        }
+                    }
+                }
             }
             if (state.getItemTier("feet") >= 0) {
                 int feetTier = Math.min(state.getItemTier("feet"), BOOTS_TIERS.size() - 1);
-                ItemStack boots = new ItemStack(net.minecraft.registry.Registries.ITEM.get(Identifier.of(BOOTS_TIERS.get(feetTier).split(":")[0], BOOTS_TIERS.get(feetTier).split(":")[1])));
-                applyArmorEnchants(mob, boots, state, "feet");
-                applyEnchant(mob, boots, "feather_falling", state.getLevel("feather_falling"));
-                applyEnchant(mob, boots, "soul_speed", state.getLevel("soul_speed"));
-                applyEnchant(mob, boots, "depth_strider", state.getLevel("depth_strider"));
-                applyEnchant(mob, boots, "frost_walker", state.getLevel("frost_walker"));
-                mob.equipStack(EquipmentSlot.FEET, boots);
+                String itemId = BOOTS_TIERS.get(feetTier);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack boots = new ItemStack(item);
+                            applyArmorEnchants(mob, boots, state, "feet");
+                            applyEnchant(mob, boots, "feather_falling", state.getLevel("feather_falling"));
+                            applyEnchant(mob, boots, "soul_speed", state.getLevel("soul_speed"));
+                            applyEnchant(mob, boots, "depth_strider", state.getLevel("depth_strider"));
+                            applyEnchant(mob, boots, "frost_walker", state.getLevel("frost_walker"));
+                            mob.equipStack(EquipmentSlot.FEET, boots);
+                        }
+                    }
+                }
             }
         }
         

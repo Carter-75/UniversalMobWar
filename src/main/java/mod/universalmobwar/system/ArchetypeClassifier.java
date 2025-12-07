@@ -149,9 +149,10 @@ public class ArchetypeClassifier {
             }
         }
         
-        // Piglin Randomness (50/50 Sword or Bow)
+        // Piglin Deterministic Choice (based on UUID for consistency across reloads)
         if (name.equals("piglin")) {
-            if (mob.getRandom().nextBoolean()) {
+            // Use UUID hash for deterministic but varied results
+            if (mob.getUuid().hashCode() % 2 == 0) {
                 categories.add("sword");
             } else {
                 categories.add("bow");

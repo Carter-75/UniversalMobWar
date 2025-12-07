@@ -77,8 +77,13 @@ public abstract class ProjectileSkillMixin {
                 // Let's try to spawn extras, but ensure extras don't trigger this.
                 // We can set a custom tag on the extras.
                 
+                // RECURSION FIX: Check tags FIRST before processing
+                if (entity.getCommandTags().contains("umw_multishot_extra") || entity.getCommandTags().contains("umw_processed")) {
+                    return; // Skip already processed projectiles
+                }
+                
                 int multishot = profile.specialSkills.getOrDefault("multishot_skill", 0);
-                if (multishot > 0 && !entity.getCommandTags().contains("umw_multishot_extra") && !entity.getCommandTags().contains("umw_processed")) {
+                if (multishot > 0) {
                     entity.addCommandTag("umw_processed"); // Mark main as processed
                     
                     ServerWorld world = (ServerWorld)(Object)this;

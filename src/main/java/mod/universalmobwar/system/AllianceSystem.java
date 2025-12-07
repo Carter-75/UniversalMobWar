@@ -226,6 +226,28 @@ public class AllianceSystem {
     }
     
     /**
+     * Cleans up dead mob UUIDs from alliance maps (prevents memory leak).
+     */
+    public static void cleanupDeadMobs(ServerWorld world) {
+        Set<UUID> aliveMobs = new HashSet<>();
+        for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, world.getWorldBorder().getBox(), m -> true)) {
+            aliveMobs.add(mob.getUuid());
+        }
+        
+        // Clean allianceTimestamps
+        allianceTimestamps.entrySet().removeIf(entry -> !aliveMobs.contains(entry.getKey()));
+        for (Map<UUID, Long> innerMap : allianceTimestamps.values()) {
+            innerMap.entrySet().removeIf(entry -> !aliveMobs.contains(entry.getKey()));
+        }
+        
+        // Clean strongAlliances
+        strongAlliances.entrySet().removeIf(entry -> !aliveMobs.contains(entry.getKey()));
+        for (Map<UUID, Boolean> innerMap : strongAlliances.values()) {
+            innerMap.entrySet().removeIf(entry -> !aliveMobs.contains(entry.getKey()));
+        }
+    }
+    
+    /**
      * Cleans up expired alliances.
      * Strong alliances (same species) last longer than weak alliances.
      */

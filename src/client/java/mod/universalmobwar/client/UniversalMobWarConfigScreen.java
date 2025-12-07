@@ -99,20 +99,19 @@ public class UniversalMobWarConfigScreen extends Screen {
             case GENERAL:
                 addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for the entire mod.");
                 y += gap;
+                addCheckbox(x, y, "Enable Evolution System", config.evolutionSystemEnabled, val -> config.evolutionSystemEnabled = val, "Mobs gain levels, equipment, and skills based on kills and time.");
+                y += gap;
+                addCheckbox(x, y, "Enable Alliances", config.allianceSystemEnabled, val -> config.allianceSystemEnabled = val, "Mobs form temporary alliances.");
+                y += gap;
                 addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val, "If true, zombies won't attack zombies.");
                 y += gap;
                 addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val, "If false, mobs ignore players (spectator mode).");
                 y += gap;
                 addCheckbox(x, y, "Neutral Mobs Hostile", config.neutralMobsAlwaysAggressive, val -> config.neutralMobsAlwaysAggressive = val, "Make iron golems, wolves, etc. always aggressive.");
                 y += gap;
-                addCheckbox(x, y, "Enable Alliances", config.allianceSystemEnabled, val -> config.allianceSystemEnabled = val, "Mobs form temporary alliances.");
+                addCheckbox(x, y, "Disable Natural Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Prevents all natural mob spawns.");
                 y += gap;
                 addSlider(x, y, w, h, "Detection Range: ", config.rangeMultiplier, 0.1, 5.0, val -> config.rangeMultiplier = val);
-                y += gap;
-                // Add debug and spawn control checkboxes
-                addCheckbox(x, y, "Debug Upgrade Log", config.debugUpgradeLog, val -> config.debugUpgradeLog = val, "Log all mob upgrade decisions to chat for debugging.");
-                y += gap;
-                addCheckbox(x, y, "Disable Natural Mob Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Prevents all natural mob spawns. Only manually spawned mobs will appear.");
                 break;
 
             case SCALING:
@@ -135,6 +134,10 @@ public class UniversalMobWarConfigScreen extends Screen {
                 addCheckbox(x, y, "Enable Batching", config.enableBatching, val -> config.enableBatching = val, "Process mobs in batches to reduce lag.");
                 y += gap;
                 addCheckbox(x, y, "Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val, "Use background threads for heavy calculations.");
+                y += gap;
+                addCheckbox(x, y, "Debug Logging", config.debugLogging, val -> config.debugLogging = val, "Enable detailed system logging for debugging.");
+                y += gap;
+                addCheckbox(x, y, "Debug Upgrade Log", config.debugUpgradeLog, val -> config.debugUpgradeLog = val, "Log all mob upgrade decisions to chat.");
                 y += gap;
                 addSlider(x, y, w, h, "Cache Duration (ms): ", (double)config.targetingCacheMs, 500, 5000, val -> config.targetingCacheMs = val.intValue());
                 y += gap;

@@ -8,15 +8,27 @@
 		"GameRulesAccessor$IntRuleInvoker",
 		"GameRulesAccessor$GameRulesInvoker",
 		"MobEntityAccessor",
+		"PersistentProjectileEntityAccessor",
+		"MobDataMixin",
+		"MobUpgradeTickMixin",
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
 		"NeutralMobBehaviorMixin",
 		"UniversalSummonerTrackingMixin",
 		"WarlordMinionProtectionMixin",
-		"RaidSpawningMixin"
+		"RaidSpawningMixin",
+		"NaturalMobSpawnBlockerMixin",
+		"HordeSummonMixin",
+		"InfectiousBiteMixin",
+		"ProjectileSkillMixin",
+		"BowPotionMixin",
+		"WitchPotionMixin",
+		"CaveSpiderMixin",
+		"CreeperExplosionMixin",
+		"EquipmentBreakMixin",
+		"InvisibilitySkillMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	}
 }
-
