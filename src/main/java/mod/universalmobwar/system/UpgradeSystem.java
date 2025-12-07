@@ -1,6 +1,13 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.config.ModConfig;
+import net.fabricmc.loader.api.FabricLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.entity.EquipmentSlot;
@@ -113,8 +120,98 @@ public class UpgradeSystem {
 
     public static void applyUpgrades(MobEntity mob, PowerProfile profile) {
         // Synchronous fallback if async is not used
-        SimState state = simulate(new SimulationContext(mob, profile.totalPoints), profile);
+        SimState state = simulateWithDebug(mob, profile);
         applyStateToMob(mob, state, profile);
+    }
+
+    // Simulate with debug logging if enabled
+    private static SimState simulateWithDebug(MobEntity mob, PowerProfile profile) {
+        boolean debug = ModConfig.getInstance().debugUpgradeLog;
+        SimulationContext context = new SimulationContext(mob, profile.totalPoints);
+        SimState state = new SimState();
+        double totalPoints = profile.totalPoints;
+        Random rand = new Random(context.seed);
+        int safety = 0;
+        UpgradeCollector collector = new UpgradeCollector();
+        List<String> debugLog = debug ? new ArrayList<>() : null;
+        while (state.spentPoints < totalPoints && safety++ < 1000000) {
+            collector.clear();
+            collectOptions(state, collector, context, profile);
+            if (collector.isEmpty()) {
+                profile.isMaxed = true;
+                if (debug) debugLog.add("No more upgrade options. Maxed out.");
+                break;
+            }
+            // Filter affordable options
+            List<Integer> affordable = new ArrayList<>();
+            double remaining = totalPoints - state.spentPoints;
+            Map<String, Double> groupTotalBaseWeight = new HashMap<>();
+            for (int i = 0; i < collector.size(); i++) {
+                if (collector.costs.get(i) <= remaining) {
+                    affordable.add(i);
+                    String g = collector.groups.get(i);
+                    double w = collector.weights.get(i);
+                    groupTotalBaseWeight.put(g, groupTotalBaseWeight.getOrDefault(g, 0.0) + w);
+                }
+            }
+            if (affordable.isEmpty()) {
+                if (debug) debugLog.add("No affordable upgrades left. Stopping.");
+                break;
+            }
+            // Calculate selection weights (Equal probability per group)
+            double totalSelectionWeight = 0;
+            Map<Integer, Double> selectionWeights = new HashMap<>();
+            double TARGET_GROUP_WEIGHT = 100.0;
+            for (int i : affordable) {
+                String g = collector.groups.get(i);
+                double base = collector.weights.get(i);
+                double groupTotal = groupTotalBaseWeight.get(g);
+                double w = (base / groupTotal) * TARGET_GROUP_WEIGHT;
+                selectionWeights.put(i, w);
+                totalSelectionWeight += w;
+            }
+            // Pick random weighted
+            double r = rand.nextDouble() * totalSelectionWeight;
+            double currentWeight = 0;
+            int index = -1;
+            for (int i : affordable) {
+                currentWeight += selectionWeights.get(i);
+                if (r < currentWeight) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1) index = affordable.get(affordable.size() - 1); // Fallback
+            if (debug) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("[Mob: ").append(mob.getType().getTranslationKey()).append("] ");
+                sb.append("Points: ").append(state.spentPoints).append("/").append(totalPoints).append(" | ");
+                sb.append("Upgrade: ").append(collector.ids.get(index)).append(" (cat: ").append(collector.cats.get(index)).append(", group: ").append(collector.groups.get(index)).append(", cost: ").append(collector.costs.get(index)).append(")");
+                debugLog.add(sb.toString());
+            }
+            collector.apply(index, state);
+            checkTierUpgrades(state, context);
+        }
+        if (debug && mob.getWorld() instanceof ServerWorld sw) {
+            MinecraftServer server = sw.getServer();
+            String mobName = mob.getType().getTranslationKey();
+            // Write to chat
+            for (String msg : debugLog) {
+                Text text = Text.literal("[UMW Debug] " + msg);
+                for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                    player.sendMessage(text, false);
+                }
+            }
+            // Write to file (append)
+            try {
+                Path logPath = FabricLoader.getInstance().getConfigDir().resolve("upgrade_debug.log");
+                Files.write(logPath, debugLog, java.nio.charset.StandardCharsets.UTF_8,
+                    Files.exists(logPath) ? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+            } catch (Exception e) {
+                // Ignore file write errors
+            }
+        }
+        return state;
     }
     
     public static java.util.concurrent.CompletableFuture<SimState> simulateAsync(MobEntity mob, PowerProfile profile) {

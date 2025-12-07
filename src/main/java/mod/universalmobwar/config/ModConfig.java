@@ -15,16 +15,21 @@ import java.util.List;
  * Configuration file for Universal Mob War mod.
  * Stores default gamerule values and mob exclusions.
  */
+
 public class ModConfig {
-        // Global Mob Scaling System (new)
-        public boolean scalingEnabled = true;
-        public double dayScalingMultiplier = 1.0;
-        public double killScalingMultiplier = 1.0;
-        public int maxTier = 20;
-        public boolean allowBossScaling = true;
-        public boolean allowModdedScaling = true;
-        public boolean restrictEffectsToMobTheme = true;
-        public boolean debugLogging = false;
+    // Global Mob Scaling System (new)
+    public boolean scalingEnabled = true;
+    public double dayScalingMultiplier = 1.0;
+    public double killScalingMultiplier = 1.0;
+    public int maxTier = 20;
+    public boolean allowBossScaling = true;
+    public boolean allowModdedScaling = true;
+    public boolean restrictEffectsToMobTheme = true;
+    // Debug flag for upgrade logging (new)
+    public boolean debugUpgradeLog = false;
+    // Disable all natural mob spawns (new)
+    public boolean disableNaturalMobSpawns = false;
+    public boolean debugLogging = false;
 
         // Advanced performance tuning
         public int targetingCacheMs = 1500; // Entity targeting cache duration (ms)
@@ -83,18 +88,23 @@ public class ModConfig {
     private static ModConfig load() {
         Path configPath = FabricLoader.getInstance().getConfigDir().resolve(CONFIG_FILE_NAME);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        
         if (Files.exists(configPath)) {
             try {
                 String json = Files.readString(configPath);
                 ModConfig config = gson.fromJson(json, ModConfig.class);
+                // If debugUpgradeLog or disableNaturalMobSpawns is missing (old config), default to false
+                if (json != null && !json.contains("debugUpgradeLog")) {
+                    config.debugUpgradeLog = false;
+                }
+                if (json != null && !json.contains("disableNaturalMobSpawns")) {
+                    config.disableNaturalMobSpawns = false;
+                }
                 UniversalMobWarMod.LOGGER.info("Loaded configuration from {}", CONFIG_FILE_NAME);
                 return config;
             } catch (IOException e) {
                 UniversalMobWarMod.LOGGER.error("Failed to load config file, using defaults", e);
             }
         }
-        
         // Create default config
         ModConfig defaultConfig = new ModConfig();
         defaultConfig.save();

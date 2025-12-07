@@ -108,6 +108,11 @@ public class UniversalMobWarConfigScreen extends Screen {
                 addCheckbox(x, y, "Enable Alliances", config.allianceSystemEnabled, val -> config.allianceSystemEnabled = val, "Mobs form temporary alliances.");
                 y += gap;
                 addSlider(x, y, w, h, "Detection Range: ", config.rangeMultiplier, 0.1, 5.0, val -> config.rangeMultiplier = val);
+                y += gap;
+                // Add debug and spawn control checkboxes
+                addCheckbox(x, y, "Debug Upgrade Log", config.debugUpgradeLog, val -> config.debugUpgradeLog = val, "Log all mob upgrade decisions to chat for debugging.");
+                y += gap;
+                addCheckbox(x, y, "Disable Natural Mob Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Prevents all natural mob spawns. Only manually spawned mobs will appear.");
                 break;
 
             case SCALING:
