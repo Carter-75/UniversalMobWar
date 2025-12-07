@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -74,6 +75,29 @@ public class ModConfig {
 
     // Performance presets
     public boolean performanceMode = false; // Optimizes settings for low-end PCs
+
+    // Upgrade cost arrays (from skilltree.txt)
+    public int[] generalUpgradeCosts = {2};
+    public int[] generalPassiveUpgradeCosts = {2, 2, 2};
+    public int[] swordUpgradeCosts = {1, 1, 2, 2, 3, 3, 4, 4, 5};
+    public int[] tridentUpgradeCosts = {3, 3, 3};
+    public int[] bowUpgradeCosts = {2, 2, 2, 3, 3, 3, 3};
+    public int[] armorUpgradeCosts = {2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5};
+    public int[] zombieUpgradeCosts = {3};
+    public int[] projectileUpgradeCosts = {2};
+    public int[] creeperUpgradeCosts = {3};
+    public int[] witchUpgradeCosts = {3};
+    public int[] caveSpiderUpgradeCosts = {3};
+
+    // Item tiers
+    public List<String> swordTiers = Arrays.asList("wooden_sword", "stone_sword", "iron_sword", "diamond_sword", "netherite_sword");
+    public List<String> goldSwordTiers = Arrays.asList("golden_sword", "netherite_sword");
+    public List<String> axeTiers = Arrays.asList("wooden_axe", "stone_axe", "iron_axe", "diamond_axe", "netherite_axe");
+    public List<String> goldAxeTiers = Arrays.asList("golden_axe", "netherite_axe");
+    public List<String> helmetTiers = Arrays.asList("leather_helmet", "chainmail_helmet", "iron_helmet", "diamond_helmet", "netherite_helmet");
+    public List<String> chestTiers = Arrays.asList("leather_chestplate", "chainmail_chestplate", "iron_chestplate", "diamond_chestplate", "netherite_chestplate");
+    public List<String> legsTiers = Arrays.asList("leather_leggings", "chainmail_leggings", "iron_leggings", "diamond_leggings", "netherite_leggings");
+    public List<String> bootsTiers = Arrays.asList("leather_boots", "chainmail_boots", "iron_boots", "diamond_boots", "netherite_boots");
 
     private static final String CONFIG_FILE_NAME = "universalmobwar.json";
     private static ModConfig INSTANCE = null;

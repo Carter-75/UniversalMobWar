@@ -35,7 +35,7 @@ public class ArchetypeClassifier {
         register("vindicator", "g", "axe");
         register("pillager", "g", "pro", "bow");
         register("evoker", "g", "nw");
-        register("witch", "g", "nw", "pro");
+        register("witch", "g", "nw", "pro", "witch");
         register("vex", "g");
         register("ravager", "g", "nw");
         
@@ -45,7 +45,7 @@ public class ArchetypeClassifier {
         
         // Arthropods
         register("spider", "g", "nw");
-        register("cave_spider", "g", "nw");
+        register("cave_spider", "g", "nw", "cave_spider");
         register("silverfish", "g", "nw");
         register("endermite", "g", "nw");
         register("bee", "g");
@@ -66,7 +66,7 @@ public class ArchetypeClassifier {
         register("elder_guardian", "g", "nw");
         
         // Others
-        register("creeper", "g", "nw");
+        register("creeper", "g", "nw", "creeper");
         register("slime", "g", "nw");
         register("iron_golem", "g");
         register("snow_golem", "g", "pro", "nw");
