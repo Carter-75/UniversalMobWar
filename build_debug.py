@@ -13,6 +13,16 @@ def build_project():
         print(f"Error: {gradlew} not found in current directory.")
         return
 
+    # Pause OneDrive sync if on Windows
+    onedrive_paused = False
+    if os.name == 'nt':
+        try:
+            print("Pausing OneDrive sync...")
+            subprocess.run(["powershell", "-Command", "& {Start-Process OneDrive.exe -ArgumentList '/pause' -WindowStyle Hidden}"], check=False)
+            onedrive_paused = True
+        except Exception as e:
+            print(f"Warning: Could not pause OneDrive: {e}")
+
     # Set JAVA_HOME if not already set
     if 'JAVA_HOME' not in os.environ:
         # Fallback to known path
@@ -69,6 +79,14 @@ def build_project():
                         print(f"Failed to kill Java processes: {kill_err}")
     except Exception as e:
         print(f"An error occurred: {e}")
+    finally:
+        # Resume OneDrive sync if it was paused
+        if onedrive_paused:
+            try:
+                print("Resuming OneDrive sync...")
+                subprocess.run(["powershell", "-Command", "& {Start-Process OneDrive.exe -ArgumentList '/resume' -WindowStyle Hidden}"], check=False)
+            except Exception as e:
+                print(f"Warning: Could not resume OneDrive: {e}")
 
 if __name__ == "__main__":
     build_project()
