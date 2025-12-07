@@ -65,9 +65,19 @@ public class EvolutionSystem {
                     if (mob.getServer() != null) {
                         mob.getServer().execute(() -> {
                             if (mob.isAlive()) {
+                                // Re-fetch data to avoid race conditions (e.g. kill count updates during async sim)
+                                MobWarData freshData = MobWarData.get(mob);
+                                
+                                // If the mob has already progressed further (e.g. another kill happened and finished faster),
+                                // don't overwrite with old data.
+                                if (freshData.getSkillPoints() > finalProfile.totalPoints) {
+                                    return;
+                                }
+                                
                                 UpgradeSystem.applyStateToMob(mob, state, finalProfile);
-                                data.setSkillData(finalProfile.writeNbt());
-                                MobWarData.save(mob, data);
+                                freshData.setSkillData(finalProfile.writeNbt());
+                                freshData.setSkillPoints(finalProfile.totalPoints); // Ensure points are synced
+                                MobWarData.save(mob, freshData);
                             }
                         });
                     }
