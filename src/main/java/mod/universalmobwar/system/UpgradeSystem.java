@@ -57,16 +57,33 @@ public class UpgradeSystem {
         public void setItemTier(String type, int val) { itemTiers.put(type, val); }
     }
 
-    public static void applyUpgrades(MobEntity mob, PowerProfile profile) {
-        SimState state = simulate(mob, profile);
-        applyStateToMob(mob, state, profile);
+    public static class SimulationContext {
+        public final long seed;
+        public final String translationKey;
+        public final Set<String> tags;
+        
+        public SimulationContext(MobEntity mob, double totalPoints) {
+            this.seed = mob.getUuid().hashCode() ^ (long)totalPoints;
+            this.translationKey = mob.getType().getTranslationKey();
+            this.tags = new HashSet<>(mob.getCommandTags());
+        }
     }
 
-    public static SimState simulate(MobEntity mob, PowerProfile profile) {
+    public static void applyUpgrades(MobEntity mob, PowerProfile profile) {
+        // Synchronous fallback if async is not used
+        SimState state = simulate(new SimulationContext(mob, profile.totalPoints), profile);
+        applyStateToMob(mob, state, profile);
+    }
+    
+    public static java.util.concurrent.CompletableFuture<SimState> simulateAsync(MobEntity mob, PowerProfile profile) {
+        SimulationContext context = new SimulationContext(mob, profile.totalPoints);
+        return java.util.concurrent.CompletableFuture.supplyAsync(() -> simulate(context, profile));
+    }
+
+    public static SimState simulate(SimulationContext context, PowerProfile profile) {
         SimState state = new SimState();
         double totalPoints = profile.totalPoints;
-        long seed = mob.getUuid().hashCode() ^ (long)totalPoints; 
-        Random rand = new Random(seed);
+        Random rand = new Random(context.seed);
 
         Set<String> cats = profile.categories;
         boolean isG = cats.contains("g");
@@ -77,8 +94,8 @@ public class UpgradeSystem {
         boolean isTrident = cats.contains("trident");
         boolean isAxe = cats.contains("axe");
         boolean isNW = cats.contains("nw");
-        boolean isWitch = mob.getType().getTranslationKey().contains("witch");
-        boolean isCreeper = mob.getType().getTranslationKey().contains("creeper");
+        boolean isWitch = context.translationKey.contains("witch");
+        boolean isCreeper = context.translationKey.contains("creeper");
         
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch;
         boolean useAxe = isAxe;
@@ -90,7 +107,7 @@ public class UpgradeSystem {
             
             if (isG) addGeneralUpgrades(state, possibleUpgrades, GENERAL_COSTS);
             if (isGP) addGeneralPassiveUpgrades(state, possibleUpgrades, GENERAL_PASSIVE_COSTS);
-            if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS, mob);
+            if (isZ) addZombieUpgrades(state, possibleUpgrades, ZOMBIE_COSTS, context);
             if (isPro) addProjectileUpgrades(state, possibleUpgrades, PROJECTILE_COSTS);
             if (isCreeper) addCreeperUpgrades(state, possibleUpgrades, CREEPER_COSTS);
             if (isWitch) addWitchUpgrades(state, possibleUpgrades, WITCH_COSTS);
@@ -136,7 +153,7 @@ public class UpgradeSystem {
             upgrade.run();
             
             // Check for Tier Upgrades
-            checkTierUpgrades(state, useSword, isTrident, isBow, isAxe, mob);
+            checkTierUpgrades(state, useSword, isTrident, isBow, isAxe, context);
         }
         
         return state;
@@ -162,11 +179,11 @@ public class UpgradeSystem {
         if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", cost);
     }
 
-    private static void addZombieUpgrades(SimState state, List<Runnable> options, int[] costs, MobEntity mob) {
+    private static void addZombieUpgrades(SimState state, List<Runnable> options, int[] costs, SimulationContext context) {
         int cost = getCost(state.getCategoryCount("z"), costs);
         if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", cost);
         
-        boolean isReinforcement = mob.getCommandTags().contains("umw_horde_reinforcement");
+        boolean isReinforcement = context.tags.contains("umw_horde_reinforcement");
         if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", cost);
     }
 
@@ -229,9 +246,9 @@ public class UpgradeSystem {
         return costs[count];
     }
 
-    private static void checkTierUpgrades(SimState state, boolean sword, boolean trident, boolean bow, boolean axe, MobEntity mob) {
+    private static void checkTierUpgrades(SimState state, boolean sword, boolean trident, boolean bow, boolean axe, SimulationContext context) {
         if (sword) {
-            boolean piglin = mob.getType().getTranslationKey().contains("piglin");
+            boolean piglin = context.translationKey.contains("piglin");
             List<String> tiers = piglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
             int currentTier = state.getItemTier("sword");
             if (currentTier < tiers.size() - 1) {
@@ -279,7 +296,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void applyStateToMob(MobEntity mob, SimState state, PowerProfile profile) {
+    public static void applyStateToMob(MobEntity mob, SimState state, PowerProfile profile) {
         // Apply Stats
         double healthBonus = state.getLevel("health_boost") * 4.0; 
         

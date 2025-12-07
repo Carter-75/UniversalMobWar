@@ -54,10 +54,23 @@ public class EvolutionSystem {
             profile.archetype = ArchetypeClassifier.detectArchetype(mob);
             
             // Apply Upgrades
-            UpgradeSystem.applyUpgrades(mob, profile);
-            
-            data.setSkillData(profile.writeNbt());
-            MobWarData.save(mob, data);
+            if (mod.universalmobwar.config.ModConfig.getInstance().enableAsyncTasks) {
+                UpgradeSystem.simulateAsync(mob, profile).thenAccept(state -> {
+                    if (mob.getServer() != null) {
+                        mob.getServer().execute(() -> {
+                            if (mob.isAlive()) {
+                                UpgradeSystem.applyStateToMob(mob, state, profile);
+                                data.setSkillData(profile.writeNbt());
+                                MobWarData.save(mob, data);
+                            }
+                        });
+                    }
+                });
+            } else {
+                UpgradeSystem.applyUpgrades(mob, profile);
+                data.setSkillData(profile.writeNbt());
+                MobWarData.save(mob, data);
+            }
         }
     }
 
