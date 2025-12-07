@@ -23,11 +23,16 @@ public class EvolutionSystem {
         
         // Calculate Skill Points based on Day
         long day = world.getTimeOfDay() / 24000L;
-        double totalPoints = calculateTotalSkillPoints(day);
+        double dayPoints = calculateTotalSkillPoints(day) * mod.universalmobwar.config.ModConfig.getInstance().dayScalingMultiplier;
         
-        // Update points if day has advanced or if it is a new mob
-        // We always recalculate to ensure consistency with config/day changes
-        // But we only apply if points increased or it is first run
+        // Calculate Skill Points based on Kills
+        // We assume 1 kill = 1 point * multiplier (configurable)
+        // Day based and kill based together
+        double killPoints = data.getKillCount() * mod.universalmobwar.config.ModConfig.getInstance().killScalingMultiplier;
+        
+        double totalPoints = dayPoints + killPoints;
+        
+        // Update points if total has increased (due to day or kills)
         if (totalPoints > data.getSkillPoints() || data.getPowerProfile().totalPoints == 0) {
             data.setSkillPoints(totalPoints);
             
@@ -57,11 +62,14 @@ public class EvolutionSystem {
     }
 
     public static void onMobKill(MobEntity killer, LivingEntity victim) {
-        // Kills don't give skill points in this new system, only days.
-        // But we still track kills for other reasons if needed.
         MobWarData data = MobWarData.get(killer);
         data.addKill();
         MobWarData.save(killer, data);
+        
+        // Trigger re-evaluation of skills immediately upon kill
+        if (killer.getWorld() instanceof ServerWorld serverWorld) {
+            onMobSpawn(killer, serverWorld);
+        }
     }
     
     private static double calculateTotalSkillPoints(long day) {

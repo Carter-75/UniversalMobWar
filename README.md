@@ -12,7 +12,7 @@
 
 - **Unified Evolution System (v2.0):**
   - **Day Scaling:** Mobs spawn stronger based on the world day (configurable).
-  - **Kill Scaling:** Mobs level up by killing others (3 kills = 1 level).
+  - **Kill Scaling:** Mobs gain additional skill points by killing others (configurable multiplier).
   - **Hyper-Lethality:** Damage scales faster than Armor to prevent stalemates.
   - **Gear Progression:** Mobs equip better armor and weapons as they level up.
   - **Stalemate Breaker:** If a fight lasts >15s, the attacker gains Berserk buffs (Strength/Speed) to force a conclusion.
@@ -244,18 +244,22 @@ Look in Creative Inventory → Spawn Eggs tab → **Mob Warlord Spawn Egg** (wit
 
 ---
 
-## 🧬 Unified Mob Progression & Skill Tree System (v3.0)
+## 🧬 Unified Mob Progression & Skill Tree System (v2.0+)
 
 The new **Evolution System** implements a complex, day-based skill tree that allows mobs to evolve unique traits, gear, and abilities over time.
 
 ### 📈 Skill Point Accumulation
-Mobs gain "Skill Points" (poi) based on the age of the world (World Days).
-- **Days 0-10:** 0.1 points/day
-- **Days 11-15:** 0.5 points/day
-- **Days 16-20:** 1.0 points/day
-- **Days 21-25:** 1.5 points/day
-- **Days 26-30:** 3.0 points/day
-- **Days 31+:** 5.0 points/day (Max scaling)
+Mobs gain "Skill Points" (poi) based on two factors:
+1. **World Age (Days):**
+   - **Days 0-10:** 0.1 points/day
+   - **Days 11-15:** 0.5 points/day
+   - **Days 16-20:** 1.0 points/day
+   - **Days 21-25:** 1.5 points/day
+   - **Days 26-30:** 3.0 points/day
+   - **Days 31+:** 5.0 points/day (Max scaling)
+2. **Kills:**
+   - Mobs gain additional points for every kill they secure.
+   - Formula: `Total Points = (Day Points * dayScalingMultiplier) + (Kills * killScalingMultiplier)`
 
 ### 🌳 Skill Trees
 Mobs spend points on upgrades in specific trees based on their type.
@@ -290,56 +294,16 @@ Mobs upgrade their gear with enchantments. Each upgrade costs points and adds a 
   - **Multishot:** Fires multiple projectiles at once.
 
 ### 🛡️ Gear Progression
-Mobs automatically equip better base gear as they level up:
-- **Wood → Stone → Iron → Diamond → Netherite**
-- Enchantments are applied on top of this base gear.
+Mobs automatically equip better base gear as they max out their current gear's potential.
+- **Progression:** Wood → Stone → Iron → Diamond → Netherite
+- **Mechanic:** Once a mob has maxed out all enchantments for its current tier (e.g., a full Sharpness V / Unbreaking III Wooden Sword), it automatically upgrades to the next material tier (Stone) and resets enchantments to begin the cycle again.
+- **Drop Chance:** Equipment drop chance decreases as the mob becomes more powerful (50% → 5%).
 
 ---
 
 
 
 *Modded mobs auto-detect the closest vanilla archetype and follow its path.*
-
-#### Upgrade Effects & Costs
-- **+Health**: +10% max health per tier
-- **+Damage**: +10% attack damage per tier
-- **+Speed**: +5% movement speed per tier
-- **+Armor**: +2 armor per tier
-- **+Knockback Resist**: +10% per tier
-- **Special Upgrades**: Unique to archetype, unlocked at high tiers (see above)
-- **Upgrade Cost**: Each tier requires more points (see below)
-
-#### Tier/Point Requirements
-| Tier | Total Points Required |
-|------|----------------------|
-| 0    | 0                    |
-| 1    | 10                   |
-| 2    | 30                   |
-| 3    | 80                   |
-| 4    | 200                  |
-| 5    | 500                  |
-| 6    | 1200                 |
-| 7    | 3000                 |
-| 8    | 7000                 |
-| 9    | 15000                |
-| 10+  | 30000+               |
-
-- **Points** = (World Days × dayScalingMultiplier) + (Kills × killScalingMultiplier / tier penalty)
-- Each new tier unlocks a new upgrade from the archetype path.
-
-#### Equipment Progression (All Mobs)
-| Tier/Level | Weapon           | Armor Set         |
-|-----------|------------------|------------------|
-| 1-9       | None             | None             |
-| 10-19     | Wooden Sword     | None             |
-| 20-29     | Stone Sword      | Leather          |
-| 30-39     | Iron Sword       | Chainmail        |
-| 40-49     | Diamond Sword    | Iron             |
-| 50-59     | Netherite Sword  | Diamond          |
-| 60+       | Netherite Sword  | Netherite        |
-
-- Equipment is upgraded automatically as mobs reach the required tier/level.
-- Drop chance for equipment: 10%
 
 ---
 
