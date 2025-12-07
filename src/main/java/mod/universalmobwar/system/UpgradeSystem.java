@@ -1,6 +1,7 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.config.ModConfig;
+import mod.universalmobwar.data.MobWarData;
 import net.fabricmc.loader.api.FabricLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -119,6 +120,72 @@ public class UpgradeSystem {
         // Synchronous fallback if async is not used
         SimState state = simulateWithDebug(mob, profile);
         applyStateToMob(mob, state, profile);
+    }
+
+    // Perform one incremental upgrade step (for tick-based progression)
+    public static void performOneStep(MobEntity mob, MobWarData data) {
+        PowerProfile profile = data.getPowerProfile();
+        if (profile == null || profile.totalPoints <= data.getSpentPoints()) return;
+
+        // Load current state from profile
+        SimState state = loadStateFromProfile(profile);
+        
+        // Calculate how many points we can spend this step
+        double availablePoints = Math.min(1.0, profile.totalPoints - data.getSpentPoints());
+        if (availablePoints <= 0) return;
+
+        // Perform one upgrade step
+        SimulationContext context = new SimulationContext(mob, profile.totalPoints);
+        UpgradeCollector collector = new UpgradeCollector();
+        collectOptions(state, collector, context, profile);
+        
+        if (collector.isEmpty()) {
+            profile.isMaxed = true;
+            data.setSkillData(profile.writeNbt());
+            return;
+        }
+
+        // Find affordable options
+        List<Integer> affordable = new ArrayList<>();
+        for (int i = 0; i < collector.size(); i++) {
+            if (collector.costs.get(i) <= availablePoints) {
+                affordable.add(i);
+            }
+        }
+
+        if (affordable.isEmpty()) return;
+
+        // Pick one randomly (simplified - just take first affordable)
+        int index = affordable.get(0);
+        if (affordable.size() > 1) {
+            index = affordable.get(mob.getRandom().nextInt(affordable.size()));
+        }
+
+        // Apply the upgrade
+        collector.apply(index, state);
+        checkTierUpgrades(state, context);
+        
+        // Update spent points
+        data.setSpentPoints(data.getSpentPoints() + collector.costs.get(index));
+        
+        // Save state back to profile
+        saveStateToProfile(state, profile);
+        data.setSkillData(profile.writeNbt());
+        
+        // Apply to mob immediately
+        applyStateToMob(mob, state, profile);
+        
+        // Debug logging
+        if (ModConfig.getInstance().debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
+            MinecraftServer server = sw.getServer();
+            String msg = String.format("[UMW] Upgrade: %s gained %s (cost: %.1f, total spent: %.1f/%.1f)", 
+                mob.getType().getTranslationKey(), collector.ids.get(index), 
+                collector.costs.get(index), data.getSpentPoints(), profile.totalPoints);
+            Text text = Text.literal(msg);
+            for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+                p.sendMessage(text, false);
+            }
+        }
     }
 
     // Simulate with debug logging if enabled
@@ -398,139 +465,6 @@ public class UpgradeSystem {
         checkArmorTier(state, "chest", CHEST_TIERS, List.of(), List.of());
         checkArmorTier(state, "legs", LEGS_TIERS, List.of("swift_sneak"), List.of(3));
         checkArmorTier(state, "feet", BOOTS_TIERS, List.of("feather_falling", "soul_speed", "depth_strider", "frost_walker"), List.of(4, 3, 3, 2));
-    }
-
-    public static void performOneStep(MobEntity mob, mod.universalmobwar.data.MobWarData data) {
-        PowerProfile profile = data.getPowerProfile();
-        if (profile == null || profile.isMaxed) return;
-        
-        SimState state = loadStateFromProfile(profile);
-        state.spentPoints = data.getSpentPoints();
-        
-        double available = data.getSkillPoints() - state.spentPoints;
-        if (available < 1.0) return;
-        
-        SimulationContext context = new SimulationContext(mob, data.getSkillPoints());
-        UpgradeCollector collector = new UpgradeCollector();
-        
-        collectOptions(state, collector, context, profile);
-        
-        if (collector.isEmpty()) {
-            profile.isMaxed = true;
-            data.setSkillData(profile.writeNbt());
-            return;
-        }
-        
-        // Filter affordable
-        Map<String, List<Integer>> affordableByGroup = new HashMap<>();
-        List<Integer> expensiveIndices = new ArrayList<>();
-        
-        for (int i = 0; i < collector.size(); i++) {
-            if (collector.costs.get(i) <= available) {
-                String g = collector.groups.get(i);
-                affordableByGroup.computeIfAbsent(g, k -> new ArrayList<>()).add(i);
-            } else {
-                expensiveIndices.add(i);
-            }
-        }
-        
-        if (affordableByGroup.isEmpty()) {
-            // Can't afford anything now.
-            return;
-        }
-        
-        // Saving Chance Logic: 50% chance to save if we have expensive options we can't afford yet
-        if (!expensiveIndices.isEmpty()) {
-            if (mob.getRandom().nextFloat() < 0.5f) {
-                return; 
-            }
-        }
-        
-        // Pick a random group (Equal chance per slot/category)
-        List<String> groups = new ArrayList<>(affordableByGroup.keySet());
-        String chosenGroup = groups.get(mob.getRandom().nextInt(groups.size()));
-        
-        // Pick a random upgrade within that group
-        List<Integer> options = affordableByGroup.get(chosenGroup);
-        
-        // Use weights within the group (with durability prioritization)
-        // If an option is a durability upgrade and the current equipped item's
-        // real durability% is below the purchased threshold, boost its weight.
-        int totalGroupWeight = 0;
-        Map<Integer, Integer> adjustedWeights = new HashMap<>();
-        for (int i : options) {
-            int baseW = Math.max(1, collector.weights.get(i));
-            String id = collector.ids.get(i);
-            int weight = baseW;
-            try {
-                if (id.startsWith("durability_")) {
-                    String slot = id.substring("durability_".length());
-                    EquipmentSlot eq = switch (slot) {
-                        case "mainhand" -> EquipmentSlot.MAINHAND;
-                        case "offhand" -> EquipmentSlot.OFFHAND;
-                        case "head" -> EquipmentSlot.HEAD;
-                        case "chest" -> EquipmentSlot.CHEST;
-                        case "legs" -> EquipmentSlot.LEGS;
-                        case "feet" -> EquipmentSlot.FEET;
-                        default -> null;
-                    };
-                    if (eq != null) {
-                        ItemStack stk = mob.getEquippedStack(eq);
-                        if (!stk.isEmpty() && stk.isDamageable()) {
-                            int max = stk.getMaxDamage();
-                            int dmg = stk.getDamage();
-                            double remaining = (double)(max - dmg) / (double)max; // 0..1
-                            int targetLevel = state.getLevel(id);
-                            double targetPct = Math.max(0.01, targetLevel * 0.10);
-                            if (remaining < targetPct) {
-                                // item is below purchased durability; boost chance to repair it
-                                weight = baseW * 6; // big boost
-                            }
-                        } else if (stk.isEmpty()) {
-                            // Missing item: strongly prefer replacing/downgrading
-                            weight = baseW * 4;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // ignore weighting errors
-            }
-            adjustedWeights.put(i, weight);
-            totalGroupWeight += weight;
-        }
-
-        int r = mob.getRandom().nextInt(Math.max(1, totalGroupWeight));
-        int currentWeight = 0;
-        int choiceIndex = -1;
-        for (int i : options) {
-            currentWeight += adjustedWeights.getOrDefault(i, collector.weights.get(i));
-            if (r < currentWeight) {
-                choiceIndex = i;
-                break;
-            }
-        }
-        
-        if (choiceIndex == -1) choiceIndex = options.get(options.size() - 1);
-        
-        collector.apply(choiceIndex, state);
-        // Debug logging for one-step upgrades
-        if (ModConfig.getInstance().debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
-            MinecraftServer server = sw.getServer();
-            String msg = String.format("[UMW] OneStep: Mob=%s spent=%.2f/%.2f picked=%s (group=%s)", mob.getType().getTranslationKey(), state.spentPoints, data.getSkillPoints(), collector.ids.get(choiceIndex), collector.groups.get(choiceIndex));
-            Text text = Text.literal(msg);
-            for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) p.sendMessage(text, false);
-        }
-        
-        // Check Tiers
-        checkTierUpgrades(state, context);
-        
-        // Save back
-        saveStateToProfile(state, profile);
-        data.setSpentPoints(state.spentPoints);
-        data.setSkillData(profile.writeNbt());
-        
-        // Apply visual
-        applyStateToMob(mob, state, profile);
     }
 
     public static SimState loadStateFromProfile(PowerProfile profile) {

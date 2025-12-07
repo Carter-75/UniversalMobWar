@@ -36,7 +36,7 @@ public class ModConfig implements ConfigData {
     // Debug and performance
     @ConfigEntry.Category("debug")
     @ConfigEntry.Gui.Tooltip
-    public boolean debugUpgradeLog = false;
+    public boolean debugUpgradeLog = true;
     @ConfigEntry.Gui.Tooltip
     public boolean debugLogging = false;
     @ConfigEntry.Gui.Tooltip
