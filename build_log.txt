@@ -1,11 +1,17 @@
 Initialized native services in: C:\Users\carte\.gradle\native
 Initialized jansi services in: C:\Users\carte\.gradle\native
 Received JVM installation metadata from 'C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot': {JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot, JAVA_VERSION=21.0.8, JAVA_VENDOR=Microsoft, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.8+9-LTS, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.8+9-LTS, VM_VENDOR=Microsoft, OS_ARCH=amd64}
-The client will now receive all logging from the daemon (pid: 59216). The daemon log file: C:\Users\carte\.gradle\daemon\8.10.2\daemon-59216.out.log
-Starting 8th build in daemon [uptime: 26 mins 46.967 secs, performance: 98%, GC rate: 0.01/s, heap usage: 4% of 2 GiB]
+Removing 0 daemon stop events from registry
+Starting a Gradle Daemon (subsequent builds will be faster)
+Starting process 'Gradle build daemon'. Working directory: C:\Users\carte\.gradle\daemon\8.10.2 Command: C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot\bin\java.exe --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED -Xmx2G -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -cp C:\Users\carte\.gradle\wrapper\dists\gradle-8.10.2-bin\a04bxjujx95o3nb99gddekhwo\gradle-8.10.2\lib\gradle-daemon-main-8.10.2.jar -javaagent:C:\Users\carte\.gradle\wrapper\dists\gradle-8.10.2-bin\a04bxjujx95o3nb99gddekhwo\gradle-8.10.2\lib\agents\gradle-instrumentation-agent-8.10.2.jar org.gradle.launcher.daemon.bootstrap.GradleDaemon 8.10.2
+Successfully started process 'Gradle build daemon'
+An attempt to start the daemon took 1.348 secs.
+The client will now receive all logging from the daemon (pid: 13636). The daemon log file: C:\Users\carte\.gradle\daemon\8.10.2\daemon-13636.out.log
+Starting build in new daemon [memory: 2 GiB]
 Using 20 worker leases.
-Now considering [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar] as hierarchies to watch
+Received JVM installation metadata from 'C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot': {JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot, JAVA_VERSION=21.0.8, JAVA_VENDOR=Microsoft, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.8+9-LTS, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.8+9-LTS, VM_VENDOR=Microsoft, OS_ARCH=amd64}
 Watching the file system is configured to be enabled if available
+Now considering [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar] as hierarchies to watch
 File system watching is active
 Starting Build
 Settings evaluated using settings file 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\settings.gradle'.
@@ -14,6 +20,13 @@ Included projects: [root project 'universal-mob-war']
 
 > Configure project :
 Evaluating root project 'universal-mob-war' using build file 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build.gradle'.
+Cached resource https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/1.6-SNAPSHOT/maven-metadata.xml is up-to-date (lastModified: Sun Jun 02 09:13:08 CDT 2024).
+Cached resource https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/1.6-SNAPSHOT/fabric-loom.gradle.plugin-1.6-20240602.141023-12.pom is up-to-date (lastModified: Sun Jun 02 09:13:10 CDT 2024).
+Resource missing. [HTTP HEAD: https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/1.6-SNAPSHOT/fabric-loom.gradle.plugin-1.6-20240602.141023-12.jar]
+Cached resource https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.6-SNAPSHOT/maven-metadata.xml is up-to-date (lastModified: Sun Jun 02 09:13:16 CDT 2024).
+Cached resource https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.6-SNAPSHOT/fabric-loom-1.6-20240602.141023-12.pom is up-to-date (lastModified: Sun Jun 02 09:13:21 CDT 2024).
+Cached resource https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.6-SNAPSHOT/fabric-loom-1.6-20240602.141023-12.module is up-to-date (lastModified: Sun Jun 02 09:13:26 CDT 2024).
+Cached resource https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.6-SNAPSHOT/fabric-loom-1.6-20240602.141023-12.jar is up-to-date (lastModified: Sun Jun 02 09:13:19 CDT 2024).
 Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with InstrumentationAnalysisTransform
 Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with InstrumentationAnalysisTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with InstrumentationAnalysisTransform
@@ -48,76 +61,76 @@ Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with Instrumenta
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with MergeInstrumentationAnalysisTransform
 Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with InstrumentationAnalysisTransform
 Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with MergeInstrumentationAnalysisTransform
-Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with ExternalDependencyInstrumentingArtifactTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with InstrumentationAnalysisTransform
 Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with MergeInstrumentationAnalysisTransform
-Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with InstrumentationAnalysisTransform
 Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with MergeInstrumentationAnalysisTransform
 Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with InstrumentationAnalysisTransform
 Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with MergeInstrumentationAnalysisTransform
-Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with InstrumentationAnalysisTransform
-Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with MergeInstrumentationAnalysisTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with InstrumentationAnalysisTransform
 Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with MergeInstrumentationAnalysisTransform
-Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with InstrumentationAnalysisTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with MergeInstrumentationAnalysisTransform
-Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with InstrumentationAnalysisTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with MergeInstrumentationAnalysisTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with InstrumentationAnalysisTransform
 Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with MergeInstrumentationAnalysisTransform
-Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with InstrumentationAnalysisTransform
 Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with MergeInstrumentationAnalysisTransform
-Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with InstrumentationAnalysisTransform
 Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with MergeInstrumentationAnalysisTransform
-Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming guava-33.0.0-jre.jar (com.google.guava:guava:33.0.0-jre) with ExternalDependencyInstrumentingArtifactTransform
+Transforming fabric-loom-1.6-SNAPSHOT.jar (net.fabricmc:fabric-loom:1.6-SNAPSHOT:20240602.141023-12) with ExternalDependencyInstrumentingArtifactTransform
+Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with InstrumentationAnalysisTransform
+Transforming stitch-0.6.2.jar (net.fabricmc:stitch:0.6.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with MergeInstrumentationAnalysisTransform
+Transforming commons-io-2.15.1.jar (commons-io:commons-io:2.15.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with InstrumentationAnalysisTransform
+Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with MergeInstrumentationAnalysisTransform
-Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming tiny-remapper-0.10.3.jar (net.fabricmc:tiny-remapper:0.10.3) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with InstrumentationAnalysisTransform
 Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with MergeInstrumentationAnalysisTransform
-Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with InstrumentationAnalysisTransform
 Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with MergeInstrumentationAnalysisTransform
-Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with InstrumentationAnalysisTransform
-Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with MergeInstrumentationAnalysisTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with InstrumentationAnalysisTransform
+Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with MergeInstrumentationAnalysisTransform
+Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with InstrumentationAnalysisTransform
-Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
 Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with MergeInstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with InstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with MergeInstrumentationAnalysisTransform
-Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with InstrumentationAnalysisTransform
-Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming access-widener-2.1.0.jar (net.fabricmc:access-widener:2.1.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with MergeInstrumentationAnalysisTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with InstrumentationAnalysisTransform
-Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
 Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with MergeInstrumentationAnalysisTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with InstrumentationAnalysisTransform
-Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with MergeInstrumentationAnalysisTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with InstrumentationAnalysisTransform
 Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with MergeInstrumentationAnalysisTransform
-Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming mapping-io-0.5.1.jar (net.fabricmc:mapping-io:0.5.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming lorenz-tiny-4.0.2.jar (net.fabricmc:lorenz-tiny:4.0.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
+Transforming failureaccess-1.0.2.jar (com.google.guava:failureaccess:1.0.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming checker-qual-3.41.0.jar (org.checkerframework:checker-qual:3.41.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming error_prone_annotations-2.23.0.jar (com.google.errorprone:error_prone_annotations:2.23.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming fabric-loom-native-0.2.0.jar (net.fabricmc:fabric-loom-native:0.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlinx-metadata-jvm-0.9.0.jar (org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming mercury-0.4.1.jar (net.fabricmc:mercury:0.4.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming at-0.1.0-rc1.jar (org.cadixdev:at:0.1.0-rc1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming tiny-mappings-parser-0.3.0+build.17.jar (net.fabricmc:tiny-mappings-parser:0.3.0+build.17) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lorenz-0.5.7.jar (org.cadixdev:lorenz:0.5.7) with ExternalDependencyInstrumentingArtifactTransform
+Transforming bombe-0.3.4.jar (org.cadixdev:bombe:0.3.4) with ExternalDependencyInstrumentingArtifactTransform
 Fabric Loom: 1.6.12
 (kotlinx.metadata.jvm.KotlinClassMetadata) with version (0.9.0-1.9.21-40) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-metadata-jvm/0.9.0/123e86fd82d3a49afd0a41df1288a40c969f11b2/kotlinx-metadata-jvm-0.9.0.jar)
 (org.objectweb.asm.ClassVisitor) with version (9.6) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/9.6/aa205cf0a06dbd8e04ece91c0b37c3f5d567546a/asm-9.6.jar)
@@ -128,8 +141,9 @@ Fabric Loom: 1.6.12
 (com.google.gson.Gson) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.10.1/b3add478d4382b78ea20b1671390a858002feb6c/gson-2.10.1.jar)
 (com.google.common.base.Preconditions) with version (null) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/33.0.0-jre/161ba27964a62f241533807a46b8711b13c1d94b/guava-33.0.0-jre.jar)
 (org.apache.commons.io.FileUtils) with version (2.15.1) was loaded from (/C:/Users/carte/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.15.1/f11560da189ab563a5c8e351941415430e9304ea/commons-io-2.15.1.jar)
-Creating new SharedServiceManager(924689185)
-Creating new SharedServiceManager(1673388107)
+Creating new SharedServiceManager(931392091)
+Creating new SharedServiceManager(31171971)
+Resource missing. [HTTP HEAD: https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api-deprecated/0.102.0+1.21.1/fabric-api-deprecated-0.102.0+1.21.1.jar]
 :setting up loom dependencies
 Applying installer data from C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar
 Found another installer JSON in (C:\Users\carte\.gradle\caches\modules-2\files-2.1\net.fabricmc\fabric-loader\0.15.10\3538922fb4094a9d600d528e7acccac662b8a3c2\fabric-loader-0.15.10.jar), ignoring
@@ -138,84 +152,88 @@ Configuring compiler arguments for Java
 Adding mixin to classpath of AP config: annotationProcessor
 Adding mixin to classpath of AP config: testAnnotationProcessor
 Could not find refmap definition, will be using default name: universal-mob-war-refmap.json
-Closing SharedServiceManager(1673388107)
+Closing SharedServiceManager(31171971)
 sourcesJar task was not found, not remapping sources
 Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
 All projects evaluated.
 Task name matched 'build'
 Selected primary task 'build' from project :
+Starting process 'command 'C:\Java\bin\java.exe''. Working directory: C:\Users\carte\.gradle\.tmp\tmp-jvm15327161417447211082probe Command: C:\Java\bin\java.exe -Xmx32m -Xms32m -cp . JavaProbe
+Successfully started process 'command 'C:\Java\bin\java.exe''
+Received JVM installation metadata from 'C:\Java': {JAVA_HOME=C:\Java, JAVA_VERSION=21.0.7, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.7+6-LTS, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.7+6-LTS, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
+Starting process 'command 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe''. Working directory: C:\Users\carte\.gradle\.tmp\tmp-jvm5230519161618525758probe Command: C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe -Xmx32m -Xms32m -cp . JavaProbe
+Successfully started process 'command 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe''
+Received JVM installation metadata from 'C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2': {JAVA_HOME=C:\Users\carte\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2, JAVA_VERSION=17.0.17, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=17.0.17+10, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.17+10, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
 Tasks to be executed: [task ':compileJava', task ':processResources', task ':classes', task ':jar', task ':remapJar', task ':remapSourcesJar', task ':assemble', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':test', task ':validateAccessWidener', task ':check', task ':build']
 Tasks that were excluded: []
-Resolve mutations for :compileJava (Thread[#1196,Execution worker,5,main]) started.
-:compileJava (Thread[#1196,Execution worker,5,main]) started.
+Resolve mutations for :compileJava (Thread[#175,Execution worker,5,main]) started.
+:compileJava (Thread[#174,included builds,5,main]) started.
 
 > Task :compileJava
 Caching disabled for task ':compileJava' because:
   Build cache is disabled
+  Gradle does not know how file 'build\loom-cache\mixin-map-net.fabricmc.yarn.1_21_1.1.21.1+build.3-v2.main.tiny' was created (output property 'mixin-ap-main-java'). Task output caching requires exclusive access to output paths to guarantee correctness (i.e. multiple tasks are not allowed to produce output in the same location).
 Task ':compileJava' is not up-to-date because:
-  Task has failed previously.
+  Output property 'mixin-ap-main-java' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\loom-cache\mixin-map-net.fabricmc.yarn.1_21_1.1.21.1+build.3-v2.main.tiny has changed.
 The input changes require a full rebuild for incremental task ':compileJava'.
 Compilation mode: in-process compilation
 Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
 Compiling with toolchain 'C:\Program Files\Microsoft\jdk-21.0.8.9-hotspot'.
 Compiling with JDK Java compiler API.
-Class dependency analysis for incremental compilation took 0.079 secs.
-Created classpath snapshot for incremental compilation in 0.053 secs.
-Resolve mutations for :processResources (Thread[#1196,Execution worker,5,main]) started.
-:processResources (Thread[#1196,Execution worker,5,main]) started.
+Class dependency analysis for incremental compilation took 0.101 secs.
+Created classpath snapshot for incremental compilation in 0.218 secs.
+Resolve mutations for :processResources (Thread[#174,included builds,5,main]) started.
+:processResources (Thread[#174,included builds,5,main]) started.
 
 > Task :processResources UP-TO-DATE
 Caching disabled for task ':processResources' because:
   Build cache is disabled
   Not worth caching
 Skipping task ':processResources' as it is up-to-date.
-Resolve mutations for :classes (Thread[#1196,Execution worker,5,main]) started.
-:classes (Thread[#1196,Execution worker,5,main]) started.
+Resolve mutations for :classes (Thread[#174,included builds,5,main]) started.
+:classes (Thread[#174,included builds,5,main]) started.
 
 > Task :classes
 Skipping task ':classes' as it has no actions.
-Resolve mutations for :jar (Thread[#1196,Execution worker,5,main]) started.
-:jar (Thread[#1206,Execution worker Thread 11,5,main]) started.
+Resolve mutations for :jar (Thread[#174,included builds,5,main]) started.
+:jar (Thread[#174,included builds,5,main]) started.
 
 > Task :jar
 Caching disabled for task ':jar' because:
   Build cache is disabled
   Not worth caching
 Task ':jar' is not up-to-date because:
-  Input property 'rootSpec$1' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\classes\java\main\mod\universalmobwar\client\UniversalMobWarConfigScreen$1.class has changed.
-  Input property 'rootSpec$1' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\classes\java\main\mod\universalmobwar\client\UniversalMobWarConfigScreen$RangeSlider.class has been removed.
-  Input property 'rootSpec$1' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\classes\java\main\mod\universalmobwar\client\UniversalMobWarConfigScreen.class has changed.
-  and more...
-Resolve mutations for :remapJar (Thread[#1206,Execution worker Thread 11,5,main]) started.
-:remapJar (Thread[#1206,Execution worker Thread 11,5,main]) started.
-Resolve mutations for :remapSourcesJar (Thread[#1212,Execution worker Thread 17,5,main]) started.
-Resolve mutations for :compileTestJava (Thread[#1212,Execution worker Thread 17,5,main]) started.
-:compileTestJava (Thread[#1212,Execution worker Thread 17,5,main]) started.
+  Input property 'rootSpec$1' file C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\classes\java\main\mod\universalmobwar\util\TargetingUtil.class has changed.
+Resolve mutations for :remapJar (Thread[#174,included builds,5,main]) started.
+:remapJar (Thread[#174,included builds,5,main]) started.
+Resolve mutations for :remapSourcesJar (Thread[#191,Execution worker Thread 17,5,main]) started.
+Resolve mutations for :compileTestJava (Thread[#191,Execution worker Thread 17,5,main]) started.
+:compileTestJava (Thread[#191,Execution worker Thread 17,5,main]) started.
 
 > Task :compileTestJava NO-SOURCE
 Skipping task ':compileTestJava' as it has no source files and no previous output files.
-Resolve mutations for :processTestResources (Thread[#1197,Execution worker Thread 2,5,main]) started.
-:processTestResources (Thread[#1197,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :processTestResources (Thread[#191,Execution worker Thread 17,5,main]) started.
+:processTestResources (Thread[#186,Execution worker Thread 12,5,main]) started.
 
 > Task :processTestResources NO-SOURCE
 Skipping task ':processTestResources' as it has no source files and no previous output files.
-Resolve mutations for :testClasses (Thread[#1199,Execution worker Thread 4,5,main]) started.
-:testClasses (Thread[#1199,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :testClasses (Thread[#186,Execution worker Thread 12,5,main]) started.
+:testClasses (Thread[#186,Execution worker Thread 12,5,main]) started.
 
 > Task :testClasses UP-TO-DATE
 Skipping task ':testClasses' as it has no actions.
-Resolve mutations for :test (Thread[#1199,Execution worker Thread 4,5,main]) started.
-:test (Thread[#1210,Execution worker Thread 15,5,main]) started.
+Resolve mutations for :test (Thread[#186,Execution worker Thread 12,5,main]) started.
+:test (Thread[#186,Execution worker Thread 12,5,main]) started.
 
 > Task :test NO-SOURCE
 Skipping task ':test' as it has no source files and no previous output files.
-Resolve mutations for :validateAccessWidener (Thread[#1210,Execution worker Thread 15,5,main]) started.
-:validateAccessWidener (Thread[#1210,Execution worker Thread 15,5,main]) started.
+Resolve mutations for :validateAccessWidener (Thread[#186,Execution worker Thread 12,5,main]) started.
+:validateAccessWidener (Thread[#186,Execution worker Thread 12,5,main]) started.
 
 > Task :validateAccessWidener NO-SOURCE
 Skipping task ':validateAccessWidener' as it has no source files and no previous output files.
-Resolve mutations for :check (Thread[#1210,Execution worker Thread 15,5,main]) started.
-:check (Thread[#1199,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :check (Thread[#186,Execution worker Thread 12,5,main]) started.
+:check (Thread[#186,Execution worker Thread 12,5,main]) started.
 
 > Task :check UP-TO-DATE
 Skipping task ':check' as it has no actions.
@@ -231,18 +249,18 @@ Could not find refmap definition, will be using default name: universal-mob-war-
 file or directory 'C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\src\test\resources', not found
 Remapping C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\devlibs\universal-mob-war-2.0.0-dev.jar to C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\build\libs\universal-mob-war-2.0.0.jar
 No jars to nest
-:remapSourcesJar (Thread[#1206,Execution worker Thread 11,5,main]) started.
+:remapSourcesJar (Thread[#174,included builds,5,main]) started.
 
 > Task :remapSourcesJar SKIPPED
 Skipping task ':remapSourcesJar' as task onlyIf 'Task is enabled' is false.
-Closing SharedServiceManager(924689185)
-Resolve mutations for :assemble (Thread[#1206,Execution worker Thread 11,5,main]) started.
-:assemble (Thread[#1206,Execution worker Thread 11,5,main]) started.
+Closing SharedServiceManager(931392091)
+Resolve mutations for :assemble (Thread[#174,included builds,5,main]) started.
+:assemble (Thread[#174,included builds,5,main]) started.
 
 > Task :assemble
 Skipping task ':assemble' as it has no actions.
-Resolve mutations for :build (Thread[#1206,Execution worker Thread 11,5,main]) started.
-:build (Thread[#1206,Execution worker Thread 11,5,main]) started.
+Resolve mutations for :build (Thread[#174,included builds,5,main]) started.
+:build (Thread[#174,included builds,5,main]) started.
 
 > Task :build
 Skipping task ':build' as it has no actions.
@@ -253,6 +271,12 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 8s
+BUILD SUCCESSFUL in 18s
 4 actionable tasks: 3 executed, 1 up-to-date
 Watched directory hierarchies: [C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar]
+VCS Checkout Cache (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\vcs-1) removing files not accessed on or after Sat Nov 29 20:02:24 CST 2025.
+VCS Checkout Cache (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\vcs-1) cleanup deleted 0 files/directories.
+VCS Checkout Cache (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\vcs-1) cleaned up in 0.002 secs.
+dependencies-accessors (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\dependencies-accessors) removing files not accessed on or after Sat Nov 29 20:02:09 CST 2025.
+dependencies-accessors (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\dependencies-accessors) cleanup deleted 0 files/directories.
+dependencies-accessors (C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\.gradle\8.10.2\dependencies-accessors) cleaned up in 0.0 secs.
