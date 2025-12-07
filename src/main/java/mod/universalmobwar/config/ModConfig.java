@@ -16,21 +16,35 @@ import java.util.List;
  */
 @Config(name = "universalmobwar")
 public class ModConfig implements ConfigData {
-    // ========== CORE GAMEPLAY ==========
-    @ConfigEntry.Category("core")
+
+    // ========== GENERAL ==========
+    @ConfigEntry.Category("General")
     @ConfigEntry.Gui.Tooltip
     public boolean modEnabled = true;
     @ConfigEntry.Gui.Tooltip
-    public boolean targetPlayers = true;
-    @ConfigEntry.Gui.Tooltip
     public boolean ignoreSameSpecies = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean targetPlayers = true;
     @ConfigEntry.Gui.Tooltip
     public boolean neutralMobsAlwaysAggressive = false;
     @ConfigEntry.Gui.Tooltip
+    public boolean allianceSystemEnabled = true;
+    @ConfigEntry.Gui.Tooltip
     public double rangeMultiplier = 1.0;
+    @ConfigEntry.Gui.Tooltip
+    public boolean debugUpgradeLog = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean disableNaturalMobSpawns = false;
+    @ConfigEntry.Gui.Tooltip
+    public boolean evolutionSystemEnabled = true;
+    @ConfigEntry.Category("Mobs")
+    @ConfigEntry.Gui.Tooltip
+    public List<String> excludedMobs = new ArrayList<>();
+    @ConfigEntry.Gui.Tooltip
+    public List<String> specialMobs = Arrays.asList("witch", "creeper", "cave_spider");
 
-    // ========== MOB SCALING SYSTEM ==========
-    @ConfigEntry.Category("scaling")
+    // ========== SCALING ==========
+    @ConfigEntry.Category("Scaling")
     @ConfigEntry.Gui.Tooltip
     public boolean scalingEnabled = true;
     @ConfigEntry.Gui.Tooltip
@@ -46,47 +60,8 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip
     public boolean restrictEffectsToMobTheme = true;
 
-    // ========== EVOLUTION & PROGRESSION ==========
-    @ConfigEntry.Category("progression")
-    @ConfigEntry.Gui.Tooltip
-    public boolean evolutionSystemEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public int maxLevel = 100;
-    @ConfigEntry.Gui.Tooltip
-    public int killsPerLevel = 3;
-    @ConfigEntry.Gui.Tooltip
-    public boolean giveEquipmentToMobs = true;
-
-    // ========== ALLIANCE SYSTEM ==========
-    @ConfigEntry.Category("alliances")
-    @ConfigEntry.Gui.Tooltip
-    public boolean allianceSystemEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public int allianceDurationTicks = 100;
-    @ConfigEntry.Gui.Tooltip
-    public int sameSpeciesAllianceDurationTicks = 400;
-    @ConfigEntry.Gui.Tooltip
-    public double allianceRange = 16.0;
-    @ConfigEntry.Gui.Tooltip
-    public double allianceBreakChance = 0.3;
-    @ConfigEntry.Gui.Tooltip
-    public double sameSpeciesAllianceBreakChance = 0.05;
-
-    // ========== VISUAL EFFECTS ==========
-    @ConfigEntry.Category("visuals")
-    @ConfigEntry.Gui.Tooltip
-    public boolean showTargetLines = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showHealthBars = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showMobLabels = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showLevelParticles = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean disableParticles = false;
-
-    // ========== PERFORMANCE & DEBUG ==========
-    @ConfigEntry.Category("performance")
+    // ========== PERFORMANCE ==========
+    @ConfigEntry.Category("Performance")
     @ConfigEntry.Gui.Tooltip
     public boolean performanceMode = false;
     @ConfigEntry.Gui.Tooltip
@@ -105,20 +80,21 @@ public class ModConfig implements ConfigData {
     public int maxDrawnMinionConnections = 15;
     @ConfigEntry.Gui.Tooltip
     public int minFpsForVisuals = 30;
-
-    @ConfigEntry.Gui.Tooltip
-    public boolean debugUpgradeLog = true;
     @ConfigEntry.Gui.Tooltip
     public boolean debugLogging = false;
-    @ConfigEntry.Gui.Tooltip
-    public boolean disableNaturalMobSpawns = false;
 
-    // ========== MOB MANAGEMENT ==========
-    @ConfigEntry.Category("mobs")
+    // ========== VISUALS ==========
+    @ConfigEntry.Category("Visuals")
     @ConfigEntry.Gui.Tooltip
-    public List<String> excludedMobs = new ArrayList<>();
+    public boolean showTargetLines = true;
     @ConfigEntry.Gui.Tooltip
-    public List<String> specialMobs = Arrays.asList("witch", "creeper", "cave_spider");
+    public boolean showHealthBars = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean showMobLabels = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean showLevelParticles = true;
+    @ConfigEntry.Gui.Tooltip
+    public boolean disableParticles = false;
 
     // Upgrade cost arrays (hidden from GUI)
     @ConfigEntry.Gui.Excluded
