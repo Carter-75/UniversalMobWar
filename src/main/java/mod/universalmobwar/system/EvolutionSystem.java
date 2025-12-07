@@ -33,10 +33,14 @@ public class EvolutionSystem {
         double totalPoints = dayPoints + killPoints;
         
         // Update points if total has increased (due to day or kills)
-        if (totalPoints > data.getSkillPoints() || data.getPowerProfile().totalPoints == 0) {
+        PowerProfile profile = data.getPowerProfile();
+        if (profile == null) {
+            profile = new PowerProfile();
+        }
+
+        if (totalPoints > data.getSkillPoints() || profile.totalPoints == 0) {
             data.setSkillPoints(totalPoints);
             
-            PowerProfile profile = data.getPowerProfile();
             profile.totalPoints = totalPoints;
             
             // Initialize base stats if not set
@@ -53,22 +57,24 @@ public class EvolutionSystem {
             profile.categories = ArchetypeClassifier.getMobCategories(mob);
             profile.archetype = ArchetypeClassifier.detectArchetype(mob);
             
+            final PowerProfile finalProfile = profile;
+            
             // Apply Upgrades
             if (mod.universalmobwar.config.ModConfig.getInstance().enableAsyncTasks) {
-                UpgradeSystem.simulateAsync(mob, profile).thenAccept(state -> {
+                UpgradeSystem.simulateAsync(mob, finalProfile).thenAccept(state -> {
                     if (mob.getServer() != null) {
                         mob.getServer().execute(() -> {
                             if (mob.isAlive()) {
-                                UpgradeSystem.applyStateToMob(mob, state, profile);
-                                data.setSkillData(profile.writeNbt());
+                                UpgradeSystem.applyStateToMob(mob, state, finalProfile);
+                                data.setSkillData(finalProfile.writeNbt());
                                 MobWarData.save(mob, data);
                             }
                         });
                     }
                 });
             } else {
-                UpgradeSystem.applyUpgrades(mob, profile);
-                data.setSkillData(profile.writeNbt());
+                UpgradeSystem.applyUpgrades(mob, finalProfile);
+                data.setSkillData(finalProfile.writeNbt());
                 MobWarData.save(mob, data);
             }
         }
