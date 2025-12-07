@@ -1,180 +1,257 @@
-This is skill tree to use fix how it is implemented rn!!!!!
+UNIVERSAL MOB WAR - SKILL TREE & POINT SYSTEM
+==============================================
 
-skill point gain per day starts at 0.1 after it hits 10 days then .5 each day instead after 5 days then 1 each day then after 5 days 1.5 each day then after 5 days 3 per day after 5 days 5 per day forever until the mob is max lvl then doesn't add anything, i will say points things will be labeled as poi.
+💰 CORE CONCEPT: POINT-BASED CURRENCY SYSTEM
+Points function like money in an RPG:
+  - EARNED from days alive + kills made
+  - SPENT on upgrades (each costs points)
+  - DEDUCTED from balance when purchased
+  - Tracked via spentPoints (running total of spent)
+  - Budget = totalPoints - spentPoints
 
-i will refer to p and h, n will have same things as h so all n are basically h
-p-passive no fighting by default 
-n-neutral needs toggle for neutral to hostile on or something the player does to get attacked by
-h-hostile all fighting
+📊 POINT ACCUMULATION FORMULA
+Total Points = Day Scaling Points + Kill Scaling Points
 
-The general skill trees below will be applied to even custom mobs from other mods, if that mob ever has the possibility of fighting, eg. has damage per hit amount other then 0, then it goes in g, otherwise gp.
+Day Scaling (Tiered):
+  Days 0-10:  0.1 points/day
+  Days 11-15: 0.5 points/day
+  Days 16-20: 1.0 points/day
+  Days 21-25: 1.5 points/day
+  Days 26-30: 3.0 points/day
+  Days 31+:   5.0 points/day
 
-general skill tree(any mobs listed g or not listed in list below will go here) (g): poi 2, until full
+Kill Scaling:
+  Points = Kill Count × killScalingMultiplier (default 1.0)
 
-healing 1>2>3>4>5
-healthboost 1>2>3>4>5>6>7>8>9>10
-resis 1>2>3>resis 3 and fire resis 1
-invis 1 (10 sec max and only after 1min not invis and 25% chance, tries every 10min>9>8>7>6>5>4>3>2>1>.5>.25
-strength 1>2>3>4
-shield chance 1 (20%) > 2 (40%) > 3 (60%) > 4 (80%) > 5 (100%)
-(enchants: each item that mob has, has 50% drop then 40 then 30 then 20 then 10 then 5% where the lowest chance would be in sync to the max mob tree(if item drops it gets all enchant that r on it, the durability of item goes from max full down to 5% left where the 5% left is synced to when mobs hit the max mob tree
+Example: Zombie on Day 35 with 100 kills
+  Day Points: (10×0.1) + (5×0.5) + (5×1.0) + (5×1.5) + (5×3.0) + (5×5.0) = 56.0
+  Kill Points: 100 × 1.0 = 100.0
+  TOTAL AVAILABLE: 156.0 points
+  
+  If mob has spentPoints = 120.0:
+    Available to Spend = 156.0 - 120.0 = 36.0 points
 
-(must get full enchant on that item before getting next tier item(going to next tier clears enchants so you have to get them again).
-Progression Paths:
-- Standard: Wood -> Stone -> Iron -> Diamond -> Netherite
-- Piglin: Gold Sword -> Netherite Sword
-- Piglin Brute: Gold Axe -> Netherite Axe
-- Drowned: Trident (No tier changes)
+🌳 SKILL TREES (POINT COSTS)
 
-(Downgrade Mechanic: If an item breaks (0 durability), it doesn't disappear. Instead, it downgrades to the previous tier (e.g., Netherite -> Diamond) with 0 enchants. If Wood/Gold breaks, it is lost.)
+GENERAL TREE (g) - ALL Hostile Mobs + Modded
+══════════════════════════════════════════════
+Healing 1>2>3>4>5 (1, 2, 3, 4, 5 pts) [Total: 15 pts]
+  - Regeneration I → II, duration 3s → 10s
 
-(Armor Upgrades: Each armor piece (Head, Chest, Legs, Feet) upgrades its tier INDEPENDENTLY once its specific enchantments are maxed.)
+Health Boost 1>2>3>4>5>6>7>8>9>10 (2 pts each) [Total: 20 pts]
+  - +2 HP per level, max +20 HP (10 hearts)
 
-(each enchant will upgrade random path and you do not need to get done with the current path until going on new one, it's all random)
+Resistance 1>2>3 (4 pts each) [Total: 12 pts]
+  - Resistance I → II, then + Fire Resistance
 
-sword: poi 1, 1, 2, 2, 3, 3, 4, 4, 5, until full
-sharp 1>2>3>4>5
-fire aspect 1>2
-mending 1
-unbreaking 1>2>3
-knockback 1>2
-Smite 1>2>3>4>5
-Bane of arthropods 1>2>3>4>5
-looting 1>2>3
+Strength 1>2>3>4 (3 pts each) [Total: 12 pts]
+  - +20% → +80% melee damage
 
+Speed 1>2>3 (6 pts each) [Total: 18 pts]
+  - +20% → +60% movement speed
 
-trident: poi 3, 3, 3, until full
-Impaling 1>2>3>4>5
-channeling 1
-unbreaking 1>2>3
-mending 1
-loyalty 1>2>3
-riptide 1>2>3
+Invisibility 1>2>3>4>5>6>7>8>9>10>11>12 (5 pts each) [Total: 60 pts]
+  - Invisible 10m/hr → 15s/hr (nearly permanent)
 
-bow: poi 2, 2, 2, ,3, 3, 3, 3, until full
-power 1>2>3>4>5
-flame 1
-punch 1>2
-infinity 1
-unbreaking 1>2>3
-mending 1
-(arrows of slowness, weakness, poison, harming, decay: mastery 1 > ... > 10 (higher level = higher chance and potency)) 
+Shield Chance 1>2>3>4>5 (8 pts each) [Total: 40 pts]
+  - 20% → 100% chance to equip shield
 
-Equipment Stats (Per Item: Mainhand, Offhand, Head, Chest, Legs, Feet):
-Durability: 1 point per level. Level 0 = Broken (1 durability). Level 10 = Full Durability. (Chance to upgrade increases if durability is low).
-Drop Chance: 1 point per level. Level 0 = 100% Drop Chance. Level 20 = 1% Drop Chance (-5% per level).
+EQUIPMENT PROGRESSION:
+  Sword: Wood → Stone → Iron → Diamond → Netherite
+  Armor: Leather → Chain → Iron → Diamond → Netherite
+  Upgrade Trigger: Once 10 enchant levels accumulated
+  
+SWORD ENCHANTS (costs vary):
+  Sharpness I-V (3 pts each)
+  Fire Aspect I-II (4 pts each)
+  Knockback I-II (3 pts each)
+  Mending (10 pts)
+  Unbreaking I-III (3 pts each)
+  Smite I-V (3 pts each)
+  Bane of Arthropods I-V (3 pts each)
+  Looting I-III (5 pts each)
 
-armor: poi 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, until full
-protection 1>2>3>4
-fire protection 1>2>3>4
-blast protection 1>2>3>4
-projectile protection 1>2>3>4
-thorns 1>2>3
-unbreaking 1>2>3
-mending 1
-aqua infinity 1 (only helmet)
-respiration 1>2>3 (only helmet)
-swift sneak 1>2>3 (only leggings)
-feather falling 1>2>3>4 (only boots)
-soul speed 1>2>3 (boots only)
-depth strider 1>2>3 (boots only)
-frost walker 1>2 (boots only)
-)
+ARMOR ENCHANTS (per piece):
+  Protection I-IV (3 pts each)
+  Fire Protection I-IV (3 pts each)
+  Blast Protection I-IV (3 pts each)
+  Projectile Protection I-IV (3 pts each)
+  Thorns I-III (4 pts each)
+  Unbreaking I-III (3 pts each)
+  Mending (10 pts)
+  
+  Helmet: + Aqua Affinity (6 pts), Respiration I-III (4 pts each)
+  Leggings: + Swift Sneak I-III (6 pts each)
+  Boots: + Feather Falling I-IV (3 pts), Depth Strider I-III (4 pts),
+         Soul Speed I-III (5 pts), Frost Walker I-II (6 pts)
 
-general p skill tree(any p mobs listed as g or not listed) (gp): poi 2, 2, 2, until full
+EQUIPMENT MASTERY (per slot: Mainhand, Offhand, Head, Chest, Legs, Feet):
+  Durability 1-10 (5 pts each) [50 pts per slot]
+    - Level 0: 1 durability (broken) → Level 10: 100% (brand new)
+  
+  Drop Chance 1-20 (3 pts each) [60 pts per slot]
+    - Level 0: 100% drop → Level 20: 5% drop
+    - Tier Bonus: Netherite ×0.05 = near-zero drop
 
-healing 1>2>3
-healthboost 1>2>3
-resis>1
+Equipment Break Mastery 1>2>3>4>5 (15, 20, 25, 30, 35 pts) [Total: 125 pts]
+  - 10% → 50% chance to damage enemy equipment on hit
 
-zombie type tree(z): 3, until full
+GENERAL PASSIVE TREE (gp) - Passive Mobs
+═════════════════════════════════════════
+Healing 1>2>3 (2 pts each) [Total: 6 pts]
+Health Boost 1>2>3 (2 pts each) [Total: 6 pts]
+Resistance 1 (2 pts)
 
-the infectios bite so hunger 1 to prey when prey get hit>hunger2>3
-the zombie horde summon (summons 1-3 extra while the extra dont summon the same 1-3 extra again and again) 1(25% for 1 extra of that mob type(not just zombie but the mob that was spawned)) >2 (50%) >3 75% for 1 else 2 >4 50% for 1 else 2 >5 25% 1 else 2 or 3 50% random >6 2 50% chance else 3 >7 2 25% else 3 >8 always 3
+ZOMBIE TREE (z) - Zombies, Husks, Drowned, Zoglins
+═══════════════════════════════════════════════════
+Horde Summon 1>2>3>4>5 (10, 15, 20, 25, 30 pts) [Total: 100 pts]
+  - 10% → 50% chance to summon reinforcement when damaged
+  - Reinforcement tagged to prevent infinite recursion
 
-Projectile type tree(pro): 2, until full
+Infectious Bite 1>2>3 (8, 12, 16 pts) [Total: 36 pts]
+  - 33% → 100% chance to convert villagers to zombie villagers
 
-piercing(goes thru others) 1 (hit one other mob behind) >2 (2 others) >3 3other >4 4other >5 5other
-multi shot 1 +1 projectile >2 +2 >3 +3 >4 +4
+Hunger Attack 1>2>3 (6, 10, 14 pts) [Total: 30 pts]
+  - Hunger I (5s) → Hunger III (12s) on hit
 
-(if something doesn't hold weapon then nw and gp doesn't by default)
-(unless said bow then not bow but sword, and for all mobs try to add to armor if able to aka try catch, do that with every weapon, bow, trident, etc)
+SKELETON/ARCHER TREE (bow + pro) - Skeletons, Strays, Bogged
+═════════════════════════════════════════════════════════════
+BOW ENCHANTS (no tier progression, enchants only):
+  Power I-V (2 pts each)
+  Punch I-II (4 pts each)
+  Flame (8 pts)
+  Infinity (12 pts)
+  Unbreaking I-III (3 pts each)
+  Mending (10 pts)
 
-Ally (gp)
-Armadillo (gp)
-Axolotl (gp)
-Bat (gp, nw)
-Bee (g)
-Blaze (g,pro, nw)
-Bogged (g, pro, bow)
-Breeze (g,pro, nw)
-Camel (gp)
-Cat (gp)
-Cave spider (g, nw) more poison 1 (from normal vanilla poison 1 on hit to poison 2) >2 (poison 3) poi 3, until full
-Chicken (gp)
-Cod (gp)
-Cow (gp)
-Creeper (g) (lingering potions on explode, weakness, slowness, poison, harming, slowness II, blindness, nausea, wither, in normal curve at prob 0% aka way skewed left then max 100% way skewed right) 3, until full (nw)
-Dolphin (gp)
-Donkey (gp)
-Drowned (g, z) (holds trident)
-Elden guardian (g, nw)
-Enderman (g)
-Endermite (g, nw)
-Evoker (g, nw)
-Fox (gp)
-Frog (gp)
-Ghast (g)
-Glow squid (gp)
-Goat (gp)
-Guardian (g)
-Hoglin (g, nw)
-Horse (gp)
-Husk (g, z)
-Iron golem (g)
-Llama (gp)
-Magma cube (g, nw)
-Mooshroom (gp)
-Mule (gp)
-Ocelot (gp)
-Panda (gp)
-Parrot (gp)
-Phantom (g, nw)
-Pig (gp)
-Piglin (g)
-Piglin brute (g)
-Pillager (g, pro, bow)
-Polar bear (g, nw)
-Pufferfish (g, nw)
-Rabbit (gp)
-Ravager (g, nw)
-Salmon (gp)
-Sheep (gp)
-Shulker (g, nw, pro)
-Silverfish (g, nw)
-Skeleton (g, pro, bow)
-Skeleton horse (gp)
-Slime (g, nw)
-Sniffer (gp)
-Snow golem (g, pro, nw)
-Spider (g, nw)
-Squid (gp)
-Stray (g, bow, pro)
-Strider (gp)
-Tadpole (gp)
-Trader llama (gp)
-Tropical fish (gp)
-Turtle (gp)
-Vex (g)
-Villager (gp)
-Vindicator (g, uses axe and not sword)
-Wandering trader (gp)
-Wardon (g)
-Witch (g, nw, pro) (will throw weakness, slowness, poison, harming, slowness II, blindness, nausea, wither in normal curve chance 0-100% like others)
-Wither skeleton (g)
-Wolf (g, nw)
-Zoglin (g, nw, z)
-Zombie (g, z)
-Zombie horse (gp)
-Zombie villager (g, z)
-Zombified piglin (g, z)
+Piercing Shot 1>2>3>4 (8, 12, 16, 20 pts) [Total: 56 pts]
+  - Arrows pierce 1 → 4 mobs
+
+Bow Potion Mastery 1>2>3>4>5 (10, 15, 20, 25, 30 pts) [Total: 100 pts]
+  - 20% → 100% chance for random potion arrow
+  - Effects: Slowness, Weakness, Poison, Instant Damage, Wither II
+
+Multishot 1>2>3 (15, 25, 35 pts) [Total: 75 pts]
+  - Fire +1 → +3 extra arrows (spread ±10° each)
+
+CREEPER TREE (creeper) - Creepers
+══════════════════════════════════
+Creeper Power 1>2>3>4>5 (10, 15, 20, 25, 30 pts) [Total: 100 pts]
+  - Explosion radius 3.0 → 8.0 blocks
+
+Creeper Potion Mastery 1>2>3 (12, 18, 24 pts) [Total: 54 pts]
+  - Explosion creates lingering potion cloud
+  - Level 1: Slowness, Level 2: + Weakness, Level 3: + Poison
+
+WITCH TREE (witch) - Witches
+═════════════════════════════
+Witch Potion Mastery 1>2>3>4>5 (10, 15, 20, 25, 30 pts) [Total: 100 pts]
+  - Throw potions 20% → 100% faster
+
+Witch Harming Upgrade 1>2>3 (12, 18, 24 pts) [Total: 54 pts]
+  - Instant Damage I → II → + Wither II
+
+CAVE SPIDER TREE (cave_spider) - Cave Spiders
+══════════════════════════════════════════════
+Poison Mastery 1>2>3>4>5 (8, 12, 16, 20, 24 pts) [Total: 80 pts]
+  - Poison I (7s) → Poison II (20s) + Wither I
+
+MODDED MOB SUPPORT
+══════════════════
+Unknown/modded mobs automatically get:
+  - If has GENERIC_ATTACK_DAMAGE > 0: Category "g" (General Tree)
+  - If no attack: Category "gp" (Passive Tree)
+  - If empty hand: Add "nw" tag (no weapon upgrades)
+  - Archetype: "universal"
+Result: Modded mobs work seamlessly with General Tree!
+
+🎯 HOW POINT SPENDING WORKS
+
+1. Mob spawns with point budget (based on day + kills)
+2. Every tick (1/20th second):
+   a. Check: spentPoints < totalPoints?
+   b. Collect all affordable upgrades
+   c. Choose one randomly (weighted by cost)
+   d. Apply upgrade immediately
+   e. Deduct cost: spentPoints += upgradeCost
+   f. Save to PowerProfile NBT
+   g. Visual effects (particles, equipment appears)
+3. Repeat until spentPoints >= totalPoints (fully upgraded)
+4. New kills/days → More points → More upgrades!
+
+EXAMPLE SPENDING SEQUENCE:
+Day 15, 20 kills = 26.5 total points
+  Starting spentPoints: 0
+  
+  Tick 1: Buy Health Boost I (2 pts) → spentPoints = 2.0
+  Tick 2: Buy Healing I (1 pt) → spentPoints = 3.0
+  Tick 3: Equip Wooden Sword (0 pts) → spentPoints = 3.0
+  Tick 4: Buy Sharpness I (3 pts) → spentPoints = 6.0
+  Tick 5: Buy Health Boost II (2 pts) → spentPoints = 8.0
+  Tick 6: Equip Leather Cap (0 pts) → spentPoints = 8.0
+  Tick 7: Buy Protection I (3 pts) → spentPoints = 11.0
+  ... continues until spentPoints = 26.5 (fully upgraded)
+
+⚙️ UPGRADE MECHANICS
+
+TIER PROGRESSION:
+  - Accumulate 10 enchant levels on item
+  - Tier upgrades automatically (e.g., Wood → Stone Sword)
+  - Enchant levels reset to 0
+  - Continue upgrading new tier
+
+INDEPENDENT SLOTS:
+  - Each armor piece upgrades separately
+  - Mob can have Diamond Helmet + Iron Chest + Leather Boots
+
+DOWNGRADE ON BREAK:
+  - Broken item (0 durability) downgrades one tier
+  - Netherite → Diamond → Iron → Stone → Wood → LOST
+  - Enchants reset to 0 on downgrade
+  - Wood/Gold items destroyed when broken
+
+PIGLIN SPECIAL:
+  - Weapon choice based on UUID (deterministic)
+  - UUID.hashCode() % 2 == 0 → Sword
+  - UUID.hashCode() % 2 == 1 → Bow
+  - Always consistent across reloads
+
+📊 FULL PROGRESSION EXAMPLE
+
+ZOMBIE: Day 1 → Day 50 (0 → 300 kills)
+
+Day 1 (0 kills): 0.1 pts
+  - Not enough for any upgrade
+
+Day 5 (3 kills): 3.5 pts
+  - Health Boost I (2 pts), Healing I (1 pt)
+  - Remaining: 0.5 pts
+  - Stats: 22 HP, Regen I
+
+Day 15 (20 kills): 26.5 pts, spent 3.0, budget 23.5
+  - + Health Boost II-III, Strength I, Wooden Sword, Sharpness II,
+    Leather Cap, Protection I
+  - Stats: 26 HP, 3.6 dmg (+40% Str)
+
+Day 25 (60 kills): 78.0 pts, spent ~20, budget ~58
+  - Sword tier upgrade: Wood → Stone (enchants reset)
+  - Full Leather Armor, Horde Summon I
+  - Stats: 30 HP, Str II, 10% summon
+
+Day 35 (120 kills): 178.0 pts, spent ~65, budget ~113
+  - Iron Sword + enchants, Full Iron Armor
+  - Horde III, Speed II, Shield 25%
+  - Stats: 36 HP, 4.2 dmg, 30% summon
+
+Day 50 (300 kills): 448.0 pts (FULLY MAXED)
+  - Netherite Sword (Sharp V, Fire II, Looting III, Mending, Unbreaking III)
+  - Full Netherite Armor (Prot IV, Thorns III, Mending, Unbreaking III)
+  - Shield 100%, Horde V, Infectious III, Hunger III
+  - Equipment Break V, Invisibility X
+  - Stats: 60 HP (30 hearts), 10+ dmg, 50% summon, ~5% drop chance
+  - Visual: [Lv.50] Zombie ⚔ (Dark Red, unstoppable)
+
+════════════════════════════════════════════════════════════
+This is a complete RPG progression system for Minecraft mobs!
+Points are earned, spent, and tracked like currency.
+════════════════════════════════════════════════════════════
