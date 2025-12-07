@@ -271,7 +271,7 @@ Cost: 2 points per upgrade.
 - **Resistance:** Resistance I → III + Fire Resistance
 - **Strength:** Strength I → IV
 - **Invisibility:** Chance to spawn invisible or gain invisibility bursts
-- **Shields:** Chance to equip shields in offhand
+- **Shields:** Chance to equip shields in offhand (Automatic based on mob power level)
 
 #### 2. Passive Tree (All Passive Mobs)
 Cost: 2 points per upgrade.
@@ -292,6 +292,11 @@ Mobs upgrade their gear with enchantments. Each upgrade costs points and adds a 
 - **Projectile Tree (pro):**
   - **Piercing:** Arrows pierce through enemies.
   - **Multishot:** Fires multiple projectiles at once.
+
+#### 5. Automatic Mastery (Progress Based)
+Certain abilities scale automatically with the mob's overall power level (0-100% progress), rather than costing skill points:
+- **Shield Chance:** Probability to spawn with a shield follows a normal curve synced to max progression.
+- **Potion Mastery (Witch/Creeper/Bow):** Probability to use special potion effects (Lingering clouds, Tipped arrows, Thrown potions) scales from 0% to 100% as the mob approaches max level.
 
 ### 🛡️ Gear Progression
 Mobs automatically equip better base gear as they max out their current gear's potential.

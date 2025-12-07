@@ -164,11 +164,6 @@ public class UpgradeSystem {
                 addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
                     List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
                     List.of(5, 1, 2, 1, 3, 1));
-                // Tipped arrows
-                int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
-                if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
-                     addOpt(collector, state, "bow_potion_mastery", "bow", cost);
-                }
             }
             if (useAxe) {
                 addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
@@ -206,7 +201,6 @@ public class UpgradeSystem {
         // Invis 12 levels: 10m, 9m, ... 1m, 0.5m, 0.25m
         if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", cost);
         if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", cost);
-        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", cost);
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -231,13 +225,11 @@ public class UpgradeSystem {
     }
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("creeper"), costs);
-        if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", cost);
+        // Automatic mastery based on progress
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("witch"), costs);
-        if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", cost);
+        // Automatic mastery based on progress
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -463,15 +455,6 @@ public class UpgradeSystem {
             creeper.writeCustomDataToNbt(nbt);
         }
 
-        // Shield Chance
-        int shieldLvl = state.getLevel("shield_chance");
-        if (shieldLvl > 0) {
-            float chance = shieldLvl * 0.05f;
-            if (mob.getRandom().nextFloat() < chance) {
-                mob.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, new ItemStack(net.minecraft.item.Items.SHIELD));
-            }
-        }
-
         // Save special skills to PowerProfile for Mixins
         profile.specialSkills.clear();
         profile.specialSkills.put("horde_summon", state.getLevel("horde_summon"));
@@ -497,14 +480,18 @@ public class UpgradeSystem {
             profile.specialSkills.put("invis_interval_ticks", (int)(minutes * 60 * 20));
         }
         
-        if (state.getLevel("creeper_potion_mastery") > 0) {
-            profile.specialSkills.put("creeper_potion_mastery", state.getLevel("creeper_potion_mastery"));
+        // Automatic Mastery Calculation (0-10 based on progress)
+        int masteryLevel = (int)(progress * 10.0f);
+        if (masteryLevel > 10) masteryLevel = 10;
+        
+        if (profile.categories.contains("bow")) {
+            profile.specialSkills.put("bow_potion_mastery", masteryLevel);
         }
-        if (state.getLevel("witch_potion_mastery") > 0) {
-            profile.specialSkills.put("witch_potion_mastery", state.getLevel("witch_potion_mastery"));
+        if (mob.getType().getTranslationKey().contains("creeper")) {
+            profile.specialSkills.put("creeper_potion_mastery", masteryLevel);
         }
-        if (state.getLevel("bow_potion_mastery") > 0) {
-            profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
+        if (mob.getType().getTranslationKey().contains("witch")) {
+            profile.specialSkills.put("witch_potion_mastery", masteryLevel);
         }
         
         spawnUpgradeParticles(mob);
