@@ -22,14 +22,30 @@ public abstract class MobUpgradeTickMixin extends LivingEntity {
     private void onTick(CallbackInfo ci) {
         if (this.getWorld().isClient) return;
         
-        // Run every 10 ticks (0.5 seconds) to spread out load and make visual progression visible but not too slow
-        if (this.age % 10 == 0) {
+        // Performance: Only run logic every 20 ticks (1 second)
+        if (this.age % 20 == 0) {
             MobEntity mob = (MobEntity)(Object)this;
+            
+            // Performance: Only upgrade if a player is nearby (within 64 blocks)
+            // This prevents processing thousands of mobs in loaded chunks far away
+            if (mob.getWorld().getClosestPlayer(mob, 64) == null) return;
+
             MobWarData data = MobWarData.get(mob);
             
             // If we have points to spend
             if (data.getSpentPoints() < data.getSkillPoints()) {
-                UpgradeSystem.performOneStep(mob, data);
+                // Speed up: If we have a LOT of points (e.g. > 100), do multiple steps per tick
+                // to avoid taking hours to upgrade high-level mobs.
+                double deficit = data.getSkillPoints() - data.getSpentPoints();
+                int steps = 1;
+                if (deficit > 500) steps = 20;
+                else if (deficit > 100) steps = 5;
+                
+                for (int i = 0; i < steps; i++) {
+                    if (data.getSpentPoints() >= data.getSkillPoints()) break;
+                    UpgradeSystem.performOneStep(mob, data);
+                }
+                
                 MobWarData.save(mob, data);
             }
         }

@@ -76,18 +76,24 @@ public class UpgradeSystem {
     private static class UpgradeCollector {
         final List<String> ids = new ArrayList<>();
         final List<String> cats = new ArrayList<>();
+        final List<String> groups = new ArrayList<>();
         final List<Integer> costs = new ArrayList<>();
+        final List<Integer> weights = new ArrayList<>();
         
         void clear() {
             ids.clear();
             cats.clear();
+            groups.clear();
             costs.clear();
+            weights.clear();
         }
         
-        void add(String id, String cat, int cost) {
+        void add(String id, String cat, String group, int cost, int weight) {
             ids.add(id);
             cats.add(cat);
+            groups.add(group);
             costs.add(cost);
+            weights.add(weight);
         }
         
         boolean isEmpty() {
@@ -136,16 +142,52 @@ public class UpgradeSystem {
             // Filter affordable options
             List<Integer> affordable = new ArrayList<>();
             double remaining = totalPoints - state.spentPoints;
+            
+            Map<String, Double> groupTotalBaseWeight = new HashMap<>();
+            
             for (int i = 0; i < collector.size(); i++) {
                 if (collector.costs.get(i) <= remaining) {
                     affordable.add(i);
+                    String g = collector.groups.get(i);
+                    double w = collector.weights.get(i);
+                    groupTotalBaseWeight.put(g, groupTotalBaseWeight.getOrDefault(g, 0.0) + w);
                 }
             }
 
             if (affordable.isEmpty()) break;
 
-            // Pick random
-            int index = affordable.get(rand.nextInt(affordable.size()));
+            // Calculate selection weights (Equal probability per group)
+            double totalSelectionWeight = 0;
+            Map<Integer, Double> selectionWeights = new HashMap<>();
+            double TARGET_GROUP_WEIGHT = 100.0;
+            
+            for (int i : affordable) {
+                String g = collector.groups.get(i);
+                double base = collector.weights.get(i);
+                double groupTotal = groupTotalBaseWeight.get(g);
+                
+                // w_i = (base / groupTotal) * TARGET
+                double w = (base / groupTotal) * TARGET_GROUP_WEIGHT;
+                
+                selectionWeights.put(i, w);
+                totalSelectionWeight += w;
+            }
+
+            // Pick random weighted
+            double r = rand.nextDouble() * totalSelectionWeight;
+            double currentWeight = 0;
+            int index = -1;
+            
+            for (int i : affordable) {
+                currentWeight += selectionWeights.get(i);
+                if (r < currentWeight) {
+                    index = i;
+                    break;
+                }
+            }
+            
+            if (index == -1) index = affordable.get(affordable.size() - 1); // Fallback
+            
             collector.apply(index, state);
             
             // Check for Tier Upgrades
@@ -198,7 +240,7 @@ public class UpgradeSystem {
             // Tipped arrows
             int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
             if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
-                    addOpt(collector, state, "bow_potion_mastery", "bow", cost);
+                    addOpt(collector, state, "bow_potion_mastery", "bow", "mainhand", cost);
             }
         }
         if (useAxe) {
@@ -286,18 +328,19 @@ public class UpgradeSystem {
         }
         
         // Filter affordable
-        List<Integer> affordableIndices = new ArrayList<>();
+        Map<String, List<Integer>> affordableByGroup = new HashMap<>();
         List<Integer> expensiveIndices = new ArrayList<>();
         
         for (int i = 0; i < collector.size(); i++) {
             if (collector.costs.get(i) <= available) {
-                affordableIndices.add(i);
+                String g = collector.groups.get(i);
+                affordableByGroup.computeIfAbsent(g, k -> new ArrayList<>()).add(i);
             } else {
                 expensiveIndices.add(i);
             }
         }
         
-        if (affordableIndices.isEmpty()) {
+        if (affordableByGroup.isEmpty()) {
             // Can't afford anything now.
             return;
         }
@@ -309,8 +352,31 @@ public class UpgradeSystem {
             }
         }
         
-        // Pick random affordable
-        int choiceIndex = affordableIndices.get(mob.getRandom().nextInt(affordableIndices.size()));
+        // Pick a random group (Equal chance per slot/category)
+        List<String> groups = new ArrayList<>(affordableByGroup.keySet());
+        String chosenGroup = groups.get(mob.getRandom().nextInt(groups.size()));
+        
+        // Pick a random upgrade within that group
+        List<Integer> options = affordableByGroup.get(chosenGroup);
+        
+        // Use weights within the group (e.g. for durability priority)
+        int totalGroupWeight = 0;
+        for (int i : options) totalGroupWeight += collector.weights.get(i);
+        
+        int r = mob.getRandom().nextInt(totalGroupWeight);
+        int currentWeight = 0;
+        int choiceIndex = -1;
+        
+        for (int i : options) {
+            currentWeight += collector.weights.get(i);
+            if (r < currentWeight) {
+                choiceIndex = i;
+                break;
+            }
+        }
+        
+        if (choiceIndex == -1) choiceIndex = options.get(options.size() - 1);
+        
         collector.apply(choiceIndex, state);
         
         // Check Tiers
@@ -369,60 +435,71 @@ public class UpgradeSystem {
         int cost = getCost(state.getCategoryCount("g"), costs);
         // if (state.spentPoints + cost > 100000) return; // Safety removed for high scaling
 
-        if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", cost);
-        if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", cost);
-        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", cost); // 3 levels, lvl 3 adds fire res
+        if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", "general", cost);
+        if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", "general", cost);
+        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", "general", cost); // 3 levels, lvl 3 adds fire res
         // Invis 12 levels: 10m, 9m, ... 1m, 0.5m, 0.25m
-        if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", cost);
-        if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", cost);
-        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", cost);
+        if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", "general", cost);
+        if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", "general", cost);
+        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", "offhand", cost);
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("gp"), costs);
-        if (state.getLevel("healing") < 3) addOpt(options, state, "healing", "gp", cost);
-        if (state.getLevel("health_boost") < 3) addOpt(options, state, "health_boost", "gp", cost);
-        if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", cost);
+        if (state.getLevel("healing") < 3) addOpt(options, state, "healing", "gp", "general", cost);
+        if (state.getLevel("health_boost") < 3) addOpt(options, state, "health_boost", "gp", "general", cost);
+        if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", "general", cost);
     }
 
     private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
         int cost = getCost(state.getCategoryCount("z"), costs);
-        if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", cost);
+        if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", "skill", cost);
         
         boolean isReinforcement = context.tags.contains("umw_horde_reinforcement");
-        if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", cost);
+        if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", "skill", cost);
     }
 
     private static void addProjectileUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("pro"), costs);
-        if (state.getLevel("piercing_shot") < 5) addOpt(options, state, "piercing_shot", "pro", cost);
-        if (state.getLevel("multishot_skill") < 4) addOpt(options, state, "multishot_skill", "pro", cost);
+        if (state.getLevel("piercing_shot") < 5) addOpt(options, state, "piercing_shot", "pro", "skill", cost);
+        if (state.getLevel("multishot_skill") < 4) addOpt(options, state, "multishot_skill", "pro", "skill", cost);
     }
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("creeper"), costs);
-        if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", cost);
+        if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", cost);
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("witch"), costs);
-        if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", cost);
+        if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", "skill", cost);
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("cave_spider"), costs);
         // Poison 1 -> 2 -> 3
-        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", cost);
+        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", "skill", cost);
     }
 
     private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
         int cost = getCost(state.getCategoryCount(catName), costs);
+        
+        // Weight is now handled dynamically by group normalization
+        int weight = 1;
+        
         for (int i = 0; i < enchants.size(); i++) {
             String ench = enchants.get(i);
             int max = maxLevels.get(i);
             if (state.getLevel(ench) < max) {
-                addOpt(options, state, ench, catName, cost);
+                addOpt(options, state, ench, catName, "mainhand", cost, weight);
             }
+        }
+        
+        // Tipped arrows special case for bow
+        if (catName.equals("bow")) {
+             if (state.getLevel("bow_potion_mastery") < 10) {
+                 addOpt(options, state, "bow_potion_mastery", "bow", "mainhand", cost);
+             }
         }
     }
 
@@ -439,23 +516,23 @@ public class UpgradeSystem {
         addPerSlot(options, state, "armor_mending", 1, cost);
         
         // Specific enchants (Head)
-        if (state.getLevel("aqua_affinity") < 1) addOpt(options, state, "aqua_affinity", "armor", cost);
-        if (state.getLevel("respiration") < 3) addOpt(options, state, "respiration", "armor", cost);
+        if (state.getLevel("aqua_affinity") < 1) addOpt(options, state, "aqua_affinity", "armor", "head", cost);
+        if (state.getLevel("respiration") < 3) addOpt(options, state, "respiration", "armor", "head", cost);
         
         // Specific enchants (Legs)
-        if (state.getLevel("swift_sneak") < 3) addOpt(options, state, "swift_sneak", "armor", cost);
+        if (state.getLevel("swift_sneak") < 3) addOpt(options, state, "swift_sneak", "armor", "legs", cost);
         
         // Specific enchants (Feet)
-        if (state.getLevel("feather_falling") < 4) addOpt(options, state, "feather_falling", "armor", cost);
-        if (state.getLevel("soul_speed") < 3) addOpt(options, state, "soul_speed", "armor", cost);
-        if (state.getLevel("depth_strider") < 3) addOpt(options, state, "depth_strider", "armor", cost);
-        if (state.getLevel("frost_walker") < 2) addOpt(options, state, "frost_walker", "armor", cost);
+        if (state.getLevel("feather_falling") < 4) addOpt(options, state, "feather_falling", "armor", "feet", cost);
+        if (state.getLevel("soul_speed") < 3) addOpt(options, state, "soul_speed", "armor", "feet", cost);
+        if (state.getLevel("depth_strider") < 3) addOpt(options, state, "depth_strider", "armor", "feet", cost);
+        if (state.getLevel("frost_walker") < 2) addOpt(options, state, "frost_walker", "armor", "feet", cost);
     }
     
     private static void addPerSlot(UpgradeCollector options, SimState state, String baseId, int max, int cost) {
         for (String slot : List.of("head", "chest", "legs", "feet")) {
             if (state.getLevel(baseId + "_" + slot) < max) {
-                addOpt(options, state, baseId + "_" + slot, "armor", cost);
+                addOpt(options, state, baseId + "_" + slot, "armor", slot, cost);
             }
         }
     }
@@ -479,19 +556,21 @@ public class UpgradeSystem {
             // Weighting: Lower durability = Higher chance
             // Level 0: 10 entries. Level 9: 1 entry.
             int weight = 10 - durLvl;
-            for (int i = 0; i < weight; i++) {
-                addOpt(options, state, "durability_" + slot, "stats", cost);
-            }
+            addOpt(options, state, "durability_" + slot, "stats", slot, cost, weight);
         }
         // Drop Chance (0-20)
         int dropLvl = state.getLevel("drop_chance_" + slot);
         if (dropLvl < 20) {
-            addOpt(options, state, "drop_chance_" + slot, "stats", cost);
+            addOpt(options, state, "drop_chance_" + slot, "stats", slot, cost);
         }
     }
     
-    private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, int cost) {
-        options.add(id, cat, cost);
+    private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, String group, int cost) {
+        options.add(id, cat, group, cost, 1);
+    }
+    
+    private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, String group, int cost, int weight) {
+        options.add(id, cat, group, cost, weight);
     }
 
     private static int getCost(int count, int[] costs) {
@@ -499,42 +578,7 @@ public class UpgradeSystem {
         return costs[count];
     }
 
-    private static void checkTierUpgrades(SimState state, boolean sword, boolean trident, boolean bow, boolean axe, SimulationContext context) {
-        if (sword) {
-            boolean piglin = context.translationKey.contains("piglin");
-            List<String> tiers = piglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
-            int currentTier = state.getItemTier("sword");
-            if (currentTier < tiers.size() - 1) {
-                if (isMaxed(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"), 
-                    List.of(5, 2, 1, 3, 2, 5, 5, 3))) {
-                    state.setItemTier("sword", currentTier + 1);
-                    resetEnchants(state, List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"));
-                    state.setLevel("durability_mainhand", 0); // Reset durability for new item
-                    state.setLevel("drop_chance_mainhand", 0);
-                }
-            }
-        }
-        if (axe) {
-            boolean piglin = context.translationKey.contains("piglin");
-            List<String> tiers = piglin ? GOLD_AXE_TIERS : AXE_TIERS;
-            int currentTier = state.getItemTier("axe");
-            if (currentTier < tiers.size() - 1) {
-                if (isMaxed(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
-                    List.of(5, 5, 5, 3, 1, 5))) {
-                    state.setItemTier("axe", currentTier + 1);
-                    resetEnchants(state, List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"));
-                    state.setLevel("durability_mainhand", 0);
-                    state.setLevel("drop_chance_mainhand", 0);
-                }
-            }
-        }
-        // Armor Tier Logic (Per Item)
-        checkArmorTier(state, "head", HELMET_TIERS, List.of("aqua_affinity", "respiration"), List.of(1, 3));
-        checkArmorTier(state, "chest", CHEST_TIERS, List.of(), List.of());
-        checkArmorTier(state, "legs", LEGS_TIERS, List.of("swift_sneak"), List.of(3));
-        checkArmorTier(state, "feet", BOOTS_TIERS, List.of("feather_falling", "soul_speed", "depth_strider", "frost_walker"), List.of(4, 3, 3, 2));
-    }
-    
+
     private static void checkArmorTier(SimState state, String slot, List<String> tiers, List<String> extraEnchants, List<Integer> extraMax) {
         int currentTier = state.getItemTier(slot);
         if (currentTier < tiers.size() - 1) {

@@ -41,20 +41,32 @@ def build_project():
                 text=True,
                 cwd=os.getcwd()
             )
-            
+
             # Stream output to console and file
+            build_failed_due_to_lock = False
             for line in process.stdout:
                 print(line, end='')
                 log_file.write(line)
-                
+                if "The process cannot access the file because it is being used by another process" in line:
+                    build_failed_due_to_lock = True
+
             process.wait()
-            
+
             if process.returncode == 0:
                 print("\nBuild SUCCESSFUL!")
             else:
                 print(f"\nBuild FAILED with exit code {process.returncode}")
                 print("Check build_log.txt for full details.")
-            
+                if build_failed_due_to_lock:
+                    print("Detected file lock by another process. Attempting to kill all Java processes...")
+                    try:
+                        if os.name == 'nt':
+                            subprocess.run(["taskkill", "/F", "/IM", "java.exe"], check=False)
+                        else:
+                            subprocess.run(["pkill", "-f", "java"], check=False)
+                        print("Killed all Java processes. Please retry the build.")
+                    except Exception as kill_err:
+                        print(f"Failed to kill Java processes: {kill_err}")
     except Exception as e:
         print(f"An error occurred: {e}")
 
