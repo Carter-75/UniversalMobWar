@@ -84,21 +84,32 @@ public final class TargetingUtil {
 		String cacheKey = getCacheKey(self);
 		ChunkEntityCache cache = ENTITY_CACHE.get(cacheKey);
 		
-		List<LivingEntity> entities;
+		List<LivingEntity> cachedEntities;
 		if (cache != null && !cache.isExpired(currentTime, CACHE_DURATION_MS)) {
 			// Cache hit - no world query needed!
-			entities = cache.entities;
+			cachedEntities = cache.entities;
 		} else {
 			// Cache miss - perform world query
 			queriesThisTick++;
 			
 			Box box = self.getBoundingBox().expand(range, range / 2, range); // Narrower vertical range
-			Predicate<LivingEntity> filter = target -> isValidTarget(self, target, ignoreSameSpecies, targetPlayers);
+			// CRITICAL FIX: Cache must store ALL living entities, not just valid ones for THIS mob
+			// Otherwise, a Zombie populating the cache would exclude other Zombies, 
+			// causing a Skeleton using the cache to ignore Zombies.
+			Predicate<LivingEntity> cacheFilter = target -> target != null && target.isAlive();
 			
-			entities = self.getWorld().getEntitiesByClass(LivingEntity.class, box, filter::test);
+			cachedEntities = self.getWorld().getEntitiesByClass(LivingEntity.class, box, cacheFilter::test);
 			
 			// Update cache
-			ENTITY_CACHE.put(cacheKey, new ChunkEntityCache(new ArrayList<>(entities), currentTime));
+			ENTITY_CACHE.put(cacheKey, new ChunkEntityCache(new ArrayList<>(cachedEntities), currentTime));
+		}
+		
+		// Filter cached entities for THIS specific mob
+		List<LivingEntity> entities = new ArrayList<>();
+		for (LivingEntity entity : cachedEntities) {
+			if (isValidTarget(self, entity, ignoreSameSpecies, targetPlayers)) {
+				entities.add(entity);
+			}
 		}
 		
 		// OPTIMIZATION: Early exit if no entities found
