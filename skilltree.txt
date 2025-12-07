@@ -91,11 +91,11 @@ Axolotl (gp)
 Bat (gp, nw)
 Bee (g)
 Blaze (g,pro, nw)
-Bogged (g)
+Bogged (g, pro, bow)
 Breeze (g,pro, nw)
 Camel (gp)
 Cat (gp)
-Gave spider (g, nw) more poison 1 (from normal vanilla poison 1 on hit to poison 2) >2 (poison 3) poi 3, until full
+Cave spider (g, nw) more poison 1 (from normal vanilla poison 1 on hit to poison 2) >2 (poison 3) poi 3, until full
 Chicken (gp)
 Cod (gp)
 Cow (gp)

@@ -458,7 +458,7 @@ public class UpgradeSystem {
         }
 
         // Creeper Specifics
-        if (mob instanceof CreeperEntity creeper) {
+        if (mob instanceof net.minecraft.entity.mob.CreeperEntity creeper) {
             NbtCompound nbt = new NbtCompound();
             creeper.writeCustomDataToNbt(nbt);
         }

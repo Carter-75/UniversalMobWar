@@ -1,0 +1,232 @@
+MOB UPGRADE PATHS & CONFIGURATION
+===================================
+This file documents the upgrade paths for every mob currently registered in the Universal Mob War mod.
+Each mob follows a specific set of upgrade trees based on its "Archetype Tags".
+
+LEGEND:
+-------
+[g]   = General Hostile (Health, Healing, Resistance, Strength, Armor, Shield)
+[gp]  = General Passive (Health, Healing, Resistance)
+[z]   = Zombie (Hunger Attack, Horde Summon)
+[pro] = Projectile (Piercing, Multishot)
+[bow] = Bow (Power, Flame, Punch, Infinity, Unbreaking, Mending, Tipped Arrows)
+[tri] = Trident (Impaling, Channeling, Loyalty, Riptide, Unbreaking, Mending)
+[axe] = Axe (Sharpness, Smite, Efficiency, Unbreaking, Mending)
+[nw]  = No Weapon (Skips Sword/Axe upgrades, relies on natural damage)
+[swo] = Sword (Sharpness, Fire Aspect, Knockback, Looting, etc.) - Default for [g] unless [nw], [bow], [tri], or [axe] is present.
+
+SPECIALIZED TREES:
+------------------
+[witch]       = Witch Potion Mastery (Throws stronger negative potions)
+[creeper]     = Creeper Potion Mastery (Explosions leave lingering potion clouds)
+[cave_spider] = Poison Attack Mastery (Increases poison level on hit)
+
+----------------------------------------------------------------------------------------------------
+
+UNDEAD MOBS
+-----------
+Zombie:             [g, z]
+  -> Path: General Stats + Zombie Skills + Sword Upgrades + Armor Set (Leather -> Netherite)
+  -> Usage: Becomes a tanky, hard-hitting swarmer that summons reinforcements and inflicts hunger.
+
+Husk:               [g, z]
+  -> Path: General Stats + Zombie Skills + Sword Upgrades + Armor Set
+  -> Usage: Similar to Zombie, applies Hunger naturally + via upgrades.
+
+Drowned:            [g, z, tri]
+  -> Path: General Stats + Zombie Skills + Trident Upgrades + Armor Set
+  -> Usage: Master of the Trident (Impaling/Channeling/Riptide). Very dangerous in water/rain.
+
+Skeleton:           [g, pro, bow]
+  -> Path: General Stats + Projectile Skills + Bow Upgrades + Armor Set
+  -> Usage: Ranged sniper. Arrows pierce enemies and split (Multishot). Bow becomes God-tier.
+
+Stray:              [g, bow, pro]
+  -> Path: General Stats + Projectile Skills + Bow Upgrades + Armor Set
+  -> Usage: Ranged sniper with Slowness arrows.
+
+Bogged:             [g, bow, pro]
+  -> Path: General Stats + Projectile Skills + Bow Upgrades + Armor Set
+  -> Usage: Swamp skeleton variant. Shoots poison arrows.
+
+Wither Skeleton:    [g]
+  -> Path: General Stats + Sword Upgrades + Armor Set
+  -> Usage: Fast, deadly wither effect. Wields Stone -> Netherite Swords.
+
+Zombified Piglin:   [g, z]
+  -> Path: General Stats + Zombie Skills + Sword Upgrades + Armor Set
+  -> Usage: Neutral until provoked. Swarms with high damage and zombie reinforcements.
+
+Phantom:            [g, nw]
+  -> Path: General Stats + Armor (Invisible/Stats only)
+  -> Usage: Flying pest. High damage, high health. No weapon held.
+
+Zoglin:             [g, nw, z]
+  -> Path: General Stats + Zombie Skills + Armor (Stats)
+  -> Usage: Aggressive beast. High knockback and health.
+
+Zombie Villager:    [g, z]
+  -> Path: General Stats + Zombie Skills + Sword Upgrades + Armor Set
+  -> Usage: Same as Zombie.
+
+Zombie Horse:       [gp]
+  -> Path: General Passive Stats (Health, Regen)
+  -> Usage: Durable mount.
+
+Skeleton Horse:     [gp]
+  -> Path: General Passive Stats (Health, Regen)
+  -> Usage: Durable mount.
+
+ILLAGERS
+--------
+Vindicator:         [g, axe]
+  -> Path: General Stats + Axe Upgrades + Armor Set
+  -> Usage: High burst damage. Axe gets Sharpness/Smite/Efficiency (shield breaking).
+
+Pillager:           [g, pro, bow]
+  -> Path: General Stats + Projectile Skills + Bow/Crossbow Upgrades + Armor Set
+  -> Usage: Ranged attacker.
+
+Evoker:             [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Magic user. High survivability to cast spells longer.
+
+Witch:              [g, nw, pro] + [witch]
+  -> Path: General Stats + Projectile Skills + Witch Potion Mastery + Armor (Stats)
+  -> Usage: Throws high-level potions (Harming II, Poison IV, Slowness IV). Very tanky.
+
+Vex:                [g]
+  -> Path: General Stats + Sword Upgrades + Armor
+  -> Usage: Small, flying, phases through walls. Wields Iron -> Netherite Swords.
+
+Ravager:            [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Massive health pool. Siege beast.
+
+PIGLINS
+-------
+Piglin:             [g] (Randomly [swo] or [bow] at spawn)
+  -> Path: General Stats + (Sword OR Bow Upgrades) + Armor Set
+  -> Usage: Versatile infantry. Can be melee or ranged.
+
+Piglin Brute:       [g]
+  -> Path: General Stats + Sword Upgrades (Applied to Axe) + Armor Set
+  -> Usage: Aggressive guard. High damage.
+
+ARTHROPODS
+----------
+Spider:             [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Fast climber. High health.
+
+Cave Spider:        [g, nw] + [cave_spider]
+  -> Path: General Stats + Poison Attack Mastery + Armor (Stats)
+  -> Usage: Inflicts deadly poison (up to Poison IV).
+
+Silverfish:         [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Annoying swarmers. Harder to kill.
+
+Endermite:          [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Short-lived distraction, but durable.
+
+Bee:                [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Neutral. Swarms with poison if angered.
+
+NETHER
+------
+Blaze:              [g, pro, nw]
+  -> Path: General Stats + Projectile Skills + Armor (Stats)
+  -> Usage: Shoots more fireballs (Multishot) that pierce.
+
+Ghast:              [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Massive flying tank.
+
+Magma Cube:         [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Jumping lava slime. Splits into tanky minions.
+
+Hoglin:             [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Aggressive beast. High knockback.
+
+Strider:            [gp]
+  -> Path: General Passive Stats
+  -> Usage: Lava mount.
+
+END
+---
+Enderman:           [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Teleporting threat. High damage.
+
+Shulker:            [g, nw, pro]
+  -> Path: General Stats + Projectile Skills + Armor (Stats)
+  -> Usage: Turret. Shoots tracking bullets. Hard shell (high armor).
+
+OCEAN
+-----
+Guardian:           [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Laser turret. Thorns damage.
+
+Elder Guardian:     [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Boss-like durability. Mining fatigue.
+
+OTHERS
+------
+Creeper:            [g, nw] + [creeper]
+  -> Path: General Stats + Creeper Potion Mastery + Armor (Stats)
+  -> Usage: Explodes with lingering potion effects (Poison, Harming, Weakness).
+
+Slime:              [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Bouncy tank.
+
+Iron Golem:         [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Village defender. Extremely high health and damage.
+
+Snow Golem:         [g, pro, nw]
+  -> Path: General Stats + Projectile Skills + Armor (Stats)
+  -> Usage: Turret. Throws snowballs (can be upgraded to damage?).
+
+Breeze:             [g, pro, nw]
+  -> Path: General Stats + Projectile Skills + Armor (Stats)
+  -> Usage: Wind charge attacker.
+
+Warden:             [g] (Hand empty -> [nw])
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Unstoppable force. Maxed stats make it nearly unkillable.
+
+PASSIVES (Farm Animals)
+-----------------------
+Cow, Sheep, Pig, Chicken, Rabbit, etc.: [gp]
+  -> Path: General Passive Stats (Health, Regen, Resistance)
+  -> Usage: Harder to kill accidentally. Survive environmental damage better.
+
+Wolf:               [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Tamed wolves become viable combat partners in late game.
+
+Polar Bear:         [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Strong neutral mob.
+
+Pufferfish:         [g, nw]
+  -> Path: General Stats + Armor (Stats)
+  -> Usage: Poisonous spike ball.
+
+----------------------------------------------------------------------------------------------------
+HOW UPGRADES WORK:
+1. Points are calculated based on World Day + Kill Count.
+2. Mobs spend points on upgrades from ALL their categories in parallel.
+3. Example: A Witch [g, nw, pro, witch] will randomly choose between:
+   - Increasing Health/Armor (from [g])
+   - Increasing Projectile Count (from [pro])
+   - Increasing Potion Potency (from [witch])
+4. This ensures specialized mobs are well-rounded (tanky AND deadly).

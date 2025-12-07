@@ -22,7 +22,7 @@ public class ArchetypeClassifier {
         register("drowned", "g", "z", "trident");
         register("skeleton", "g", "pro", "bow");
         register("stray", "g", "bow", "pro");
-        register("bogged", "g");
+        register("bogged", "g", "bow", "pro");
         register("wither_skeleton", "g");
         register("zombified_piglin", "g", "z");
         register("phantom", "g", "nw");
