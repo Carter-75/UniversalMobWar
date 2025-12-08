@@ -31,7 +31,7 @@ public abstract class BowPotionMixin {
         if (profile == null) return;
         
         int level = profile.specialSkills.getOrDefault("bow_potion_mastery", 0);
-        if (level <= 0) return;
+        if (level <= 0 || level > 5) return; // Max 5 levels
         
         // Progressive chance: L1=20%, L2=40%, L3=60%, L4=80%, L5=100%
         int chance = level * 20;

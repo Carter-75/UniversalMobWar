@@ -26,7 +26,7 @@ public abstract class CaveSpiderMixin {
         if (profile == null) return;
         
         int level = profile.specialSkills.getOrDefault("poison_attack", 0);
-        if (level <= 0) return;
+        if (level <= 0 || level > 5) return; // Max 5 levels
         // Poison Mastery 1-5: Poison I (7s) -> Poison II (20s) + Wither I
         // Level 1: Poison I (7s)
         // Level 2: Poison I (14s)

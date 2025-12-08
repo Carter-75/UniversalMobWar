@@ -22,10 +22,9 @@ public abstract class CreeperExplosionMixin {
 
         // Explosion radius scaling (creeper_power)
         int powerLevel = profile.specialSkills.getOrDefault("creeper_power", 0);
-        if (powerLevel > 0) {
-            // Level 1–5: radius 3–8
-            float[] radii = {3.0f, 4.25f, 5.5f, 6.75f, 8.0f};
-            float radius = radii[Math.min(powerLevel-1, 4)];
+        if (powerLevel > 0 && powerLevel <= 5) {
+            // Level 1–5: radius 3.0-8.0 progressive
+            float radius = 3.0f + ((powerLevel - 1) * 1.25f); // L1=3.0, L2=4.25, L3=5.5, L4=6.75, L5=8.0
             // Set explosion radius (reflection hack, as vanilla field is private)
             try {
                 java.lang.reflect.Field field = CreeperEntity.class.getDeclaredField("explosionRadius");

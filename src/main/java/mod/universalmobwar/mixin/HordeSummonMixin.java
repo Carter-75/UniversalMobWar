@@ -30,7 +30,7 @@ public abstract class HordeSummonMixin {
         if (profile == null) return;
         
         int level = profile.specialSkills.getOrDefault("horde_summon", 0);
-        if (level <= 0) return;
+        if (level <= 0 || level > 5) return; // Max 5 levels
         
         // Prevent infinite loops if summoned mobs also have this skill
         // (They will, but we can limit recursion or rely on probability)
@@ -41,12 +41,10 @@ public abstract class HordeSummonMixin {
         int count = 0;
         float r = mob.getRandom().nextFloat();
         
-        float chance = 0.0f;
-        if (level == 1) chance = 0.10f;
-        else if (level == 2) chance = 0.20f;
-        else if (level == 3) chance = 0.30f;
-        else if (level == 4) chance = 0.40f;
-        else if (level >= 5) chance = 0.50f;
+        // Spec: Level 1-5 = 10-50% chance
+        float chance = 0.10f + (level * 0.08f); // L1=18%, L2=26%, L3=34%, L4=42%, L5=50%
+        // Corrected to exact spec: 10%, 20%, 30%, 40%, 50%
+        chance = level * 0.10f;
         
         if (r < chance) {
             count = 1;
@@ -54,7 +52,7 @@ public abstract class HordeSummonMixin {
         
 
         
-        if (count > 0 && self.getWorld() instanceof ServerWorld serverWorld) {
+        if (count > 0 && mob.getWorld() instanceof ServerWorld serverWorld) {
             EntityType<?> type = mob.getType();
             for (int i = 0; i < count; i++) {
                 spawnReinforcement(serverWorld, mob, type);

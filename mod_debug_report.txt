@@ -1,4 +1,11 @@
-=== UniversalMobWar Full Debug Script ===
-[ERROR] Missing mixin config: C:\Users\carte\OneDrive\Desktop\Code\Portfolio-Websites (Mostly)\UniversalMobWar\src\main\java\mod\resources\universalmobwar.mixins.json
-=== Debug Complete ===
-Check mod_debug_report.txt for full results.
+================================================================================
+UNIVERSAL MOB WAR - COMPREHENSIVE DEBUG REPORT
+================================================================================
+
+CRITICAL ERRORS:
+  ❌ HordeSummonMixin.java: 5 levels max
+  ❌ CaveSpiderMixin.java: 5 levels
+  ❌ CreeperExplosionMixin.java: Explosion radius 3.0-8.0
+  ❌ BowPotionMixin.java: 5 levels
+
+End of report.
