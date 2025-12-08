@@ -42,8 +42,8 @@ public class ArchetypeClassifier {
         register("illusioner", "g", "pro", "bow");
         
         // Piglins
-        register("piglin", "g"); 
-        register("piglin_brute", "g");
+        register("piglin", "g"); // Deterministic sword/bow assignment via UUID
+        register("piglin_brute", "g", "axe"); // Golden Axe → Netherite Axe
         
         // Arthropods
         register("spider", "g", "nw");

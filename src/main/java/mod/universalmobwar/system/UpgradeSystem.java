@@ -933,8 +933,14 @@ public class UpgradeSystem {
         // Sword - ONLY equip if upgrades purchased (melee mobs start with nothing)
         boolean hasSword = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
         if (hasSword && state.getItemTier("sword") >= 0) {
+            boolean isWitherSkeleton = mob.getType().getTranslationKey().contains("wither_skeleton");
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
             int tierIndex = state.getItemTier("sword");
+            
+            // Wither Skeletons start at Stone tier (tier 1), not Wood (tier 0)
+            if (isWitherSkeleton && tierIndex == 0) {
+                tierIndex = 1;
+            }
             if (tierIndex >= 0 && tierIndex < tiers.size()) {
                 String itemId = tiers.get(Math.min(tierIndex, tiers.size() - 1));
                 if (itemId != null && itemId.contains(":")) {
