@@ -40,6 +40,10 @@ Desktop.ini
 # Logs
 *.log
 
+# Generated debug files
+mod_debug_report.txt
+latest_debug_run.log
+
 # Minecraft client/server
 run/
 logs/

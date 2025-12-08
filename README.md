@@ -563,7 +563,7 @@ Step 3: Determine alliance type:
 2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (version 0.102.0+)
 3. Install [Mod Menu](https://modrinth.com/mod/modmenu) (optional, for config GUI)
 4. Install [Cloth Config](https://modrinth.com/mod/cloth-config) (optional, for advanced config)
-5. Download `universal-mob-war-2.0.0.jar`
+5. Download `universal-mob-war-3.1.0.jar`
 6. Place in `mods` folder
 7. Launch game!
 

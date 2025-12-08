@@ -18,6 +18,7 @@
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin",
 		"NaturalMobSpawnBlockerMixin",
+		"UniversalBaseTreeMixin",
 		"HordeSummonMixin",
 		"InfectiousBiteMixin",
 		"ProjectileSkillMixin",
