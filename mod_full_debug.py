@@ -106,7 +106,7 @@ class DebugSystem:
             error("skilltree.txt not found!")
             return
             
-        with open("skilltree.txt", "r") as f:
+        with open("skilltree.txt", "r", encoding="utf-8") as f:
             content = f.read()
         
         # Check all skill definitions
@@ -377,7 +377,7 @@ class DebugSystem:
                 error(f"Mixin not found: {filename}")
                 continue
                 
-            with open(filepath, "r") as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
             
             info(f"\nChecking {filename}:")
@@ -429,9 +429,9 @@ class DebugSystem:
         
         checks = [
             ("Blocks ALL MobEntity", r'entity instanceof MobEntity'),
-            ("Checks player-spawned tag", r'hasCommandTag\("umw_player_spawned"\)'),
-            ("Checks summoned tag", r'hasCommandTag\("umw_summoned"\)'),
-            ("Checks horde reinforcement tag", r'hasCommandTag\("umw_horde_reinforcement"\)'),
+            ("Checks player-spawned tag", r'getCommandTags\(\)\.contains\("umw_player_spawned"\)'),
+            ("Checks summoned tag", r'getCommandTags\(\)\.contains\("umw_summoned"\)'),
+            ("Checks horde reinforcement tag", r'getCommandTags\(\)\.contains\("umw_horde_reinforcement"\)'),
             ("Cancels spawn", r'cir\.setReturnValue\(false\)'),
         ]
         
@@ -512,7 +512,7 @@ class DebugSystem:
                 print(f"  {i}. {warn}")
         
         # Write detailed report
-        with open("mod_debug_report.txt", "w") as f:
+        with open("mod_debug_report.txt", "w", encoding="utf-8") as f:
             f.write("=" * 80 + "\n")
             f.write("UNIVERSAL MOB WAR - COMPREHENSIVE DEBUG REPORT\n")
             f.write("=" * 80 + "\n\n")
@@ -829,7 +829,8 @@ if __name__ == "__main__":
     parser.add_argument("--test", action="store_true", help="Generate in-game test suite (0→MAX progression)")
     args = parser.parse_args()
     
-    os.chdir("/home/user/webapp/UniversalMobWar")
+    # Set working directory to script location for cross-platform compatibility
+    os.chdir(str(Path(__file__).parent.resolve()))
     
     # Always run debug checks
     debugger = DebugSystem()

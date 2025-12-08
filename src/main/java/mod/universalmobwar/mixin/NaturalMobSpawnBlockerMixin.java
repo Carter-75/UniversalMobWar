@@ -24,9 +24,10 @@ public abstract class NaturalMobSpawnBlockerMixin {
         if (!(entity instanceof MobEntity)) return;
         
         // Check if mob has special tags indicating it was spawned by player/mod/command
-        if (entity.hasCommandTag("umw_player_spawned")) return;
-        if (entity.hasCommandTag("umw_horde_reinforcement")) return;
-        if (entity.hasCommandTag("umw_summoned")) return;
+        MobEntity mob = (MobEntity) entity;
+        if (mob.getCommandTags().contains("umw_player_spawned")) return;
+        if (mob.getCommandTags().contains("umw_horde_reinforcement")) return;
+        if (mob.getCommandTags().contains("umw_summoned")) return;
         if (entity.hasCustomName()) return;
         
         // Block the spawn - this is a natural mob spawn (hostile or peaceful)
