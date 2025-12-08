@@ -13,14 +13,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Handles universal base tree effects: speed, strength, healing burst, invisibility on damage.
+ * NOTE: Mixes into LivingEntity because damage() method is defined there, not on MobEntity.
  */
-@Mixin(MobEntity.class)
+@Mixin(LivingEntity.class)
 public abstract class UniversalBaseTreeMixin {
 
     // Healing burst on taking damage (levels 3-5)
     @Inject(method = "damage", at = @At("HEAD"))
     private void universalmobwar$onHealingDamage(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        MobEntity mob = (MobEntity)(Object)this;
+        LivingEntity entity = (LivingEntity)(Object)this;
+        if (!(entity instanceof MobEntity mob)) return;
         if (mob.getWorld().isClient()) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
@@ -52,7 +54,8 @@ public abstract class UniversalBaseTreeMixin {
     @Inject(method = "damage", at = @At("RETURN"))
     private void universalmobwar$onDamage(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;
-        MobEntity mob = (MobEntity)(Object)this;
+        LivingEntity entity = (LivingEntity)(Object)this;
+        if (!(entity instanceof MobEntity mob)) return;
         if (mob.getWorld().isClient()) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
@@ -78,7 +81,8 @@ public abstract class UniversalBaseTreeMixin {
     // Speed and Strength status effects (permanent, based on upgrade level)
     @Inject(method = "tick", at = @At("TAIL"))
     private void universalmobwar$applyBaseEffects(CallbackInfo ci) {
-        MobEntity mob = (MobEntity)(Object)this;
+        LivingEntity entity = (LivingEntity)(Object)this;
+        if (!(entity instanceof MobEntity mob)) return;
         if (mob.getWorld().isClient()) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
