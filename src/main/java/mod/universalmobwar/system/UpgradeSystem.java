@@ -207,7 +207,7 @@ public class UpgradeSystem {
             MinecraftServer server = sw.getServer();
             String msg = String.format("[UMW] Upgrade: %s gained %s (cost: %.1f, total spent: %.1f/%.1f)", 
                 mob.getType().getTranslationKey(), collector.ids.get(index), 
-                collector.costs.get(index), data.getSpentPoints(), profile.totalPoints);
+                (double)collector.costs.get(index), (double)data.getSpentPoints(), (double)profile.totalPoints);
             Text text = Text.literal(msg);
             for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
                 p.sendMessage(text, false);

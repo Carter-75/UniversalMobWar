@@ -22,9 +22,13 @@ public abstract class NaturalMobSpawnBlockerMixin {
     @Inject(method = "spawnEntity", at = @At("HEAD"), cancellable = true)
     private void onSpawnEntity(net.minecraft.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
         if (ModConfig.getInstance().disableNaturalMobSpawns && entity instanceof MobEntity) {
-            // Heuristic: block if entity is a mob and not a player, and not being ridden or leashed (common for natural spawns)
-            // This will NOT block mobs spawned by eggs, commands, or modded events that set passengers or leash
-            if (entity.getVehicle() == null && entity.getControllingPassenger() == null && entity.getFirstPassenger() == null && !entity.hasCustomName()) {
+            // Allow mobs spawned by spawn eggs (heuristic: check if entity has "SpawnedByEgg" tag or similar)
+            boolean spawnedByEgg = false;
+            if (entity.getType().getTranslationKey().contains("spawn_egg")) {
+                spawnedByEgg = true;
+            }
+            // Heuristic: block if entity is a mob and not a player, not being ridden, not leashed, not custom, and not from egg
+            if (!spawnedByEgg && entity.getVehicle() == null && entity.getControllingPassenger() == null && entity.getFirstPassenger() == null && !entity.hasCustomName()) {
                 cir.setReturnValue(false);
             }
         }
