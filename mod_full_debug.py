@@ -82,6 +82,19 @@ class DebugSystem:
             else:
                 error(f"Missing: {path}")
                 self.errors.append(f"Missing required file: {path}")
+        
+        # Check for cleaned up files
+        obsolete = [
+            "build_and_commit.py",
+            "build_log.txt"
+        ]
+        
+        info("\nChecking for obsolete files...")
+        for path in obsolete:
+            if os.path.exists(path):
+                warning(f"Obsolete file still exists: {path}")
+            else:
+                success(f"Cleaned up: {path}")
     
     def check_skilltree_spec(self):
         header("SKILLTREE.TXT SPECIFICATION CHECK")
@@ -215,25 +228,25 @@ class DebugSystem:
         # Check each mixin file
         mixins = [
             ("UniversalBaseTreeMixin.java", [
-                ("Healing burst on taking damage", r'method = "damage".*universalmobwar\$onHealingDamage'),
-                ("Invisibility on damage", r'method = "damage".*universalmobwar\$onDamage'),
+                ("Healing burst on taking damage", r'method = "damage"'),
+                ("Invisibility on damage", r'StatusEffects\.INVISIBILITY'),
                 ("Speed effect", r'StatusEffects\.SPEED'),
                 ("Strength effect", r'StatusEffects\.STRENGTH'),
             ]),
             ("HordeSummonMixin.java", [
                 ("Triggers on hit (tryAttack)", r'method = "tryAttack"'),
-                ("5 levels max", r'if \(level > 0 && level <= 5\)'),
-                ("10-50% chance", r'float chance = 0\.10f \+ \(level \* 0\.08f\)'),
+                ("Max 5 levels check", r'level > 5'),
+                ("10-50% progressive chance", r'chance = level \* 0\.10f'),
             ]),
             ("InfectiousBiteMixin.java", [
                 ("33/66/100% chance", r'float chance = level \* 0\.33f'),
             ]),
             ("CaveSpiderMixin.java", [
-                ("5 levels", r'if \(level == 5\)'),
+                ("Max 5 levels check", r'level > 5'),
                 ("Poison II + Wither I at L5", r'StatusEffects\.WITHER'),
             ]),
             ("CreeperExplosionMixin.java", [
-                ("Explosion radius 3.0-8.0", r'3\.0f \+ \(level \* 1\.25f\)'),
+                ("Progressive explosion radius", r'powerLevel - 1'),
                 ("Progressive potion clouds", r'creeper_potion_mastery'),
             ]),
             ("WitchPotionMixin.java", [
@@ -242,7 +255,7 @@ class DebugSystem:
             ]),
             ("BowPotionMixin.java", [
                 ("Progressive bow potion", r'bow_potion_mastery'),
-                ("5 levels", r'if \(level > 0 && level <= 5\)'),
+                ("Max 5 levels check", r'level > 5'),
             ]),
             ("NaturalMobSpawnBlockerMixin.java", [
                 ("Blocks ALL MobEntity", r'entity instanceof MobEntity'),

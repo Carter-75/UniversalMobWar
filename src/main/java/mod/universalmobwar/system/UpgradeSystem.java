@@ -23,13 +23,8 @@ import mod.universalmobwar.data.PowerProfile;
 
 public class UpgradeSystem {
 
-    // Cost arrays (modernized, all costs configurable via ModConfig)
-    private static final int[] GENERAL_COSTS = ModConfig.getInstance().generalUpgradeCosts;
-    private static final int[] GENERAL_PASSIVE_COSTS = ModConfig.getInstance().generalPassiveUpgradeCosts;
-    private static final int[] SWORD_COSTS = ModConfig.getInstance().swordUpgradeCosts;
-    private static final int[] TRIDENT_COSTS = ModConfig.getInstance().tridentUpgradeCosts;
-    private static final int[] BOW_COSTS = ModConfig.getInstance().bowUpgradeCosts;
-    private static final int[] ARMOR_COSTS = ModConfig.getInstance().armorUpgradeCosts;
+    // NOTE: Cost arrays no longer used - all costs are now progressive per-skill/enchant
+    // Keeping mob-specific cost arrays for potential future use
     private static final int[] ZOMBIE_COSTS = ModConfig.getInstance().zombieUpgradeCosts;
     private static final int[] PROJECTILE_COSTS = ModConfig.getInstance().projectileUpgradeCosts;
     private static final int[] CREEPER_COSTS = ModConfig.getInstance().creeperUpgradeCosts;
@@ -361,8 +356,8 @@ public class UpgradeSystem {
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch && !isPiglinBrute;
         boolean useAxe = isAxe || isPiglinBrute;
 
-        if (isG) addGeneralUpgrades(state, collector, GENERAL_COSTS);
-        if (isGP) addGeneralPassiveUpgrades(state, collector, GENERAL_PASSIVE_COSTS);
+        if (isG) addGeneralUpgrades(state, collector);
+        if (isGP) addGeneralPassiveUpgrades(state, collector);
         if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
         if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
         if (isCreeper) addCreeperUpgrades(state, collector, CREEPER_COSTS);
@@ -370,28 +365,28 @@ public class UpgradeSystem {
         if (isCaveSpider) addCaveSpiderUpgrades(state, collector, CAVE_SPIDER_COSTS);
         
         if (useSword) {
-            addWeaponUpgrades(state, collector, SWORD_COSTS, "sword", 
+            addWeaponUpgrades(state, collector, "sword", 
                 List.of("sharpness", "fire_aspect", "mending", "unbreaking", "knockback", "smite", "bane_of_arthropods", "looting"),
                 List.of(5, 2, 1, 3, 2, 5, 5, 3));
         }
         if (isTrident) {
-            addWeaponUpgrades(state, collector, TRIDENT_COSTS, "trident",
+            addWeaponUpgrades(state, collector, "trident",
                 List.of("impaling", "channeling", "unbreaking", "mending", "loyalty", "riptide"),
                 List.of(5, 1, 3, 1, 3, 3));
         }
         if (isBow) {
-            addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
+            addWeaponUpgrades(state, collector, "bow",
                 List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
                 List.of(5, 1, 2, 1, 3, 1));
         }
         if (useAxe) {
-            addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
+            addWeaponUpgrades(state, collector, "axe",
                 List.of("sharpness", "smite", "bane_of_arthropods", "unbreaking", "mending", "efficiency"),
                 List.of(5, 5, 5, 3, 1, 5));
         }
         
         if (isG) {
-            addArmorUpgrades(state, collector, ARMOR_COSTS);
+            addArmorUpgrades(state, collector);
         }
         
         // Equipment Stats (Durability & Drop Chance)
@@ -508,7 +503,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addGeneralUpgrades(SimState state, UpgradeCollector options, int[] costs) {
+    private static void addGeneralUpgrades(SimState state, UpgradeCollector options) {
         // Each skill has its own specific cost per the spec
         // HEALING: 1/2/3/4/5 pts progressive
         int healingLvl = state.getLevel("healing");
@@ -560,7 +555,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
+    private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options) {
         // Passive tree: Healing 2/3/4, Health Boost 2/3/4, Resistance 2
         int healingLvl = state.getLevel("healing");
         if (healingLvl < 3) {
@@ -667,7 +662,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
+    private static void addWeaponUpgrades(SimState state, UpgradeCollector options, String catName, List<String> enchants, List<Integer> maxLevels) {
         // ALL enchants now progressive - no more shared cost system
         int weight = 1;
         
@@ -747,7 +742,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addArmorUpgrades(SimState state, UpgradeCollector options, int[] costs) {
+    private static void addArmorUpgrades(SimState state, UpgradeCollector options) {
         // ALL armor enchants now progressive
         
         // Per-slot shared enchants
@@ -853,12 +848,6 @@ public class UpgradeSystem {
     private static void addOpt(UpgradeCollector options, SimState state, String id, String cat, String group, int cost, int weight) {
         options.add(id, cat, group, cost, weight);
     }
-
-    private static int getCost(int count, int[] costs) {
-        if (count >= costs.length) return costs[costs.length - 1];
-        return costs[count];
-    }
-
 
     private static void checkArmorTier(SimState state, String slot, List<String> tiers, List<String> extraEnchants, List<Integer> extraMax) {
         int currentTier = state.getItemTier(slot);
