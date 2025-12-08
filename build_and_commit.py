@@ -92,24 +92,40 @@ def check_git_status():
     return True
 
 def clean_gradle_cache():
-    """Clean Gradle caches to ensure fresh build."""
-    log("Cleaning Gradle caches...")
+    """Clean Gradle caches to ensure fresh build and fix corruption."""
+    log("Cleaning Gradle caches (fixing potential corruption)...")
 
     gradle_home = os.environ.get("GRADLE_USER_HOME", os.path.expanduser("~/.gradle"))
+    
+    # Stop all Gradle daemons first
+    gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
+    log("Stopping all Gradle daemons...")
+    run_command([gradlew, "--stop"], "Stop Gradle daemons", check=False)
+    
+    # Clean caches directory (fixes transform cache corruption)
     cache_dir = os.path.join(gradle_home, "caches")
-
     if os.path.exists(cache_dir):
         log(f"Removing Gradle cache directory: {cache_dir}")
         try:
             shutil.rmtree(cache_dir)
-            log("Gradle cache cleaned successfully")
+            log("Gradle cache cleaned successfully (transform corruption fixed)")
         except Exception as e:
             log(f"Failed to clean Gradle cache: {str(e)}", "WARNING")
     else:
         log("Gradle cache directory not found")
+    
+    # Also clean local .gradle directory (project-specific cache)
+    local_gradle = Path(".gradle")
+    if local_gradle.exists():
+        log("Removing local .gradle directory...")
+        try:
+            shutil.rmtree(local_gradle)
+            log("Local .gradle directory cleaned")
+        except Exception as e:
+            log(f"Failed to clean local .gradle: {str(e)}", "WARNING")
 
 def clean_project():
-    """Clean the project build artifacts."""
+    """Clean the project build artifacts and Fabric Loom caches."""
     log("Cleaning project build artifacts...")
 
     # Remove build directory
@@ -122,27 +138,57 @@ def clean_project():
         except Exception as e:
             log(f"Failed to remove build directory: {str(e)}", "WARNING")
 
-    # Run gradle clean
+    # Run gradle clean with Loom-specific tasks
     gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
-    if not run_command([gradlew, "clean"], "Gradle clean"):
-        log("Gradle clean failed", "WARNING")
+    
+    log("Running Gradle clean with Fabric Loom cache cleanup...")
+    # Clean Loom binaries and mappings (fixes cache corruption)
+    clean_tasks = [gradlew, "clean", "cleanLoomBinaries", "cleanLoomMappings"]
+    if not run_command(clean_tasks, "Gradle clean with Loom cache cleanup", check=False):
+        log("Full clean failed, trying basic clean...", "WARNING")
+        run_command([gradlew, "clean"], "Basic Gradle clean", check=False)
 
 def build_project():
-    """Build the project with full debug output."""
+    """Build the project with full debug output and cache corruption prevention."""
     log("Building project...")
 
     # Run gradle build with info and stacktrace
     gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
     
     # Set Java 21 for Minecraft 1.21.1
-    java_home = "/usr/lib/jvm/java-21-openjdk-amd64"
-    if os.path.exists(java_home):
-        os.environ["JAVA_HOME"] = java_home
-        os.environ["PATH"] = f"{java_home}/bin:{os.environ.get('PATH', '')}"
-        log(f"Using Java 21 from: {java_home}")
+    # Try multiple common Java 21 locations
+    java_21_paths = [
+        "/usr/lib/jvm/java-21-openjdk-amd64",
+        "/usr/lib/jvm/java-21-openjdk",
+        "/usr/lib/jvm/adoptium-21-jdk-amd64",
+        os.path.expanduser("~/jdk-21"),
+        "C:\\Program Files\\Java\\jdk-21",
+        "C:\\Program Files\\Eclipse Adoptium\\jdk-21"
+    ]
     
-    cmd = [gradlew, "build", "--info", "--stacktrace", "--console=verbose"]
-    return run_command(cmd, "Gradle build with debug output")
+    java_home = None
+    for path in java_21_paths:
+        if os.path.exists(path):
+            java_home = path
+            break
+    
+    if java_home:
+        os.environ["JAVA_HOME"] = java_home
+        os.environ["PATH"] = f"{os.path.join(java_home, 'bin')}{os.pathsep}{os.environ.get('PATH', '')}"
+        log(f"Using Java 21 from: {java_home}")
+    else:
+        log("Java 21 not found in common locations, using system default", "WARNING")
+    
+    # Build with flags to prevent cache issues
+    cmd = [
+        gradlew, 
+        "build", 
+        "--no-build-cache",  # Disable build cache to avoid corruption
+        "--info", 
+        "--stacktrace", 
+        "--console=verbose"
+    ]
+    return run_command(cmd, "Gradle build with debug output and cache protection")
 
 def commit_and_push():
     """Commit changes and push to origin main."""
@@ -180,6 +226,7 @@ def commit_and_push():
 def main():
     """Main execution function."""
     log("=== UniversalMobWar Build and Commit Script Started ===")
+    log("This script includes automatic fixes for Gradle cache corruption")
 
     # Change to script directory
     script_dir = Path(__file__).parent
@@ -191,18 +238,27 @@ def main():
         log("Git status check failed", "ERROR")
         sys.exit(1)
 
-    # Clean everything
+    # Clean everything (fixes cache corruption issues)
+    log("=== Phase 1: Cleaning all caches ===")
     clean_gradle_cache()
     clean_project()
 
     # Build
+    log("=== Phase 2: Building project ===")
     if not build_project():
         log("Build failed! Aborting commit and push.", "ERROR")
+        log("", "INFO")
+        log("Build failed. Common fixes:", "INFO")
+        log("1. Ensure Java 21+ is installed", "INFO")
+        log("2. Check if you have at least 2GB free RAM", "INFO")
+        log("3. Try manually: gradlew clean cleanLoomBinaries cleanLoomMappings build", "INFO")
+        log("4. See BUILD_TROUBLESHOOTING.md for more solutions", "INFO")
         sys.exit(1)
 
     log("Build successful! Proceeding with commit and push.")
 
     # Commit and push
+    log("=== Phase 3: Committing and pushing ===")
     if commit_and_push():
         log("Commit and push successful!", "SUCCESS")
     else:
@@ -210,6 +266,7 @@ def main():
         sys.exit(1)
 
     log("=== Script completed successfully ===")
+    log("JAR file should be in: build/libs/universalmobwar-2.0.0.jar", "SUCCESS")
 
 if __name__ == "__main__":
     main()
