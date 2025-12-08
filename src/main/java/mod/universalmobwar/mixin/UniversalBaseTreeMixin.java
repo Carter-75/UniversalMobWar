@@ -17,17 +17,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MobEntity.class)
 public abstract class UniversalBaseTreeMixin {
 
-    // Healing burst on hit (levels 3-5)
-    @Inject(method = "tryAttack", at = @At("RETURN"))
-    private void universalmobwar$onAttack(net.minecraft.entity.Entity target, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValue()) return;
+    // Healing burst on taking damage (levels 3-5)
+    @Inject(method = "damage", at = @At("HEAD"))
+    private void universalmobwar$onHealingDamage(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         MobEntity mob = (MobEntity)(Object)this;
         if (mob.getWorld().isClient()) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
         int healingLevel = profile.specialSkills.getOrDefault("healing", 0);
         if (healingLevel >= 3) {
-            // Level 3+: chance for burst regen on hit, with cooldown
+            // Level 3+: chance for burst regen on taking damage, with cooldown
             int burstLevel = healingLevel - 2; // 1=level3, 2=level4, 3=level5
             int[] chances = {20, 40, 80}; // %
             int[] durations = {200, 200, 400}; // ticks (10s, 10s, 20s)

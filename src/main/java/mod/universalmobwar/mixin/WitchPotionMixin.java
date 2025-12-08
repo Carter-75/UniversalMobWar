@@ -43,16 +43,18 @@ public abstract class WitchPotionMixin {
             if (pick < 0) pick = 0;
             if (pick > 7) pick = 7;
 
-            // Harming upgrade: override harming potion with higher levels
+            // Harming upgrade: progressive instant damage
             boolean harming = (pick == 3);
             ItemStack stack = new ItemStack(Items.SPLASH_POTION);
             if (harming && harmLevel > 0) {
-                // Level 1: Instant Damage II, Level 2: Instant Damage II, Level 3: Instant Damage II + Wither II
-                if (harmLevel < 3) {
+                // L1: Instant Damage I, L2: Instant Damage II, L3: Instant Damage II + Wither I (10s)
+                if (harmLevel == 1) {
+                    stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.HARMING), Optional.empty(), List.of()));
+                } else if (harmLevel == 2) {
                     stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_HARMING), Optional.empty(), List.of()));
                 } else {
                     stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_HARMING), Optional.empty(), List.of(
-                        new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 1)
+                        new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 0)
                     )));
                 }
             } else if (pick == 5) { // Blindness

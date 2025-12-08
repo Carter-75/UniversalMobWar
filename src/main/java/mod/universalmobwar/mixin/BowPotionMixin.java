@@ -16,6 +16,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+import java.util.Optional;
+
 @Mixin(AbstractSkeletonEntity.class)
 public abstract class BowPotionMixin {
 
@@ -30,33 +33,64 @@ public abstract class BowPotionMixin {
         int level = profile.specialSkills.getOrDefault("bow_potion_mastery", 0);
         if (level <= 0) return;
         
-        // Chance: "normal curve" 0% -> 100%
-        // Using sigmoid-like curve based on level 1-10
-        // Level 1: ~1%, Level 5: ~50%, Level 10: ~99%
-        double p = 1.0 / (1.0 + Math.exp(-1.0 * (level - 5.0)));
+        // Progressive chance: L1=20%, L2=40%, L3=60%, L4=80%, L5=100%
+        int chance = level * 20;
+        if (skeleton.getRandom().nextInt(100) >= chance) return;
         
-        if (skeleton.getRandom().nextDouble() < p) {
-            // Pick effect
-            RegistryEntry<Potion> potion = Potions.POISON;
-            int pick = skeleton.getRandom().nextInt(5);
-            switch (pick) {
-                case 0 -> potion = Potions.SLOWNESS;
-                case 1 -> potion = Potions.WEAKNESS;
-                case 2 -> potion = Potions.POISON;
-                case 3 -> potion = Potions.HARMING;
-                case 4 -> potion = Potions.STRONG_POISON; // Decay/Wither not always available as Potion, using Strong Poison as fallback or Wither if possible
+        // Progressive potion effects based on level
+        // L1: Slowness I (10s)
+        // L2: Slowness II (15s) or Weakness I (10s)
+        // L3: Poison I (10s) or Weakness I (15s)
+        // L4: Poison II (15s) or Instant Damage I
+        // L5: Poison II (20s) or Instant Damage II or Wither I (10s)
+        
+        ItemStack tippedStack = new ItemStack(Items.TIPPED_ARROW);
+        
+        if (level == 1) {
+            tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(
+                Optional.of(Potions.SLOWNESS), Optional.empty(), List.of(
+                    new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.SLOWNESS, 200, 0)
+                )));
+        } else if (level == 2) {
+            if (skeleton.getRandom().nextBoolean()) {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(
+                    Optional.of(Potions.LONG_SLOWNESS), Optional.empty(), List.of(
+                        new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.SLOWNESS, 300, 1)
+                    )));
+            } else {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.WEAKNESS), Optional.empty(), List.of()));
             }
-            // Try to find Decay/Wither if possible, but standard Potions class might not expose it directly as a field if it's not a brewing recipe.
-            // However, we can try to use the registry if we really want "decay".
-            // For now, keeping Strong Poison as it's close (damage).
-            
-            ItemStack tippedStack = new ItemStack(Items.TIPPED_ARROW);
-            tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
-
-            // Create Tipped Arrow with the stack
-            ArrowEntity tippedArrow = new ArrowEntity(skeleton.getWorld(), skeleton, tippedStack, new ItemStack(Items.BOW));
-            
-            cir.setReturnValue(tippedArrow);
+        } else if (level == 3) {
+            if (skeleton.getRandom().nextBoolean()) {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.POISON), Optional.empty(), List.of()));
+            } else {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.LONG_WEAKNESS), Optional.empty(), List.of()));
+            }
+        } else if (level == 4) {
+            if (skeleton.getRandom().nextBoolean()) {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_POISON), Optional.empty(), List.of()));
+            } else {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.HARMING), Optional.empty(), List.of()));
+            }
+        } else { // level 5
+            int pick = skeleton.getRandom().nextInt(3);
+            if (pick == 0) {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.LONG_POISON), Optional.empty(), List.of(
+                    new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.POISON, 400, 1)
+                )));
+            } else if (pick == 1) {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_HARMING), Optional.empty(), List.of()));
+            } else {
+                tippedStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(
+                    Optional.of(Potions.POISON), Optional.empty(), List.of(
+                        new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 0)
+                    )));
+            }
         }
+
+        // Create Tipped Arrow with the stack
+        ArrowEntity tippedArrow = new ArrowEntity(skeleton.getWorld(), skeleton, tippedStack, new ItemStack(Items.BOW));
+        
+        cir.setReturnValue(tippedArrow);
     }
 }

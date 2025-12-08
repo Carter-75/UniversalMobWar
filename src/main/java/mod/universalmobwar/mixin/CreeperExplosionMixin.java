@@ -36,35 +36,32 @@ public abstract class CreeperExplosionMixin {
             }
         }
 
-        // Creeper Potion Mastery (existing logic)
+        // Creeper Potion Mastery - Progressive lingering clouds
         int level = profile.specialSkills.getOrDefault("creeper_potion_mastery", 0);
         if (level > 0) {
-            double p = 1.0 / (1.0 + Math.exp(-1.0 * (level - 5.0)));
-            if (creeper.getRandom().nextDouble() < p) {
-                AreaEffectCloudEntity cloud = new AreaEffectCloudEntity(creeper.getWorld(), creeper.getX(), creeper.getY(), creeper.getZ());
-                cloud.setRadius(2.5F);
-                cloud.setRadiusOnUse(-0.5F);
-                cloud.setWaitTime(10);
-                cloud.setDuration(cloud.getDuration() / 2);
-                cloud.setRadiusGrowth(-cloud.getRadius() / (float)cloud.getDuration());
-                double center = (level / 10.0) * 7.0;
-                int pick = (int) Math.round(center + creeper.getRandom().nextGaussian() * 1.5);
-                if (pick < 0) pick = 0;
-                if (pick > 7) pick = 7;
-                StatusEffectInstance effect = switch (pick) {
-                    case 0 -> new StatusEffectInstance(StatusEffects.WEAKNESS, 200, 0);
-                    case 1 -> new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 0);
-                    case 2 -> new StatusEffectInstance(StatusEffects.POISON, 200, 0);
-                    case 3 -> new StatusEffectInstance(StatusEffects.INSTANT_DAMAGE, 1, 0);
-                    case 4 -> new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 1);
-                    case 5 -> new StatusEffectInstance(StatusEffects.BLINDNESS, 200, 0);
-                    case 6 -> new StatusEffectInstance(StatusEffects.NAUSEA, 200, 0);
-                    case 7 -> new StatusEffectInstance(StatusEffects.WITHER, 200, 0);
-                    default -> new StatusEffectInstance(StatusEffects.POISON, 200, 0);
-                };
-                cloud.addEffect(effect);
-                creeper.getWorld().spawnEntity(cloud);
+            // L1: Slowness I (10s)
+            // L2: Slowness I (15s) + Weakness I (10s)
+            // L3: Slowness II (20s) + Weakness I (15s) + Poison I (10s)
+            
+            AreaEffectCloudEntity cloud = new AreaEffectCloudEntity(creeper.getWorld(), creeper.getX(), creeper.getY(), creeper.getZ());
+            cloud.setRadius(3.0F);
+            cloud.setRadiusOnUse(-0.5F);
+            cloud.setWaitTime(10);
+            cloud.setDuration(200); // 10s base
+            cloud.setRadiusGrowth(-cloud.getRadius() / (float)cloud.getDuration());
+            
+            if (level == 1) {
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 200, 0)); // Slowness I 10s
+            } else if (level == 2) {
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 300, 0)); // Slowness I 15s
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 200, 0)); // Weakness I 10s
+            } else if (level >= 3) {
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 400, 1)); // Slowness II 20s
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 300, 0)); // Weakness I 15s
+                cloud.addEffect(new StatusEffectInstance(StatusEffects.POISON, 200, 0)); // Poison I 10s
             }
+            
+            creeper.getWorld().spawnEntity(cloud);
         }
     }
 }

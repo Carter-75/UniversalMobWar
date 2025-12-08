@@ -53,9 +53,11 @@ public abstract class InfectiousBiteMixin {
         int level = profile.specialSkills.getOrDefault("hunger_attack", 0);
         if (level <= 0) return;
         
-        int amplifier = level - 1;
-        if (amplifier < 0) amplifier = 0;
+        // Progressive hunger: L1=Hunger I (10s), L2=Hunger II (15s), L3=Hunger III (20s)
+        int amplifier = level - 1; // 0, 1, 2
+        int duration = 200 + (level * 100); // 300, 400, 500 ticks = 15s, 20s, 25s... Wait spec says 10/15/20
+        duration = (level == 1) ? 200 : (level == 2) ? 300 : 400; // 10s, 15s, 20s
         
-        living.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 200, amplifier), zombie);
+        living.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, duration, amplifier), zombie);
     }
 }

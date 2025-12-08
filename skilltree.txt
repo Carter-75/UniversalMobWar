@@ -78,11 +78,11 @@ HEALING (5 levels, 1/2/3/4/5 pts → total 15)
 
 • Level 2: Permanent Regen II
 
-• Level 3: 20% chance on hit → Regen III (10s duration, 60s shared CD)
+• Level 3: 20% chance on taking damage → Regen III (10s duration, 60s shared CD)
 
-• Level 4: 40% chance on hit → Regen IV (10s duration, 60s shared CD)
+• Level 4: 40% chance on taking damage → Regen IV (10s duration, 60s shared CD)
 
-• Level 5: 80% chance on hit → Regen V (20s duration, 60s shared CD)
+• Level 5: 80% chance on taking damage → Regen V (20s duration, 60s shared CD)
 
 ------------------------------------------------------------
 
@@ -100,11 +100,11 @@ RESISTANCE (3 levels × 4 pts → total 12)
 
 ------------------------------------------------------------
 
-• Level 1: Resistance I
+• Level 1: Permanent Resistance I
 
-• Level 2: Resistance II
+• Level 2: Permanent Resistance II
 
-• Level 3: Fire Resistance
+• Level 3: Permanent Resistance II + Fire Resistance I
 
 ------------------------------------------------------------
 
@@ -328,7 +328,13 @@ ZOMBIE TREE (z) — Zombies, Husks, Drowned, Zoglins
 
 • Hunger Attack 1–3 (6/10/14 pts → total 30)
 
-  - Hunger I → Hunger III effect on hit
+  - Progressive hunger effect on hit:
+  
+    - L1: Hunger I (10s)
+    
+    - L2: Hunger II (15s)
+    
+    - L3: Hunger III (20s)
 
 ------------------------------------------------------------
 
@@ -342,7 +348,17 @@ ARCHER TREE (bow + pro) — Skeleton, Stray, Bogged
 
 • Bow Potion Mastery 1–5 (10/15/20/25/30 pts → total 100)
 
-  - 20% → 100% chance arrow is tipped potion: Slowness, Weakness, Poison, Instant Damage, Wither II
+  - Progressive chance and potion strength for tipped arrows:
+  
+    - L1: 20% chance → Slowness I (10s)
+    
+    - L2: 40% chance → Slowness II (15s) or Weakness I (10s)
+    
+    - L3: 60% chance → Poison I (10s) or Weakness I (15s)
+    
+    - L4: 80% chance → Poison II (15s) or Instant Damage I
+    
+    - L5: 100% chance → Poison II (20s) or Instant Damage II or Wither I (10s)
 
 • Multishot 1–3 (15/25/35 pts → total 75)
 
@@ -356,17 +372,27 @@ CREEPER TREE (creeper)
 
 • Creeper Power 1–5 (10/15/20/25/30 pts → total 100)
 
-  - Explosion radius 3 → 8
+  - Progressive explosion radius:
+  
+    - L1: Radius 3.0 (vanilla)
+    
+    - L2: Radius 4.25
+    
+    - L3: Radius 5.5
+    
+    - L4: Radius 6.75
+    
+    - L5: Radius 8.0
 
 • Creeper Potion 1–3 (12/18/24 pts → total 54)
 
-  - Explosion leaves lingering potion clouds:
+  - Progressive lingering potion clouds on explosion:
 
-    - L1: Slowness
+    - L1: Slowness I (10s)
 
-    - L2: Slowness + Weakness
+    - L2: Slowness I (15s) + Weakness I (10s)
 
-    - L3: Slowness + Weakness + Poison
+    - L3: Slowness II (20s) + Weakness I (15s) + Poison I (10s)
 
 ------------------------------------------------------------
 
@@ -376,11 +402,27 @@ WITCH TREE (witch)
 
 • Potion Throw Speed 1–5 (10/15/20/25/30 pts → total 100)
 
-  - Increased throw speed and accuracy
+  - Progressive throw speed and accuracy:
+  
+    - L1: 0.75× speed, 8.0 inaccuracy
+    
+    - L2: 0.90× speed, 6.0 inaccuracy
+    
+    - L3: 1.05× speed, 4.0 inaccuracy
+    
+    - L4: 1.15× speed, 3.0 inaccuracy
+    
+    - L5: 1.25× speed, 2.0 inaccuracy
 
 • Harming Upgrade 1–3 (12/18/24 pts → total 54)
 
-  - Instant Damage I → II → Instant Damage II + Wither II
+  - Progressive instant damage potion strength:
+  
+    - L1: Instant Damage I
+    
+    - L2: Instant Damage II
+    
+    - L3: Instant Damage II + Wither I (10s)
 
 ------------------------------------------------------------
 
@@ -390,7 +432,17 @@ CAVE SPIDER TREE (cave_spider)
 
 • Poison Mastery 1–5 (8/12/16/20/24 pts → total 80)
 
-  - Poison I (7s) → Poison II (20s) + Wither I
+  - Progressive poison effect on hit:
+  
+    - L1: Poison I (7s)
+    
+    - L2: Poison I (14s)
+    
+    - L3: Poison II (14s)
+    
+    - L4: Poison II (20s)
+    
+    - L5: Poison II (20s) + Wither I (10s)
 
 ------------------------------------------------------------
 
