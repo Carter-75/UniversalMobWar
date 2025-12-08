@@ -218,48 +218,153 @@ class DebugSystem:
                 self.errors.append(f"Progressive cost missing: {name}")
     
     def check_mixin_implementations(self):
-        header("MIXIN IMPLEMENTATIONS CHECK")
+        header("MIXIN IMPLEMENTATIONS CHECK - ALL 22 MIXINS")
         
         mixin_dir = "src/main/java/mod/universalmobwar/mixin"
         if not os.path.isdir(mixin_dir):
             error(f"Mixin directory not found: {mixin_dir}")
             return
         
-        # Check each mixin file
+        # Check ALL mixin files comprehensively
         mixins = [
             ("UniversalBaseTreeMixin.java", [
                 ("Healing burst on taking damage", r'method = "damage"'),
+                ("Healing cooldown 60s", r'1200|cooldown'),
                 ("Invisibility on damage", r'StatusEffects\.INVISIBILITY'),
-                ("Speed effect", r'StatusEffects\.SPEED'),
-                ("Strength effect", r'StatusEffects\.STRENGTH'),
+                ("Invisibility cooldown 60s", r'1200|cooldown'),
+                ("Speed effect applied", r'StatusEffects\.SPEED'),
+                ("Speed progressive amplifier", r'speedLevel'),
+                ("Strength effect applied", r'StatusEffects\.STRENGTH'),
+                ("Strength progressive amplifier", r'strengthLevel'),
             ]),
             ("HordeSummonMixin.java", [
-                ("Triggers on hit (tryAttack)", r'method = "tryAttack"'),
+                ("Mixin targets MobEntity", r'@Mixin\(MobEntity\.class\)'),
+                ("Triggers on successful hit", r'method = "tryAttack"'),
                 ("Max 5 levels check", r'level > 5'),
-                ("10-50% progressive chance", r'chance = level \* 0\.10f'),
+                ("Progressive chance 10-50%", r'0\.10f'),
+                ("Prevents infinite summon loops", r'umw_horde_reinforcement'),
+                ("Sets summon to level 0", r'horde_summon'),
+                ("Marks summoned mobs", r'umw_summoned'),
             ]),
             ("InfectiousBiteMixin.java", [
-                ("33/66/100% chance", r'float chance = level \* 0\.33f'),
+                ("Mixin targets ZombieEntity", r'@Mixin\(ZombieEntity\.class\)'),
+                ("Triggers on kill", r'method = "onKilledOther"'),
+                ("Progressive chance 33-100%", r'level \* 0\.33f'),
+                ("Converts villager to zombie", r'convertTo.*ZOMBIE_VILLAGER'),
+                ("Hunger Attack on hit", r'method = "tryAttack"'),
+                ("Hunger I-III progressive", r'amplifier = level - 1'),
+                ("Hunger durations 10/15/20s", r'200|300|400'),
             ]),
             ("CaveSpiderMixin.java", [
+                ("Mixin targets CaveSpiderEntity", r'@Mixin\(CaveSpiderEntity\.class\)'),
+                ("Triggers on attack", r'method = "tryAttack"'),
                 ("Max 5 levels check", r'level > 5'),
-                ("Poison II + Wither I at L5", r'StatusEffects\.WITHER'),
+                ("Poison I at L1-L2", r'StatusEffects\.POISON.*140|280.*0\)'),
+                ("Poison II at L3-L4", r'StatusEffects\.POISON.*280|400.*1\)'),
+                ("Wither I added at L5", r'StatusEffects\.WITHER.*200.*0\)'),
             ]),
             ("CreeperExplosionMixin.java", [
-                ("Progressive explosion radius", r'powerLevel - 1'),
-                ("Progressive potion clouds", r'creeper_potion_mastery'),
+                ("Mixin targets CreeperEntity", r'@Mixin\(CreeperEntity\.class\)'),
+                ("Explosion method injection", r'method = "explode"'),
+                ("Progressive radius 3.0-8.0", r'3\.0f.*powerLevel - 1.*1\.25f'),
+                ("Creeper potion mastery", r'creeper_potion_mastery'),
+                ("Level 1: Slowness I cloud", r'SLOWNESS'),
+                ("Level 2: +Weakness I", r'WEAKNESS'),
+                ("Level 3: +Poison I", r'POISON'),
+                ("Lingering area cloud", r'AreaEffectCloudEntity'),
             ]),
             ("WitchPotionMixin.java", [
-                ("Progressive throw speed", r'witch_potion_mastery'),
-                ("Progressive harming", r'witch_harming_upgrade'),
+                ("Mixin targets WitchEntity", r'@Mixin\(WitchEntity\.class\)'),
+                ("Intercepts shootAt method", r'method = "shootAt"'),
+                ("Witch potion mastery skill", r'witch_potion_mastery'),
+                ("Progressive throw speed", r'speeds.*0\.75f.*1\.25f'),
+                ("Progressive accuracy", r'inaccuracies.*8\.0f.*2\.0f'),
+                ("Harming upgrade skill", r'witch_harming_upgrade'),
+                ("Level 1: Instant Damage I", r'HARMING'),
+                ("Level 2: Instant Damage II", r'STRONG_HARMING'),
+                ("Level 3: +Wither I", r'WITHER.*200'),
             ]),
             ("BowPotionMixin.java", [
-                ("Progressive bow potion", r'bow_potion_mastery'),
+                ("Mixin targets AbstractSkeletonEntity", r'@Mixin\(AbstractSkeletonEntity\.class\)'),
+                ("Intercepts arrow creation", r'createArrowProjectile'),
                 ("Max 5 levels check", r'level > 5'),
+                ("Progressive chance 20-100%", r'0\.20|bow_potion_mastery'),
+                ("Level 1: Slowness I", r'SLOWNESS'),
+                ("Level 2: Slowness II or Weakness", r'WEAKNESS'),
+                ("Level 3: Poison I", r'POISON'),
+                ("Level 4: Instant Damage", r'INSTANT_DAMAGE|HARMING'),
+                ("Level 5: Wither I", r'WITHER'),
             ]),
             ("NaturalMobSpawnBlockerMixin.java", [
                 ("Blocks ALL MobEntity", r'entity instanceof MobEntity'),
-                ("Allows player-spawned", r'umw_player_spawned|umw_summoned'),
+                ("Checks player-spawned tag", r'umw_player_spawned'),
+                ("Checks summoned tag", r'umw_summoned'),
+                ("Checks horde reinforcement", r'umw_horde_reinforcement'),
+                ("Allows custom named mobs", r'hasCustomName'),
+                ("Cancels natural spawn", r'setReturnValue\(false\)'),
+                ("Config toggle support", r'disableNaturalMobSpawns'),
+            ]),
+            ("MobUpgradeTickMixin.java", [
+                ("Mixin targets MobEntity", r'@Mixin\(MobEntity\.class\)'),
+                ("Injects into tick method", r'method = "tick"'),
+                ("Applies upgrade logic", r'UpgradeSystem|applyUpgrades'),
+                ("Performance optimization", r'age % 20|isClient'),
+            ]),
+            ("MobDeathTrackerMixin.java", [
+                ("Mixin targets LivingEntity", r'@Mixin\(LivingEntity\.class\)'),
+                ("Tracks mob deaths", r'onDeath'),
+                ("Handles kill tracking", r'MobEntity|victim'),
+            ]),
+            ("MobDataMixin.java", [
+                ("Implements persistence interface", r'implements'),
+                ("Stores MobWarData", r'MobWarData'),
+                ("Read/write from NBT", r'readNbt|writeNbt|Nbt'),
+            ]),
+            ("EquipmentBreakMixin.java", [
+                ("Handles item damage", r'ItemStack'),
+                ("Equipment tier logic", r'tier|EquipmentSlot'),
+                ("Equipment breaking", r'durability|drop|break|equipStack'),
+            ]),
+            ("ProjectileSkillMixin.java", [
+                ("Handles piercing shot", r'piercing'),
+                ("Handles multishot", r'multishot'),
+                ("Projectile spawning logic", r'ProjectileEntity|spawnEntity'),
+            ]),
+            ("InvisibilitySkillMixin.java", [
+                ("Tick based checking", r'tick'),
+                ("Invisibility handling", r'Invisibility|INVISIBILITY'),
+            ]),
+            ("UniversalSummonerTrackingMixin.java", [
+                ("Tracks summoner", r'summon'),
+                ("Summoner tracking logic", r'SummonerTracker|SpawnReason'),
+            ]),
+            ("RaidSpawningMixin.java", [
+                ("Raid system integration", r'Raid'),
+                ("Warlord boss spawning", r'Warlord|wavesSpawned'),
+            ]),
+            ("NeutralMobBehaviorMixin.java", [
+                ("Modifies neutral mob AI", r'NeutralMob'),
+                ("Behavior modification", r'target|behavior'),
+            ]),
+            ("MobRevengeBlockerMixin.java", [
+                ("Prevents revenge targeting", r'revenge|target'),
+                ("Alliance checking", r'alliance|ally'),
+            ]),
+            ("WarlordMinionProtectionMixin.java", [
+                ("Protects warlord minions", r'warlord|minion'),
+                ("Damage protection", r'damage'),
+            ]),
+            ("GameRulesAccessor.java", [
+                ("Accessor mixin", r'@Accessor|@Invoker'),
+                ("Provides game rule access", r'GameRules'),
+            ]),
+            ("MobEntityAccessor.java", [
+                ("Accessor mixin", r'@Accessor|@Invoker'),
+                ("Provides mob entity access", r'MobEntity'),
+            ]),
+            ("PersistentProjectileEntityAccessor.java", [
+                ("Accessor mixin", r'@Accessor|@Invoker'),
+                ("Provides projectile access", r'PersistentProjectileEntity'),
             ]),
         ]
         
