@@ -23,20 +23,14 @@ public abstract class EquipmentBreakMixin {
     @Shadow public abstract void equipStack(EquipmentSlot slot, ItemStack stack);
 
     @Inject(method = "sendEquipmentBreakStatus", at = @At("HEAD"))
-    private void onEquipmentBreak(EquipmentSlot slot, CallbackInfo ci) {
+    private void onEquipmentBreak(ItemStack stack, EquipmentSlot slot, CallbackInfo ci) {
         LivingEntity entity = (LivingEntity) (Object) this;
-        
         // Only apply to Mobs (not players)
         if (!(entity instanceof MobEntity)) return;
-        
-        ItemStack brokenStack = this.getEquippedStack(slot);
-        if (brokenStack.isEmpty()) return;
-        
-        String itemId = Registries.ITEM.getId(brokenStack.getItem()).toString();
-        
+        if (stack.isEmpty()) return;
+        String itemId = Registries.ITEM.getId(stack.getItem()).toString();
         // Check if it's a tier item and downgrade if possible
         ItemStack replacement = getDowngradedItem(itemId);
-        
         if (replacement != null) {
             // We need to schedule the replacement because the current stack is about to be set to empty/shrunk by the caller
             // However, sendEquipmentBreakStatus is usually called BEFORE the stack is actually removed/shrunk in some contexts,
@@ -49,13 +43,11 @@ public abstract class EquipmentBreakMixin {
             //    a. Call breakCallback (this method)
             //    b. Shrink stack (count--)
             //    c. Set damage to 0
-            
             // So if we replace the stack in the slot NOW, the `this` stack in ItemStack.damage is still the OLD stack object.
             // But `entity.equipStack` changes the reference in the inventory.
             // The `ItemStack.damage` method is operating on the OLD stack object reference.
             // So if we equip a NEW stack, the old stack continues to die (count--), but it's no longer in the inventory.
             // So the new stack should be safe!
-            
             this.equipStack(slot, replacement);
         }
     }
