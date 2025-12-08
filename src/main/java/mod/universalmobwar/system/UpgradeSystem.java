@@ -127,87 +127,45 @@ public class UpgradeSystem {
         PowerProfile profile = data.getPowerProfile();
         if (profile == null || profile.totalPoints <= data.getSpentPoints()) return;
 
-        // Load current state from profile
+        // Instantly apply all upgrades up to totalPoints
         SimState state = loadStateFromProfile(profile);
-        
-        // Calculate how many points we can spend this step
-        double availablePoints = Math.min(1.0, profile.totalPoints - data.getSpentPoints());
-        if (availablePoints <= 0) return;
-
-        // Perform one upgrade step
         SimulationContext context = new SimulationContext(mob, profile.totalPoints);
-        UpgradeCollector collector = new UpgradeCollector();
-        collectOptions(state, collector, context, profile);
-        
-        if (collector.isEmpty()) {
-            profile.isMaxed = true;
-            data.setSkillData(profile.writeNbt());
-            return;
-        }
-
-        // Find affordable options
-        List<Integer> affordable = new ArrayList<>();
-        List<Integer> expensive = new ArrayList<>(); // Track expensive upgrades (>= 10 pts)
-        
-        for (int i = 0; i < collector.size(); i++) {
-            double cost = collector.costs.get(i);
-            if (cost <= availablePoints) {
-                affordable.add(i);
-                if (cost >= 10.0) {
-                    expensive.add(i);
+        double availablePoints = profile.totalPoints - data.getSpentPoints();
+        int safety = 0;
+        while (availablePoints > 0 && safety++ < 1000) {
+            UpgradeCollector collector = new UpgradeCollector();
+            collectOptions(state, collector, context, profile);
+            if (collector.isEmpty()) {
+                profile.isMaxed = true;
+                break;
+            }
+            // Find affordable upgrades
+            List<Integer> affordable = new ArrayList<>();
+            for (int i = 0; i < collector.size(); i++) {
+                double cost = collector.costs.get(i);
+                if (cost <= availablePoints) {
+                    affordable.add(i);
                 }
             }
+            if (affordable.isEmpty()) break;
+            // Pick one randomly
+            int index = affordable.get(mob.getRandom().nextInt(affordable.size()));
+            collector.apply(index, state);
+            checkTierUpgrades(state, context);
+            availablePoints -= collector.costs.get(index);
         }
-
-        if (affordable.isEmpty()) return;
-
-        // SMART SAVING MECHANIC:
-        // If mob has expensive upgrades available (>=10 pts) and current available points < total budget,
-        // there's a 50% chance to SKIP cheap upgrades (<5 pts) to save for expensive ones
-        List<Integer> finalChoices = new ArrayList<>(affordable);
-        
-        if (!expensive.isEmpty() && availablePoints < (profile.totalPoints - data.getSpentPoints())) {
-            // Filter out cheap upgrades with 50% chance (save for expensive ones)
-            if (mob.getRandom().nextDouble() < 0.5) {
-                List<Integer> nonCheap = new ArrayList<>();
-                for (int idx : affordable) {
-                    if (collector.costs.get(idx) >= 5.0) {
-                        nonCheap.add(idx);
-                    }
-                }
-                // Only use filtered list if it's not empty (always have fallback)
-                if (!nonCheap.isEmpty()) {
-                    finalChoices = nonCheap;
-                }
-            }
-        }
-
-        // Pick one randomly from final choices
-        int index = finalChoices.get(0);
-        if (finalChoices.size() > 1) {
-            index = finalChoices.get(mob.getRandom().nextInt(finalChoices.size()));
-        }
-
-        // Apply the upgrade
-        collector.apply(index, state);
-        checkTierUpgrades(state, context);
-        
         // Update spent points
-        data.setSpentPoints(data.getSpentPoints() + collector.costs.get(index));
-        
+        data.setSpentPoints(profile.totalPoints);
         // Save state back to profile
         saveStateToProfile(state, profile);
         data.setSkillData(profile.writeNbt());
-        
         // Apply to mob immediately
         applyStateToMob(mob, state, profile);
-        
         // Debug logging
         if (ModConfig.getInstance().debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
             MinecraftServer server = sw.getServer();
-            String msg = String.format("[UMW] Upgrade: %s gained %s (cost: %.1f, total spent: %.1f/%.1f)", 
-                mob.getType().getTranslationKey(), collector.ids.get(index), 
-                (double)collector.costs.get(index), (double)data.getSpentPoints(), (double)profile.totalPoints);
+            String msg = String.format("[UMW] Upgrades applied instantly to %s (total spent: %.1f/%.1f)", 
+                mob.getType().getTranslationKey(), (double)profile.totalPoints, (double)profile.totalPoints);
             Text text = Text.literal(msg);
             for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
                 p.sendMessage(text, false);
