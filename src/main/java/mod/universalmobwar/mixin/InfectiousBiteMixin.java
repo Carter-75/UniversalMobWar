@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class InfectiousBiteMixin {
 
     @Inject(method = "onKilledOther", at = @At("HEAD"))
-    private void universalmobwar$onKilledOther(ServerWorld world, LivingEntity other, CallbackInfo ci) {
+    private void universalmobwar$onKilledOther(ServerWorld world, LivingEntity other, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<?> cir) {
         if (other instanceof VillagerEntity villager) {
             ZombieEntity zombie = (ZombieEntity)(Object)this;
             PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(zombie);
