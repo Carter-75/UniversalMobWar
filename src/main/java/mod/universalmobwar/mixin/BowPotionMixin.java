@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class BowPotionMixin {
 
     @Inject(method = "createArrowProjectile", at = @At("RETURN"), cancellable = true)
-    private void universalmobwar$onShoot(ItemStack arrow, float damageModifier, CallbackInfoReturnable<PersistentProjectileEntity> cir) {
+    private void universalmobwar$onShoot(ItemStack arrow, float damageModifier, ItemStack bow, CallbackInfoReturnable<PersistentProjectileEntity> cir) {
         AbstractSkeletonEntity skeleton = (AbstractSkeletonEntity)(Object)this;
         if (skeleton.getWorld().isClient()) return;
         
