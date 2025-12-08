@@ -123,7 +123,8 @@ def clean_project():
             log(f"Failed to remove build directory: {str(e)}", "WARNING")
 
     # Run gradle clean
-    if not run_command(["gradlew.bat", "clean"], "Gradle clean"):
+    gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
+    if not run_command([gradlew, "clean"], "Gradle clean"):
         log("Gradle clean failed", "WARNING")
 
 def build_project():
@@ -131,7 +132,16 @@ def build_project():
     log("Building project...")
 
     # Run gradle build with info and stacktrace
-    cmd = ["gradlew.bat", "build", "--info", "--stacktrace", "--console=verbose"]
+    gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
+    
+    # Set Java 21 for Minecraft 1.21.1
+    java_home = "/usr/lib/jvm/java-21-openjdk-amd64"
+    if os.path.exists(java_home):
+        os.environ["JAVA_HOME"] = java_home
+        os.environ["PATH"] = f"{java_home}/bin:{os.environ.get('PATH', '')}"
+        log(f"Using Java 21 from: {java_home}")
+    
+    cmd = [gradlew, "build", "--info", "--stacktrace", "--console=verbose"]
     return run_command(cmd, "Gradle build with debug output")
 
 def commit_and_push():
