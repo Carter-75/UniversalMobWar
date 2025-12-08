@@ -230,85 +230,85 @@ DROP MASTERY (per equipment slot)
 
 ### SWORD / AXE
 
-• Sharpness I–V: 3 pts each
+• Sharpness I–V (3/4/5/6/7 pts → total 25)
 
-• Fire Aspect I–II: 4 pts each
+• Fire Aspect I–II (4/5 pts → total 9)
 
-• Knockback I–II: 3 pts each
+• Knockback I–II (3/4 pts → total 7)
 
-• Smite I–V: 3 pts each
+• Smite I–V (3/4/5/6/7 pts → total 25)
 
-• Bane of Arthropods I–V: 3 pts each
+• Bane of Arthropods I–V (3/4/5/6/7 pts → total 25)
 
-• Looting I–III: 5 pts each
+• Looting I–III (5/7/9 pts → total 21)
 
-• Unbreaking I–III: 3 pts each
+• Unbreaking I–III (3/4/5 pts → total 12)
 
-• Mending: 10 pts
+• Mending (10 pts)
 
 ### ARMOR (per piece)
 
-• Protection I–IV: 3 pts each
+• Protection I–IV (3/4/5/6 pts → total 18)
 
-• Fire Protection I–IV: 3 pts each
+• Fire Protection I–IV (3/4/5/6 pts → total 18)
 
-• Blast Protection I–IV: 3 pts each
+• Blast Protection I–IV (3/4/5/6 pts → total 18)
 
-• Projectile Protection I–IV: 3 pts each
+• Projectile Protection I–IV (3/4/5/6 pts → total 18)
 
-• Thorns I–III: 4 pts each
+• Thorns I–III (4/5/6 pts → total 15)
 
-• Unbreaking I–III: 3 pts each
+• Unbreaking I–III (3/4/5 pts → total 12)
 
-• Mending: 10 pts
+• Mending (10 pts)
 
 Helmet only:
 
-• Aqua Affinity: 6 pts
+• Aqua Affinity (6 pts)
 
-• Respiration I–III: 4 pts each
+• Respiration I–III (4/5/6 pts → total 15)
 
 Leggings only:
 
-• Swift Sneak I–III: 6 pts each
+• Swift Sneak I–III (6/8/10 pts → total 24)
 
 Boots only:
 
-• Feather Falling I–IV: 3 pts each
+• Feather Falling I–IV (3/4/5/6 pts → total 18)
 
-• Depth Strider I–III: 4 pts each
+• Depth Strider I–III (4/5/6 pts → total 15)
 
-• Soul Speed I–III: 5 pts each
+• Soul Speed I–III (5/6/7 pts → total 18)
 
-• Frost Walker I–II: 6 pts each
+• Frost Walker I–II (6/7 pts → total 13)
 
 ### BOW / CROSSBOW
 
-• Power I–V: 2 pts each
+• Power I–V (2/3/4/5/6 pts → total 20)
 
-• Punch I–II: 4 pts each
+• Punch I–II (4/5 pts → total 9)
 
-• Flame: 8 pts
+• Flame (8 pts)
 
-• Infinity: 12 pts
+• Infinity (12 pts)
 
-• Unbreaking I–III: 3 pts each
+• Unbreaking I–III (3/4/5 pts → total 12)
 
-• Mending: 10 pts
+• Mending (10 pts)
 
 ### TRIDENT (Drowned only)
 
-• Loyalty I–III: 4 pts each
+• Loyalty I–III (4/5/6 pts → total 15)
 
-• Impaling I–V: 3 pts each
+• Impaling I–V (3/4/5/6/7 pts → total 25)
 
-• Riptide I–III: 5 pts each
+• Riptide I–III (5/6/7 pts → total 18)
 
-• Channeling: 8 pts
+• Channeling (8 pts)
 
-• Unbreaking I–III: 3 pts each
+• Unbreaking I–III (3/4/5 pts → total 12)
 
-• Mending: 10 pts
+• Mending (10 pts)
 
 ============================================================
 
@@ -454,11 +454,17 @@ PASSIVE TREE (gp) — Non-hostile mobs
 
 ------------------------------------------------------------
 
-• Healing I–III: 2 pts each (total 6)
+• Healing 1–3 (2/3/4 pts → total 9)
 
-• Health Boost I–III: 2 pts each (total 6)
+  - Progressive passive regeneration for peaceful mobs
 
-• Resistance I: 2 pts
+• Health Boost 1–3 (2/3/4 pts → total 9)
+
+  - Progressive health increases for survival
+
+• Resistance 1 (2 pts)
+
+  - Basic damage reduction for defensive play
 
 ============================================================
 

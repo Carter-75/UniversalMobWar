@@ -561,10 +561,22 @@ public class UpgradeSystem {
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("gp"), costs);
-        if (state.getLevel("healing") < 3) addOpt(options, state, "healing", "gp", "general", cost);
-        if (state.getLevel("health_boost") < 3) addOpt(options, state, "health_boost", "gp", "general", cost);
-        if (state.getLevel("resistance") < 1) addOpt(options, state, "resistance", "gp", "general", cost);
+        // Passive tree: Healing 2/3/4, Health Boost 2/3/4, Resistance 2
+        int healingLvl = state.getLevel("healing");
+        if (healingLvl < 3) {
+            int healingCost = 2 + healingLvl; // 2/3/4
+            addOpt(options, state, "healing", "gp", "general", healingCost);
+        }
+        
+        int healthBoostLvl = state.getLevel("health_boost");
+        if (healthBoostLvl < 3) {
+            int healthBoostCost = 2 + healthBoostLvl; // 2/3/4
+            addOpt(options, state, "health_boost", "gp", "general", healthBoostCost);
+        }
+        
+        if (state.getLevel("resistance") < 1) {
+            addOpt(options, state, "resistance", "gp", "general", 2);
+        }
     }
 
     private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
@@ -656,50 +668,150 @@ public class UpgradeSystem {
     }
 
     private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
-        int cost = getCost(state.getCategoryCount(catName), costs);
-        
-        // Weight is now handled dynamically by group normalization
+        // ALL enchants now progressive - no more shared cost system
         int weight = 1;
         
         for (int i = 0; i < enchants.size(); i++) {
             String ench = enchants.get(i);
             int max = maxLevels.get(i);
-            if (state.getLevel(ench) < max) {
-                addOpt(options, state, ench, catName, "mainhand", cost, weight);
+            int currentLvl = state.getLevel(ench);
+            
+            if (currentLvl < max) {
+                // Calculate progressive cost per enchant
+                int enchCost = getEnchantCost(ench, currentLvl);
+                addOpt(options, state, ench, catName, "mainhand", enchCost, weight);
             }
+        }
+    }
+    
+    private static int getEnchantCost(String enchant, int currentLevel) {
+        // Progressive costs for all weapon/armor enchants
+        // Base cost starts at different values, increases by 1 per level
+        
+        switch (enchant) {
+            // Weapon enchants
+            case "sharpness": return 3 + currentLevel; // 3/4/5/6/7
+            case "smite": return 3 + currentLevel; // 3/4/5/6/7
+            case "bane_of_arthropods": return 3 + currentLevel; // 3/4/5/6/7
+            case "fire_aspect": return 4 + currentLevel; // 4/5
+            case "knockback": return 3 + currentLevel; // 3/4
+            case "looting": return 5 + (currentLevel * 2); // 5/7/9
+            case "unbreaking": return 3 + currentLevel; // 3/4/5
+            case "mending": return 10; // Flat 10
+            
+            // Bow enchants
+            case "power": return 2 + currentLevel; // 2/3/4/5/6
+            case "punch": return 4 + currentLevel; // 4/5
+            case "flame": return 8; // Flat 8
+            case "infinity": return 12; // Flat 12
+            
+            // Trident enchants
+            case "loyalty": return 4 + currentLevel; // 4/5/6
+            case "impaling": return 3 + currentLevel; // 3/4/5/6/7
+            case "riptide": return 5 + currentLevel; // 5/6/7
+            case "channeling": return 8; // Flat 8
+            
+            // Armor enchants (per slot)
+            case "protection_head": case "protection_chest": case "protection_legs": case "protection_feet":
+            case "fire_protection_head": case "fire_protection_chest": case "fire_protection_legs": case "fire_protection_feet":
+            case "blast_protection_head": case "blast_protection_chest": case "blast_protection_legs": case "blast_protection_feet":
+            case "projectile_protection_head": case "projectile_protection_chest": case "projectile_protection_legs": case "projectile_protection_feet":
+                return 3 + currentLevel; // 3/4/5/6
+            
+            case "thorns_head": case "thorns_chest": case "thorns_legs": case "thorns_feet":
+                return 4 + currentLevel; // 4/5/6
+            
+            case "armor_unbreaking_head": case "armor_unbreaking_chest": case "armor_unbreaking_legs": case "armor_unbreaking_feet":
+                return 3 + currentLevel; // 3/4/5
+            
+            case "armor_mending_head": case "armor_mending_chest": case "armor_mending_legs": case "armor_mending_feet":
+                return 10; // Flat 10
+            
+            // Helmet special
+            case "aqua_affinity": return 6; // Flat 6
+            case "respiration": return 4 + currentLevel; // 4/5/6
+            
+            // Leggings special
+            case "swift_sneak": return 6 + (currentLevel * 2); // 6/8/10
+            
+            // Boots special
+            case "feather_falling": return 3 + currentLevel; // 3/4/5/6
+            case "depth_strider": return 4 + currentLevel; // 4/5/6
+            case "soul_speed": return 5 + currentLevel; // 5/6/7
+            case "frost_walker": return 6 + currentLevel; // 6/7
+            
+            // Axe special
+            case "efficiency": return 3 + currentLevel; // 3/4/5/6/7
+            
+            default: return 3 + currentLevel; // Default progressive
         }
     }
 
     private static void addArmorUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("armor"), costs);
+        // ALL armor enchants now progressive
         
         // Per-slot shared enchants
-        addPerSlot(options, state, "protection", 4, cost);
-        addPerSlot(options, state, "fire_protection", 4, cost);
-        addPerSlot(options, state, "blast_protection", 4, cost);
-        addPerSlot(options, state, "projectile_protection", 4, cost);
-        addPerSlot(options, state, "thorns", 3, cost);
-        addPerSlot(options, state, "armor_unbreaking", 3, cost);
-        addPerSlot(options, state, "armor_mending", 1, cost);
+        addPerSlotProgressive(options, state, "protection", 4);
+        addPerSlotProgressive(options, state, "fire_protection", 4);
+        addPerSlotProgressive(options, state, "blast_protection", 4);
+        addPerSlotProgressive(options, state, "projectile_protection", 4);
+        addPerSlotProgressive(options, state, "thorns", 3);
+        addPerSlotProgressive(options, state, "armor_unbreaking", 3);
+        addPerSlotProgressive(options, state, "armor_mending", 1);
         
         // Specific enchants (Head)
-        if (state.getLevel("aqua_affinity") < 1) addOpt(options, state, "aqua_affinity", "armor", "head", cost);
-        if (state.getLevel("respiration") < 3) addOpt(options, state, "respiration", "armor", "head", cost);
+        int aquaLvl = state.getLevel("aqua_affinity");
+        if (aquaLvl < 1) {
+            int aquaCost = getEnchantCost("aqua_affinity", aquaLvl);
+            addOpt(options, state, "aqua_affinity", "armor", "head", aquaCost);
+        }
+        
+        int respirationLvl = state.getLevel("respiration");
+        if (respirationLvl < 3) {
+            int respirationCost = getEnchantCost("respiration", respirationLvl);
+            addOpt(options, state, "respiration", "armor", "head", respirationCost);
+        }
         
         // Specific enchants (Legs)
-        if (state.getLevel("swift_sneak") < 3) addOpt(options, state, "swift_sneak", "armor", "legs", cost);
+        int swiftLvl = state.getLevel("swift_sneak");
+        if (swiftLvl < 3) {
+            int swiftCost = getEnchantCost("swift_sneak", swiftLvl);
+            addOpt(options, state, "swift_sneak", "armor", "legs", swiftCost);
+        }
         
         // Specific enchants (Feet)
-        if (state.getLevel("feather_falling") < 4) addOpt(options, state, "feather_falling", "armor", "feet", cost);
-        if (state.getLevel("soul_speed") < 3) addOpt(options, state, "soul_speed", "armor", "feet", cost);
-        if (state.getLevel("depth_strider") < 3) addOpt(options, state, "depth_strider", "armor", "feet", cost);
-        if (state.getLevel("frost_walker") < 2) addOpt(options, state, "frost_walker", "armor", "feet", cost);
+        int featherLvl = state.getLevel("feather_falling");
+        if (featherLvl < 4) {
+            int featherCost = getEnchantCost("feather_falling", featherLvl);
+            addOpt(options, state, "feather_falling", "armor", "feet", featherCost);
+        }
+        
+        int soulLvl = state.getLevel("soul_speed");
+        if (soulLvl < 3) {
+            int soulCost = getEnchantCost("soul_speed", soulLvl);
+            addOpt(options, state, "soul_speed", "armor", "feet", soulCost);
+        }
+        
+        int depthLvl = state.getLevel("depth_strider");
+        if (depthLvl < 3) {
+            int depthCost = getEnchantCost("depth_strider", depthLvl);
+            addOpt(options, state, "depth_strider", "armor", "feet", depthCost);
+        }
+        
+        int frostLvl = state.getLevel("frost_walker");
+        if (frostLvl < 2) {
+            int frostCost = getEnchantCost("frost_walker", frostLvl);
+            addOpt(options, state, "frost_walker", "armor", "feet", frostCost);
+        }
     }
     
-    private static void addPerSlot(UpgradeCollector options, SimState state, String baseId, int max, int cost) {
+    private static void addPerSlotProgressive(UpgradeCollector options, SimState state, String baseId, int max) {
         for (String slot : List.of("head", "chest", "legs", "feet")) {
-            if (state.getLevel(baseId + "_" + slot) < max) {
-                addOpt(options, state, baseId + "_" + slot, "armor", slot, cost);
+            String fullId = baseId + "_" + slot;
+            int currentLvl = state.getLevel(fullId);
+            if (currentLvl < max) {
+                int cost = getEnchantCost(fullId, currentLvl);
+                addOpt(options, state, fullId, "armor", slot, cost);
             }
         }
     }
