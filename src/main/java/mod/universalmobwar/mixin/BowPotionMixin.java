@@ -23,7 +23,7 @@ import java.util.Optional;
 public abstract class BowPotionMixin {
 
     @Inject(method = "createArrowProjectile", at = @At("RETURN"), cancellable = true)
-    private void universalmobwar$onShoot(ItemStack arrow, float damageModifier, ItemStack bow, CallbackInfoReturnable<PersistentProjectileEntity> cir) {
+    private void universalmobwar$onShoot(ItemStack arrow, float damageModifier, ItemStack shotFrom, CallbackInfoReturnable<PersistentProjectileEntity> cir) {
         AbstractSkeletonEntity skeleton = (AbstractSkeletonEntity)(Object)this;
         if (skeleton.getWorld().isClient()) return;
         
@@ -89,7 +89,7 @@ public abstract class BowPotionMixin {
         }
 
         // Create Tipped Arrow with the stack
-        ArrowEntity tippedArrow = new ArrowEntity(skeleton.getWorld(), skeleton, tippedStack, new ItemStack(Items.BOW));
+        ArrowEntity tippedArrow = new ArrowEntity(skeleton.getWorld(), skeleton, tippedStack, shotFrom != null ? shotFrom : new ItemStack(Items.BOW));
         
         cir.setReturnValue(tippedArrow);
     }
