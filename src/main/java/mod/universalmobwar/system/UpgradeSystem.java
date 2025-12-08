@@ -892,6 +892,16 @@ public class UpgradeSystem {
     }
 
     public static void applyStateToMob(MobEntity mob, SimState state, PowerProfile profile) {
+        // Debug logging
+        boolean debug = ModConfig.getInstance().debugUpgradeLog;
+        if (debug) {
+            mod.universalmobwar.UniversalMobWarMod.LOGGER.info("[APPLY] {} - armor count: {}, head tier: {}, bow tier: {}",
+                mob.getType().getTranslationKey(), 
+                state.getCategoryCount("armor"),
+                state.getItemTier("head"),
+                state.getItemTier("bow"));
+        }
+        
         // Apply Stats
         double healthBonus = state.getLevel("health_boost") * 4.0; 
         
@@ -906,11 +916,8 @@ public class UpgradeSystem {
             strength.setBaseValue(profile.baseDamage + state.getLevel("strength") * 1.0); 
         }
 
-        // Apply Effects
-        if (state.getLevel("healing") > 0) {
-            mob.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-                net.minecraft.entity.effect.StatusEffects.REGENERATION, 999999, state.getLevel("healing") - 1));
-        }
+        // Apply Effects (Healing is now handled in UniversalBaseTreeMixin)
+        // Resistance still applied here because it's always permanent
         if (state.getLevel("resistance") > 0) {
             mob.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
                 net.minecraft.entity.effect.StatusEffects.RESISTANCE, 999999, state.getLevel("resistance") - 1));
@@ -923,8 +930,9 @@ public class UpgradeSystem {
         // Equipment
         boolean isPiglin = mob.getType().getTranslationKey().contains("piglin");
         
-        // Sword
-        if ((state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0) && state.getItemTier("sword") >= 0) {
+        // Sword - equip if mob has weapon category OR any sword upgrades
+        boolean hasSword = (profile.categories != null && profile.categories.contains("sword")) || state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        if (hasSword && state.getItemTier("sword") >= 0) {
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
             int tierIndex = state.getItemTier("sword");
             if (tierIndex >= 0 && tierIndex < tiers.size()) {
@@ -951,8 +959,9 @@ public class UpgradeSystem {
             }
         }
 
-        // Axe
-        if ((state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0) && state.getItemTier("axe") >= 0) {
+        // Axe - equip if mob has axe category OR any axe upgrades
+        boolean hasAxe = (profile.categories != null && profile.categories.contains("axe")) || state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        if (hasAxe && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
             int tierIndex = state.getItemTier("axe");
             if (tierIndex >= 0 && tierIndex < tiers.size()) {
@@ -977,8 +986,9 @@ public class UpgradeSystem {
             }
         }
 
-        // Trident
-        if ((state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0) && state.getItemTier("trident") >= 0) {
+        // Trident - equip if mob has trident category OR any trident upgrades
+        boolean hasTrident = (profile.categories != null && profile.categories.contains("trident")) || state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
+        if (hasTrident && state.getItemTier("trident") >= 0) {
             int tierIndex = state.getItemTier("trident");
             // Only one trident tier in vanilla, but support for future expansion
             List<String> tridentTiers = List.of("minecraft:trident");
@@ -1004,8 +1014,9 @@ public class UpgradeSystem {
             }
         }
 
-        // Bow
-        if ((state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0) && state.getItemTier("bow") >= 0) {
+        // Bow - equip if mob has bow category OR any bow upgrades  
+        boolean hasBow = (profile.categories != null && profile.categories.contains("bow")) || state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
+        if (hasBow && state.getItemTier("bow") >= 0) {
             int tierIndex = state.getItemTier("bow");
             // Only one bow tier in vanilla, but support for future expansion
             List<String> bowTiers = List.of("minecraft:bow");
@@ -1031,8 +1042,9 @@ public class UpgradeSystem {
             }
         }
         
-        // Armor
-        if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
+        // Armor - equip if any armor enchants purchased OR if mob has "g" category (all hostile mobs get armor)
+        boolean hasGCategory = profile.categories != null && profile.categories.contains("g");
+        if (hasGCategory || state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
             if (state.getItemTier("head") >= 0) {
                 int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
                 String itemId = HELMET_TIERS.get(headTier);

@@ -48,8 +48,9 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
         }
     }
     
-        // Strip ALL equipment from every mob immediately on spawn (before upgrades)
-        @Inject(method = "initialize", at = @At("HEAD"))
+        // Strip ALL equipment from every mob immediately on spawn (AFTER vanilla equipment)
+        // Using @At("RETURN") ensures we strip equipment AFTER Minecraft adds it in initEquipment()
+        @Inject(method = "initialize", at = @At("RETURN"))
         private void universalmobwar$stripAllEquipmentOnSpawn(
             net.minecraft.world.ServerWorldAccess world,
             net.minecraft.world.LocalDifficulty difficulty,

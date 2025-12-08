@@ -78,7 +78,7 @@ public abstract class UniversalBaseTreeMixin {
         }
     }
 
-    // Speed and Strength status effects (permanent, based on upgrade level)
+    // Permanent status effects: Healing (Regen I/II), Speed, and Strength
     @Inject(method = "tick", at = @At("TAIL"))
     private void universalmobwar$applyBaseEffects(CallbackInfo ci) {
         LivingEntity entity = (LivingEntity)(Object)this;
@@ -86,20 +86,31 @@ public abstract class UniversalBaseTreeMixin {
         if (mob.getWorld().isClient()) return;
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;
-        // Speed
+        
+        // Healing Levels 1-2: Permanent Regen I/II
+        int healingLevel = profile.specialSkills.getOrDefault("healing", 0);
+        if (healingLevel >= 1 && healingLevel <= 2) {
+            int amplifier = healingLevel - 1; // L1 = Regen I (amp 0), L2 = Regen II (amp 1)
+            if (!mob.hasStatusEffect(StatusEffects.REGENERATION) || mob.getStatusEffect(StatusEffects.REGENERATION).getAmplifier() != amplifier) {
+                mob.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 999999, amplifier, true, false));
+            }
+        }
+        
+        // Speed: Permanent effect
         int speedLevel = profile.specialSkills.getOrDefault("speed", 0);
         if (speedLevel > 0) {
             int amplifier = speedLevel - 1;
             if (!mob.hasStatusEffect(StatusEffects.SPEED) || mob.getStatusEffect(StatusEffects.SPEED).getAmplifier() != amplifier) {
-                mob.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 220, amplifier, true, false));
+                mob.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 999999, amplifier, true, false));
             }
         }
-        // Strength
+        
+        // Strength: Permanent effect
         int strengthLevel = profile.specialSkills.getOrDefault("strength", 0);
         if (strengthLevel > 0) {
             int amplifier = strengthLevel - 1;
             if (!mob.hasStatusEffect(StatusEffects.STRENGTH) || mob.getStatusEffect(StatusEffects.STRENGTH).getAmplifier() != amplifier) {
-                mob.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 220, amplifier, true, false));
+                mob.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 999999, amplifier, true, false));
             }
         }
     }
