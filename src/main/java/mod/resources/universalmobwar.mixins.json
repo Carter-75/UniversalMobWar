@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "package": "mod.universalmobwar.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "mod.universalmobwar.mixin.BowPotionMixin",
+    "mod.universalmobwar.mixin.CaveSpiderMixin",
+    "mod.universalmobwar.mixin.CreeperExplosionMixin",
+    "mod.universalmobwar.mixin.EquipmentBreakMixin",
+    "mod.universalmobwar.mixin.GameRulesAccessor",
+    "mod.universalmobwar.mixin.HordeSummonMixin",
+    "mod.universalmobwar.mixin.InfectiousBiteMixin",
+    "mod.universalmobwar.mixin.InvisibilitySkillMixin",
+    "mod.universalmobwar.mixin.MobDataMixin",
+    "mod.universalmobwar.mixin.MobDeathTrackerMixin",
+    "mod.universalmobwar.mixin.MobEntityAccessor",
+    "mod.universalmobwar.mixin.MobRevengeBlockerMixin",
+    "mod.universalmobwar.mixin.MobUpgradeTickMixin",
+    "mod.universalmobwar.mixin.NaturalMobSpawnBlockerMixin",
+    "mod.universalmobwar.mixin.NeutralMobBehaviorMixin",
+    "mod.universalmobwar.mixin.PersistentProjectileEntityAccessor",
+    "mod.universalmobwar.mixin.ProjectileSkillMixin",
+    "mod.universalmobwar.mixin.RaidSpawningMixin",
+    "mod.universalmobwar.mixin.UniversalBaseTreeMixin",
+    "mod.universalmobwar.mixin.UniversalSummonerTrackingMixin",
+    "mod.universalmobwar.mixin.WarlordMinionProtectionMixin",
+    "mod.universalmobwar.mixin.WitchPotionMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
