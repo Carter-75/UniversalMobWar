@@ -538,7 +538,7 @@ public class UpgradeSystem {
         }
         
         // Save spent points for tracking
-        profile.specialSkills.put("_spent_points", state.spentPoints);
+        profile.specialSkills.put("_spent_points", (int)Math.round(state.spentPoints));
         
         // CRITICAL: For mixins that read directly from specialSkills (e.g., horde_summon),
         // we MUST also store unprefixed versions of skill-specific upgrades

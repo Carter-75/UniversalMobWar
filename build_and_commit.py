@@ -252,7 +252,6 @@ def main():
         log("1. Ensure Java 21+ is installed", "INFO")
         log("2. Check if you have at least 2GB free RAM", "INFO")
         log("3. Try manually: gradlew clean cleanLoomBinaries cleanLoomMappings build", "INFO")
-        log("4. See BUILD_TROUBLESHOOTING.md for more solutions", "INFO")
         sys.exit(1)
 
     log("Build successful! Proceeding with commit and push.")

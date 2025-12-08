@@ -6,6 +6,8 @@ import mod.universalmobwar.util.OperationScheduler;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.border.WorldBorder;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Box;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -230,7 +232,16 @@ public class AllianceSystem {
      */
     public static void cleanupDeadMobs(ServerWorld world) {
         Set<UUID> aliveMobs = new HashSet<>();
-        for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, world.getWorldBorder().getBox(), m -> true)) {
+        // Construct a Box covering the world border
+        WorldBorder border = world.getWorldBorder();
+        double centerX = border.getCenterX();
+        double centerZ = border.getCenterZ();
+        double size = border.getSize() / 2.0;
+        Box borderBox = new Box(
+            centerX - size, 0, centerZ - size,
+            centerX + size, world.getHeight(), centerZ + size
+        );
+        for (MobEntity mob : world.getEntitiesByClass(MobEntity.class, borderBox, m -> true)) {
             aliveMobs.add(mob.getUuid());
         }
         

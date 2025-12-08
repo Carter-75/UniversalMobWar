@@ -8,6 +8,7 @@ import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
 import mod.universalmobwar.system.EvolutionSystem;
+import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
