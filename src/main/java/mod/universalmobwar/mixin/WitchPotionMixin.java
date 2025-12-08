@@ -29,58 +29,63 @@ public abstract class WitchPotionMixin {
         if (profile == null) return;
         
         int level = profile.specialSkills.getOrDefault("witch_potion_mastery", 0);
-        if (level <= 0) return;
-        
+        int harmLevel = profile.specialSkills.getOrDefault("witch_harming_upgrade", 0);
+        if (level <= 0 && harmLevel <= 0) return;
+
         // Chance: "normal curve" 0% -> 100%
         double p = 1.0 / (1.0 + Math.exp(-1.0 * (level - 5.0)));
-        
+
         if (witch.getRandom().nextDouble() < p) {
             // Throw special potion
             RegistryEntry<Potion> potion = Potions.POISON;
-            
             double center = (level / 10.0) * 7.0;
             int pick = (int) Math.round(center + witch.getRandom().nextGaussian() * 1.5);
             if (pick < 0) pick = 0;
             if (pick > 7) pick = 7;
 
-            switch (pick) {
-                case 0 -> potion = Potions.WEAKNESS;
-                case 1 -> potion = Potions.SLOWNESS;
-                case 2 -> potion = Potions.POISON;
-                case 3 -> potion = Potions.HARMING;
-                case 4 -> potion = Potions.STRONG_SLOWNESS;
-                case 5 -> potion = Potions.WEAKNESS; // Blindness custom
-                case 6 -> potion = Potions.WEAKNESS; // Nausea custom
-                case 7 -> potion = Potions.WEAKNESS; // Wither custom (Decay not in Potions)
-            }
-            
+            // Harming upgrade: override harming potion with higher levels
+            boolean harming = (pick == 3);
             ItemStack stack = new ItemStack(Items.SPLASH_POTION);
-            
-            if (pick == 5) { // Blindness
-                 stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
-                     List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.BLINDNESS, 200, 0))));
+            if (harming && harmLevel > 0) {
+                // Level 1: Instant Damage II, Level 2: Instant Damage II, Level 3: Instant Damage II + Wither II
+                if (harmLevel < 3) {
+                    stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_HARMING), Optional.empty(), List.of()));
+                } else {
+                    stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(Potions.STRONG_HARMING), Optional.empty(), List.of(
+                        new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 1)
+                    )));
+                }
+            } else if (pick == 5) { // Blindness
+                stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
+                    List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.BLINDNESS, 200, 0))));
             } else if (pick == 6) { // Nausea
-                 stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
-                     List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.NAUSEA, 200, 0))));
+                stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
+                    List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.NAUSEA, 200, 0))));
             } else if (pick == 7) { // Wither
-                 stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
-                     List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 0))));
+                stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(Optional.of(potion), Optional.empty(), 
+                    List.of(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.WITHER, 200, 0))));
             } else {
-                 stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
+                stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potion));
             }
-            
+
             PotionEntity potionEntity = new PotionEntity(witch.getWorld(), witch);
             potionEntity.setItem(stack);
-            
-            // Velocity logic from WitchEntity
+
+            // Throw speed/accuracy scaling
+            // Level 1–5: 0.75F–1.25F speed, 8.0F–2.0F inaccuracy
+            float[] speeds = {0.75f, 0.9f, 1.05f, 1.15f, 1.25f};
+            float[] inaccuracies = {8.0f, 6.0f, 4.0f, 3.0f, 2.0f};
+            int idx = Math.max(0, Math.min(level-1, 4));
+            float speed = speeds[idx];
+            float inaccuracy = inaccuracies[idx];
+
             double d = target.getX() + target.getVelocity().x - witch.getX();
             double e = target.getEyeY() - 1.100000023841858D - witch.getY();
             double f = target.getZ() + target.getVelocity().z - witch.getZ();
             double g = Math.sqrt(d * d + f * f);
-            potionEntity.setVelocity(d, e + g * 0.20000000298023224D, f, 0.75F, 8.0F);
-            
+            potionEntity.setVelocity(d, e + g * 0.20000000298023224D, f, speed, inaccuracy);
+
             witch.getWorld().spawnEntity(potionEntity);
-            
             ci.cancel(); // Skip vanilla attack
         }
     }

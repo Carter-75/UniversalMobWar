@@ -762,7 +762,7 @@ public class UpgradeSystem {
                 }
             }
         }
-        
+
         // Axe
         if ((state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0) && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
@@ -782,6 +782,60 @@ public class UpgradeSystem {
                             applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
                             applyEnchant(mob, stack, "mending", state.getLevel("mending"));
                             applyEnchant(mob, stack, "efficiency", state.getLevel("efficiency"));
+                            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Trident
+        if ((state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0) && state.getItemTier("trident") >= 0) {
+            int tierIndex = state.getItemTier("trident");
+            // Only one trident tier in vanilla, but support for future expansion
+            List<String> tridentTiers = List.of("minecraft:trident");
+            if (tierIndex >= 0 && tierIndex < tridentTiers.size()) {
+                String itemId = tridentTiers.get(tierIndex);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack stack = new ItemStack(item);
+                            applyEnchant(mob, stack, "impaling", state.getLevel("impaling"));
+                            applyEnchant(mob, stack, "channeling", state.getLevel("channeling"));
+                            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
+                            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
+                            applyEnchant(mob, stack, "loyalty", state.getLevel("loyalty"));
+                            applyEnchant(mob, stack, "riptide", state.getLevel("riptide"));
+                            mob.equipStack(EquipmentSlot.MAINHAND, stack);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bow
+        if ((state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0) && state.getItemTier("bow") >= 0) {
+            int tierIndex = state.getItemTier("bow");
+            // Only one bow tier in vanilla, but support for future expansion
+            List<String> bowTiers = List.of("minecraft:bow");
+            if (tierIndex >= 0 && tierIndex < bowTiers.size()) {
+                String itemId = bowTiers.get(tierIndex);
+                if (itemId != null && itemId.contains(":")) {
+                    String[] parts = itemId.split(":", 2);
+                    if (parts.length == 2) {
+                        Identifier id = Identifier.of(parts[0], parts[1]);
+                        var item = net.minecraft.registry.Registries.ITEM.get(id);
+                        if (item != null && item != Items.AIR) {
+                            ItemStack stack = new ItemStack(item);
+                            applyEnchant(mob, stack, "power", state.getLevel("power"));
+                            applyEnchant(mob, stack, "flame", state.getLevel("flame"));
+                            applyEnchant(mob, stack, "punch", state.getLevel("punch"));
+                            applyEnchant(mob, stack, "infinity", state.getLevel("infinity"));
+                            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
+                            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
                             mob.equipStack(EquipmentSlot.MAINHAND, stack);
                         }
                     }
