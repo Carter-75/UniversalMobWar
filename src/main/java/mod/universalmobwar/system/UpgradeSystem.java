@@ -930,8 +930,8 @@ public class UpgradeSystem {
         // Equipment
         boolean isPiglin = mob.getType().getTranslationKey().contains("piglin");
         
-        // Sword - equip if mob has weapon category OR any sword upgrades
-        boolean hasSword = (profile.categories != null && profile.categories.contains("sword")) || state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        // Sword - ONLY equip if upgrades purchased (melee mobs start with nothing)
+        boolean hasSword = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
         if (hasSword && state.getItemTier("sword") >= 0) {
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
             int tierIndex = state.getItemTier("sword");
@@ -959,8 +959,8 @@ public class UpgradeSystem {
             }
         }
 
-        // Axe - equip if mob has axe category OR any axe upgrades
-        boolean hasAxe = (profile.categories != null && profile.categories.contains("axe")) || state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        // Axe - ONLY equip if upgrades purchased (melee mobs start with nothing)
+        boolean hasAxe = state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
         if (hasAxe && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
             int tierIndex = state.getItemTier("axe");
@@ -986,7 +986,7 @@ public class UpgradeSystem {
             }
         }
 
-        // Trident - equip if mob has trident category OR any trident upgrades
+        // Trident - Drowned START with trident (ranged weapon)
         boolean hasTrident = (profile.categories != null && profile.categories.contains("trident")) || state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
         if (hasTrident && state.getItemTier("trident") >= 0) {
             int tierIndex = state.getItemTier("trident");
@@ -1014,7 +1014,7 @@ public class UpgradeSystem {
             }
         }
 
-        // Bow - equip if mob has bow category OR any bow upgrades  
+        // Bow - Skeletons START with bow (ranged weapon)
         boolean hasBow = (profile.categories != null && profile.categories.contains("bow")) || state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
         if (hasBow && state.getItemTier("bow") >= 0) {
             int tierIndex = state.getItemTier("bow");
@@ -1042,9 +1042,8 @@ public class UpgradeSystem {
             }
         }
         
-        // Armor - equip if any armor enchants purchased OR if mob has "g" category (all hostile mobs get armor)
-        boolean hasGCategory = profile.categories != null && profile.categories.contains("g");
-        if (hasGCategory || state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
+        // Armor - ONLY equip if upgrades purchased (all mobs start naked)
+        if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
             if (state.getItemTier("head") >= 0) {
                 int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
                 String itemId = HELMET_TIERS.get(headTier);
