@@ -383,11 +383,6 @@ public class UpgradeSystem {
             addWeaponUpgrades(state, collector, BOW_COSTS, "bow",
                 List.of("power", "flame", "punch", "infinity", "unbreaking", "mending"),
                 List.of(5, 1, 2, 1, 3, 1));
-            // Tipped arrows
-            int cost = getCost(state.getCategoryCount("bow"), BOW_COSTS);
-            if (state.getLevel("bow_potion_mastery") < 10) { // 0-100%
-                    addOpt(collector, state, "bow_potion_mastery", "bow", "mainhand", cost);
-            }
         }
         if (useAxe) {
             addWeaponUpgrades(state, collector, SWORD_COSTS, "axe",
@@ -514,17 +509,31 @@ public class UpgradeSystem {
     }
 
     private static void addGeneralUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("g"), costs);
-        // if (state.spentPoints + cost > 100000) return; // Safety removed for high scaling
-
-        if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", "general", cost);
-        if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", "general", cost);
-        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", "general", cost); // 3 levels, lvl 3 adds fire res
-        // Invis Mastery 5 levels per spec
-        if (state.getLevel("invis_mastery") < 5) addOpt(options, state, "invis_mastery", "g", "general", cost);
-        if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", "general", cost);
-        if (state.getLevel("speed") < 3) addOpt(options, state, "speed", "g", "general", cost);
-        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", "offhand", cost);
+        // Each skill has its own specific cost per the spec
+        // HEALING: 1/2/3/4/5 pts progressive
+        int healingLvl = state.getLevel("healing");
+        if (healingLvl < 5) {
+            int healingCost = healingLvl + 1; // Level 0->1 = 1pt, 1->2 = 2pts, etc
+            addOpt(options, state, "healing", "g", "general", healingCost);
+        }
+        
+        // HEALTH BOOST: 2 pts each (10 levels)
+        if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", "general", 2);
+        
+        // RESISTANCE: 4 pts each (3 levels)
+        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", "general", 4);
+        
+        // INVISIBILITY MASTERY: 5 pts each (5 levels)
+        if (state.getLevel("invis_mastery") < 5) addOpt(options, state, "invis_mastery", "g", "general", 5);
+        
+        // STRENGTH: 3 pts each (4 levels)
+        if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", "general", 3);
+        
+        // SPEED: 6 pts each (3 levels)
+        if (state.getLevel("speed") < 3) addOpt(options, state, "speed", "g", "general", 6);
+        
+        // SHIELD CHANCE: 8 pts each (5 levels)
+        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", "offhand", 8);
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -535,36 +544,91 @@ public class UpgradeSystem {
     }
 
     private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
-        int cost = getCost(state.getCategoryCount("z"), costs);
-        if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", "skill", cost);
-        if (state.getLevel("infectious_bite") < 3) addOpt(options, state, "infectious_bite", "z", "skill", cost);
+        // Hunger Attack: 6/10/14 pts progressive
+        int hungerLvl = state.getLevel("hunger_attack");
+        if (hungerLvl < 3) {
+            int hungerCost = (hungerLvl == 0) ? 6 : (hungerLvl == 1) ? 10 : 14;
+            addOpt(options, state, "hunger_attack", "z", "skill", hungerCost);
+        }
         
+        // Infectious Bite: 8/12/16 pts progressive
+        int infectLvl = state.getLevel("infectious_bite");
+        if (infectLvl < 3) {
+            int infectCost = (infectLvl == 0) ? 8 : (infectLvl == 1) ? 12 : 16;
+            addOpt(options, state, "infectious_bite", "z", "skill", infectCost);
+        }
+        
+        // Horde Summon: 10/15/20/25/30 pts progressive
         boolean isReinforcement = context.tags.contains("umw_horde_reinforcement");
-        if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", "skill", cost);
+        int hordeLvl = state.getLevel("horde_summon");
+        if (!isReinforcement && hordeLvl < 5) {
+            int hordeCost = 10 + (hordeLvl * 5); // 10, 15, 20, 25, 30
+            addOpt(options, state, "horde_summon", "z", "skill", hordeCost);
+        }
     }
 
     private static void addProjectileUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("pro"), costs);
-        if (state.getLevel("piercing_shot") < 5) addOpt(options, state, "piercing_shot", "pro", "skill", cost);
-        if (state.getLevel("multishot_skill") < 4) addOpt(options, state, "multishot_skill", "pro", "skill", cost);
+        // Piercing Shot: 8/12/16/20 pts progressive (4 levels, not 5)
+        int pierceLvl = state.getLevel("piercing_shot");
+        if (pierceLvl < 4) {
+            int pierceCost = 8 + (pierceLvl * 4); // 8, 12, 16, 20
+            addOpt(options, state, "piercing_shot", "pro", "skill", pierceCost);
+        }
+        
+        // Multishot: 15/25/35 pts progressive
+        int multiLvl = state.getLevel("multishot_skill");
+        if (multiLvl < 3) {
+            int multiCost = (multiLvl == 0) ? 15 : (multiLvl == 1) ? 25 : 35;
+            addOpt(options, state, "multishot_skill", "pro", "skill", multiCost);
+        }
+        
+        // Bow Potion Mastery: 10/15/20/25/30 pts progressive
+        int bowPotLvl = state.getLevel("bow_potion_mastery");
+        if (bowPotLvl < 5) {
+            int bowPotCost = 10 + (bowPotLvl * 5); // 10, 15, 20, 25, 30
+            addOpt(options, state, "bow_potion_mastery", "pro", "skill", bowPotCost);
+        }
     }
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("creeper"), costs);
-        if (state.getLevel("creeper_power") < 5) addOpt(options, state, "creeper_power", "creeper", "skill", cost);
-        if (state.getLevel("creeper_potion_mastery") < 3) addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", cost);
+        // Creeper Power: 10/15/20/25/30 pts progressive
+        int powerLvl = state.getLevel("creeper_power");
+        if (powerLvl < 5) {
+            int powerCost = 10 + (powerLvl * 5); // 10, 15, 20, 25, 30
+            addOpt(options, state, "creeper_power", "creeper", "skill", powerCost);
+        }
+        
+        // Creeper Potion: 12/18/24 pts progressive
+        int potLvl = state.getLevel("creeper_potion_mastery");
+        if (potLvl < 3) {
+            int potCost = 12 + (potLvl * 6); // 12, 18, 24
+            addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", potCost);
+        }
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("witch"), costs);
-        if (state.getLevel("witch_potion_mastery") < 5) addOpt(options, state, "witch_potion_mastery", "witch", "skill", cost);
-        if (state.getLevel("witch_harming_upgrade") < 3) addOpt(options, state, "witch_harming_upgrade", "witch", "skill", cost);
+        // Potion Throw Speed: 10/15/20/25/30 pts progressive
+        int throwLvl = state.getLevel("witch_potion_mastery");
+        if (throwLvl < 5) {
+            int throwCost = 10 + (throwLvl * 5); // 10, 15, 20, 25, 30
+            addOpt(options, state, "witch_potion_mastery", "witch", "skill", throwCost);
+        }
+        
+        // Harming Upgrade: 12/18/24 pts progressive
+        int harmLvl = state.getLevel("witch_harming_upgrade");
+        if (harmLvl < 3) {
+            int harmCost = 12 + (harmLvl * 6); // 12, 18, 24
+            addOpt(options, state, "witch_harming_upgrade", "witch", "skill", harmCost);
+        }
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        int cost = getCost(state.getCategoryCount("cave_spider"), costs);
-        // Poison Mastery 1-5 per skilltree spec
-        if (state.getLevel("poison_attack") < 5) addOpt(options, state, "poison_attack", "cave_spider", "skill", cost);
+        // Poison Mastery: 8/12/16/20/24 pts progressive
+        int poisonLvl = state.getLevel("poison_attack");
+        if (poisonLvl < 5) {
+            int poisonCost = 8 + (poisonLvl * 4); // 8, 12, 16, 20, 24
+            addOpt(options, state, "poison_attack", "cave_spider", "skill", poisonCost);
+        }
     }
 
     private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
@@ -579,13 +643,6 @@ public class UpgradeSystem {
             if (state.getLevel(ench) < max) {
                 addOpt(options, state, ench, catName, "mainhand", cost, weight);
             }
-        }
-        
-        // Tipped arrows special case for bow
-        if (catName.equals("bow")) {
-             if (state.getLevel("bow_potion_mastery") < 10) {
-                 addOpt(options, state, "bow_potion_mastery", "bow", "mainhand", cost);
-             }
         }
     }
 
@@ -636,18 +693,18 @@ public class UpgradeSystem {
     }
 
     private static void addStatUpgrades(SimState state, UpgradeCollector options, String slot, int cost) {
-        // Durability (0-10)
+        // Durability (0-10) - 10 pts each per spec
         int durLvl = state.getLevel("durability_" + slot);
         if (durLvl < 10) {
             // Weighting: Lower durability = Higher chance
             // Level 0: 10 entries. Level 9: 1 entry.
             int weight = 10 - durLvl;
-            addOpt(options, state, "durability_" + slot, "stats", slot, cost, weight);
+            addOpt(options, state, "durability_" + slot, "stats", slot, 10, weight);
         }
-        // Drop Chance (0-20)
+        // Drop Chance (0-10) - 10 pts each per spec
         int dropLvl = state.getLevel("drop_chance_" + slot);
-        if (dropLvl < 20) {
-            addOpt(options, state, "drop_chance_" + slot, "stats", slot, cost);
+        if (dropLvl < 10) {
+            addOpt(options, state, "drop_chance_" + slot, "stats", slot, 10);
         }
     }
     

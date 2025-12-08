@@ -4,9 +4,10 @@ import mod.universalmobwar.data.PowerProfile;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityData;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityData;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -15,16 +16,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(LivingEntity.class)
+@Mixin(MobEntity.class)
 public abstract class HordeSummonMixin {
 
-    @Inject(method = "damage", at = @At("RETURN"))
-    private void universalmobwar$onDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValue()) return; // Only if damage was successful
+    @Inject(method = "tryAttack", at = @At("RETURN"))
+    private void universalmobwar$onAttack(Entity target, CallbackInfoReturnable<Boolean> cir) {
+        if (!cir.getReturnValue()) return; // Only if attack was successful
         
-        LivingEntity self = (LivingEntity)(Object)this;
-        if (self.getWorld().isClient()) return;
-        if (!(self instanceof MobEntity mob)) return;
+        MobEntity mob = (MobEntity)(Object)this;
+        if (mob.getWorld().isClient()) return;
         
         PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(mob);
         if (profile == null) return;

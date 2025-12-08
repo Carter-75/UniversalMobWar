@@ -14,23 +14,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ServerWorld.class)
 public abstract class NaturalMobSpawnBlockerMixin {
     /**
-     * This mixin blocks only natural mob spawns by heuristics:
+     * This mixin blocks ALL natural mob spawns (hostile AND peaceful):
      * - Only blocks mobs that are not spawned by players, eggs, or commands.
-     * - Does NOT block mobs spawned by mod code, eggs, or commands.
-     * - This is a best-effort fallback for versions without SpawnReason.
+     * - Does NOT block mobs spawned by spawn eggs, mod code, or commands.
      */
     @Inject(method = "spawnEntity", at = @At("HEAD"), cancellable = true)
     private void onSpawnEntity(net.minecraft.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (ModConfig.getInstance().disableNaturalMobSpawns && entity instanceof MobEntity) {
-            // Allow mobs spawned by spawn eggs (heuristic: check if entity has "SpawnedByEgg" tag or similar)
-            boolean spawnedByEgg = false;
-            if (entity.getType().getTranslationKey().contains("spawn_egg")) {
-                spawnedByEgg = true;
-            }
-            // Heuristic: block if entity is a mob and not a player, not being ridden, not leashed, not custom, and not from egg
-            if (!spawnedByEgg && entity.getVehicle() == null && entity.getControllingPassenger() == null && entity.getFirstPassenger() == null && !entity.hasCustomName()) {
-                cir.setReturnValue(false);
-            }
-        }
+        if (!ModConfig.getInstance().disableNaturalMobSpawns) return;
+        if (!(entity instanceof MobEntity)) return;
+        
+        // Check if mob has special tags indicating it was spawned by player/mod/command
+        if (entity.getCommandTags().contains("umw_player_spawned")) return;
+        if (entity.getCommandTags().contains("umw_horde_reinforcement")) return;
+        if (entity.getCommandTags().contains("umw_summoned")) return;
+        if (entity.hasCustomName()) return;
+        
+        // Block the spawn - this is a natural mob spawn (hostile or peaceful)
+        cir.setReturnValue(false);
     }
 }
