@@ -4,6 +4,7 @@ import mod.universalmobwar.system.UpgradeSystem;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -23,12 +24,11 @@ public abstract class EquipmentBreakMixin {
     @Shadow public abstract void equipStack(EquipmentSlot slot, ItemStack stack);
 
     @Inject(method = "sendEquipmentBreakStatus", at = @At("HEAD"))
-    private void onEquipmentBreak(ItemStack stack, EquipmentSlot slot, CallbackInfo ci) {
+    private void onEquipmentBreak(Item item, EquipmentSlot slot, CallbackInfo ci) {
         LivingEntity entity = (LivingEntity) (Object) this;
         // Only apply to Mobs (not players)
         if (!(entity instanceof MobEntity)) return;
-        if (stack.isEmpty()) return;
-        String itemId = Registries.ITEM.getId(stack.getItem()).toString();
+        String itemId = Registries.ITEM.getId(item).toString();
         // Check if it's a tier item and downgrade if possible
         ItemStack replacement = getDowngradedItem(itemId);
         if (replacement != null) {
