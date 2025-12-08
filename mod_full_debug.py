@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-COMPREHENSIVE DEBUG SYSTEM FOR UNIVERSAL MOB WAR MOD v3.0
+COMPREHENSIVE DEBUG & BUILD SYSTEM FOR UNIVERSAL MOB WAR MOD v3.1
 Checks everything: costs, triggers, effects, equipment, spawn blocking, mixins
+Also includes full build and commit functionality
 """
 import os
 import re
 import sys
+import subprocess
+import shutil
+import time
 from pathlib import Path
 
 # ANSI colors
@@ -92,12 +96,12 @@ class DebugSystem:
         # Check all skill definitions
         checks = [
             ("HEALING (5 levels, 1/2/3/4/5 pts", "Healing costs"),
-            ("HEALTH BOOST (10 levels × 2 pts", "Health Boost costs"),
-            ("RESISTANCE (3 levels × 4 pts", "Resistance costs"),
-            ("STRENGTH (4 levels × 3 pts", "Strength costs"),
-            ("SPEED (3 levels × 6 pts", "Speed costs"),
-            ("INVISIBILITY MASTERY (5 levels × 5 pts", "Invisibility costs"),
-            ("SHIELD CHANCE (5 levels × 8 pts", "Shield costs"),
+            ("HEALTH BOOST (10 levels, 2/3/4/5/6/7/8/9/10/11 pts", "Health Boost costs"),
+            ("RESISTANCE (3 levels, 4/6/8 pts", "Resistance costs"),
+            ("STRENGTH (4 levels, 3/5/7/9 pts", "Strength costs"),
+            ("SPEED (3 levels, 6/9/12 pts", "Speed costs"),
+            ("INVISIBILITY MASTERY (5 levels, 5/7/9/11/13 pts", "Invisibility costs"),
+            ("SHIELD CHANCE (5 levels, 8/11/14/17/20 pts", "Shield costs"),
             ("Horde Summon 1–5 (10/15/20/25/30 pts", "Horde Summon costs"),
             ("Infectious Bite 1–3 (8/12/16 pts", "Infectious Bite costs"),
             ("Hunger Attack 1–3 (6/10/14 pts", "Hunger Attack costs"),
@@ -111,7 +115,7 @@ class DebugSystem:
             ("Poison Mastery 1–5 (8/12/16/20/24 pts", "Poison Mastery costs"),
             ("Durability Mastery level 10", "Durability Mastery"),
             ("Drop Mastery level 10", "Drop Mastery"),
-            ("10 levels × 10 pts each", "Mastery cost structure"),
+            ("10 levels, 10/12/14/16/18/20/22/24/26/28 pts", "Mastery cost structure"),
         ]
         
         for pattern, name in checks:
@@ -149,26 +153,26 @@ class DebugSystem:
         with open(upgrade_file, "r") as f:
             content = f.read()
         
-        # Check individual skill costs (not shared category counter)
+        # Check individual skill costs (ALL progressive, no flat costs)
         cost_checks = [
             # Healing: 1/2/3/4/5 progressive
             (r'int healingCost = healingLvl \+ 1;', "Healing progressive cost (1-5 pts)"),
-            # Health Boost: 2 pts each
-            (r'addOpt\(options, state, "health_boost", "g", "general", 2\)', "Health Boost flat 2 pts"),
-            # Resistance: 4 pts each
-            (r'addOpt\(options, state, "resistance", "g", "general", 4\)', "Resistance flat 4 pts"),
-            # Strength: 3 pts each
-            (r'addOpt\(options, state, "strength", "g", "general", 3\)', "Strength flat 3 pts"),
-            # Speed: 6 pts each
-            (r'addOpt\(options, state, "speed", "g", "general", 6\)', "Speed flat 6 pts"),
-            # Invisibility: 5 pts each
-            (r'addOpt\(options, state, "invis_mastery", "g", "general", 5\)', "Invisibility flat 5 pts"),
-            # Shield: 8 pts each
-            (r'addOpt\(options, state, "shield_chance", "g", "offhand", 8\)', "Shield flat 8 pts"),
-            # Durability: 10 pts each
-            (r'addOpt\(options, state, "durability_" \+ slot, "stats", slot, 10', "Durability 10 pts"),
-            # Drop Chance: 10 pts each
-            (r'addOpt\(options, state, "drop_chance_" \+ slot, "stats", slot, 10\)', "Drop Chance 10 pts"),
+            # Health Boost: 2/3/4/5/6/7/8/9/10/11 progressive
+            (r'int healthBoostCost = 2 \+ healthBoostLvl;', "Health Boost progressive (2-11 pts)"),
+            # Resistance: 4/6/8 progressive
+            (r'int resistCost = 4 \+ \(resistLvl \* 2\);', "Resistance progressive (4/6/8 pts)"),
+            # Strength: 3/5/7/9 progressive
+            (r'int strengthCost = 3 \+ \(strengthLvl \* 2\);', "Strength progressive (3/5/7/9 pts)"),
+            # Speed: 6/9/12 progressive
+            (r'int speedCost = 6 \+ \(speedLvl \* 3\);', "Speed progressive (6/9/12 pts)"),
+            # Invisibility: 5/7/9/11/13 progressive
+            (r'int invisCost = 5 \+ \(invisLvl \* 2\);', "Invisibility progressive (5/7/9/11/13 pts)"),
+            # Shield: 8/11/14/17/20 progressive
+            (r'int shieldCost = 8 \+ \(shieldLvl \* 3\);', "Shield progressive (8/11/14/17/20 pts)"),
+            # Durability: 10/12/14/16/18/20/22/24/26/28 progressive
+            (r'int durCost = 10 \+ \(durLvl \* 2\);', "Durability progressive (10-28 pts)"),
+            # Drop Chance: 10/12/14/16/18/20/22/24/26/28 progressive
+            (r'int dropCost = 10 \+ \(dropLvl \* 2\);', "Drop Chance progressive (10-28 pts)"),
         ]
         
         for pattern, name in cost_checks:
@@ -412,8 +416,99 @@ class DebugSystem:
         success("Full report saved to: mod_debug_report.txt")
         print()
 
+def build_project():
+    """Build the project with gradle."""
+    header("GRADLE BUILD")
+    
+    gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
+    
+    # Clean first
+    info("Running gradle clean...")
+    try:
+        subprocess.run([gradlew, "clean"], check=True, timeout=300)
+        success("Clean completed")
+    except Exception as e:
+        error(f"Clean failed: {e}")
+        return False
+    
+    # Build
+    info("Running gradle build...")
+    try:
+        result = subprocess.run([gradlew, "build", "--stacktrace"], 
+                              capture_output=True, text=True, timeout=600)
+        if result.returncode == 0:
+            success("Build successful!")
+            info("JAR location: build/libs/")
+            return True
+        else:
+            error("Build failed!")
+            print(result.stdout)
+            print(result.stderr)
+            return False
+    except Exception as e:
+        error(f"Build failed: {e}")
+        return False
+
+def commit_and_push(message="Automated fix"):
+    """Commit and push changes."""
+    header("GIT COMMIT & PUSH")
+    
+    try:
+        # Add all
+        subprocess.run(["git", "add", "-A"], check=True)
+        success("Files staged")
+        
+        # Check if there are changes
+        result = subprocess.run(["git", "diff", "--cached", "--name-only"], 
+                              capture_output=True, text=True)
+        if not result.stdout.strip():
+            info("No changes to commit")
+            return True
+        
+        # Commit
+        subprocess.run(["git", "commit", "-m", message], check=True)
+        success(f"Committed with message: {message}")
+        
+        # Push
+        subprocess.run(["git", "push", "origin", "main"], check=True)
+        success("Pushed to origin/main")
+        return True
+        
+    except Exception as e:
+        error(f"Git operation failed: {e}")
+        return False
+
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Universal Mob War Debug & Build System")
+    parser.add_argument("--build", action="store_true", help="Run gradle build")
+    parser.add_argument("--commit", action="store_true", help="Commit and push changes")
+    parser.add_argument("--message", default="Automated fix", help="Commit message")
+    parser.add_argument("--full", action="store_true", help="Debug + Build + Commit")
+    args = parser.parse_args()
+    
     os.chdir("/home/user/webapp/UniversalMobWar")
+    
+    # Always run debug checks
     debugger = DebugSystem()
     debugger.check_all()
-    sys.exit(0 if not debugger.errors else 1)
+    
+    if debugger.errors:
+        error(f"Found {len(debugger.errors)} error(s). Fix these before building.")
+        sys.exit(1)
+    
+    # Build if requested
+    if args.build or args.full:
+        if not build_project():
+            error("Build failed!")
+            sys.exit(1)
+    
+    # Commit if requested
+    if args.commit or args.full:
+        if not commit_and_push(args.message):
+            error("Commit/push failed!")
+            sys.exit(1)
+    
+    success("All operations completed successfully!")
+    sys.exit(0)

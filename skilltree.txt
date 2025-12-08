@@ -86,7 +86,7 @@ HEALING (5 levels, 1/2/3/4/5 pts → total 15)
 
 ------------------------------------------------------------
 
-HEALTH BOOST (10 levels × 2 pts → total 20)
+HEALTH BOOST (10 levels, 2/3/4/5/6/7/8/9/10/11 pts → total 65)
 
 ------------------------------------------------------------
 
@@ -94,9 +94,11 @@ HEALTH BOOST (10 levels × 2 pts → total 20)
 
 • Max: +20 HP (10 extra hearts)
 
+• Progressive cost scaling for significant stat increases
+
 ------------------------------------------------------------
 
-RESISTANCE (3 levels × 4 pts → total 12)
+RESISTANCE (3 levels, 4/6/8 pts → total 18)
 
 ------------------------------------------------------------
 
@@ -108,7 +110,7 @@ RESISTANCE (3 levels × 4 pts → total 12)
 
 ------------------------------------------------------------
 
-STRENGTH (4 levels × 3 pts → total 12)
+STRENGTH (4 levels, 3/5/7/9 pts → total 24)
 
 ------------------------------------------------------------
 
@@ -118,7 +120,7 @@ STRENGTH (4 levels × 3 pts → total 12)
 
 ------------------------------------------------------------
 
-SPEED (3 levels × 6 pts → total 18)
+SPEED (3 levels, 6/9/12 pts → total 27)
 
 ------------------------------------------------------------
 
@@ -128,7 +130,7 @@ SPEED (3 levels × 6 pts → total 18)
 
 ------------------------------------------------------------
 
-INVISIBILITY MASTERY (5 levels × 5 pts → total 25)
+INVISIBILITY MASTERY (5 levels, 5/7/9/11/13 pts → total 45)
 
 ------------------------------------------------------------
 
@@ -146,7 +148,7 @@ INVISIBILITY MASTERY (5 levels × 5 pts → total 25)
 
 ------------------------------------------------------------
 
-SHIELD CHANCE (5 levels × 8 pts → total 40)
+SHIELD CHANCE (5 levels, 8/11/14/17/20 pts → total 70)
 
 ------------------------------------------------------------
 
@@ -200,11 +202,13 @@ DURABILITY MASTERY (per equipment slot)
 
 ------------------------------------------------------------
 
-• 10 levels × 10 pts each → total 100 pts
+• 10 levels, 10/12/14/16/18/20/22/24/26/28 pts → total 190
 
 • Level 10 = "perfect" (near-unbreakable) durability
 
 • Required for tier-up
+
+• Progressive cost reflects increasing durability value
 
 ------------------------------------------------------------
 
@@ -212,7 +216,7 @@ DROP MASTERY (per equipment slot)
 
 ------------------------------------------------------------
 
-• 10 levels × 10 pts each → total 100 pts
+• 10 levels, 10/12/14/16/18/20/22/24/26/28 pts → total 190
 
 • Level 10 = exactly 1% drop chance on mob death (no Netherite reduction)
 

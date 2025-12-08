@@ -517,23 +517,47 @@ public class UpgradeSystem {
             addOpt(options, state, "healing", "g", "general", healingCost);
         }
         
-        // HEALTH BOOST: 2 pts each (10 levels)
-        if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", "general", 2);
+        // HEALTH BOOST: 2/3/4/5/6/7/8/9/10/11 pts progressive (10 levels)
+        int healthBoostLvl = state.getLevel("health_boost");
+        if (healthBoostLvl < 10) {
+            int healthBoostCost = 2 + healthBoostLvl; // L1=2, L2=3, L3=4... L10=11
+            addOpt(options, state, "health_boost", "g", "general", healthBoostCost);
+        }
         
-        // RESISTANCE: 4 pts each (3 levels)
-        if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", "general", 4);
+        // RESISTANCE: 4/6/8 pts progressive (3 levels)
+        int resistLvl = state.getLevel("resistance");
+        if (resistLvl < 3) {
+            int resistCost = 4 + (resistLvl * 2); // L1=4, L2=6, L3=8
+            addOpt(options, state, "resistance", "g", "general", resistCost);
+        }
         
-        // INVISIBILITY MASTERY: 5 pts each (5 levels)
-        if (state.getLevel("invis_mastery") < 5) addOpt(options, state, "invis_mastery", "g", "general", 5);
+        // INVISIBILITY MASTERY: 5/7/9/11/13 pts progressive (5 levels)
+        int invisLvl = state.getLevel("invis_mastery");
+        if (invisLvl < 5) {
+            int invisCost = 5 + (invisLvl * 2); // L1=5, L2=7, L3=9, L4=11, L5=13
+            addOpt(options, state, "invis_mastery", "g", "general", invisCost);
+        }
         
-        // STRENGTH: 3 pts each (4 levels)
-        if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", "general", 3);
+        // STRENGTH: 3/5/7/9 pts progressive (4 levels)
+        int strengthLvl = state.getLevel("strength");
+        if (strengthLvl < 4) {
+            int strengthCost = 3 + (strengthLvl * 2); // L1=3, L2=5, L3=7, L4=9
+            addOpt(options, state, "strength", "g", "general", strengthCost);
+        }
         
-        // SPEED: 6 pts each (3 levels)
-        if (state.getLevel("speed") < 3) addOpt(options, state, "speed", "g", "general", 6);
+        // SPEED: 6/9/12 pts progressive (3 levels)
+        int speedLvl = state.getLevel("speed");
+        if (speedLvl < 3) {
+            int speedCost = 6 + (speedLvl * 3); // L1=6, L2=9, L3=12
+            addOpt(options, state, "speed", "g", "general", speedCost);
+        }
         
-        // SHIELD CHANCE: 8 pts each (5 levels)
-        if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", "offhand", 8);
+        // SHIELD CHANCE: 8/11/14/17/20 pts progressive (5 levels)
+        int shieldLvl = state.getLevel("shield_chance");
+        if (shieldLvl < 5) {
+            int shieldCost = 8 + (shieldLvl * 3); // L1=8, L2=11, L3=14, L4=17, L5=20
+            addOpt(options, state, "shield_chance", "g", "offhand", shieldCost);
+        }
     }
 
     private static void addGeneralPassiveUpgrades(SimState state, UpgradeCollector options, int[] costs) {
@@ -693,18 +717,20 @@ public class UpgradeSystem {
     }
 
     private static void addStatUpgrades(SimState state, UpgradeCollector options, String slot, int cost) {
-        // Durability (0-10) - 10 pts each per spec
+        // Durability (0-10) - 10/12/14/16/18/20/22/24/26/28 pts progressive
         int durLvl = state.getLevel("durability_" + slot);
         if (durLvl < 10) {
+            int durCost = 10 + (durLvl * 2); // L1=10, L2=12, L3=14... L10=28
             // Weighting: Lower durability = Higher chance
             // Level 0: 10 entries. Level 9: 1 entry.
             int weight = 10 - durLvl;
-            addOpt(options, state, "durability_" + slot, "stats", slot, 10, weight);
+            addOpt(options, state, "durability_" + slot, "stats", slot, durCost, weight);
         }
-        // Drop Chance (0-10) - 10 pts each per spec
+        // Drop Chance (0-10) - 10/12/14/16/18/20/22/24/26/28 pts progressive
         int dropLvl = state.getLevel("drop_chance_" + slot);
         if (dropLvl < 10) {
-            addOpt(options, state, "drop_chance_" + slot, "stats", slot, 10);
+            int dropCost = 10 + (dropLvl * 2); // L1=10, L2=12, L3=14... L10=28
+            addOpt(options, state, "drop_chance_" + slot, "stats", slot, dropCost);
         }
     }
     
