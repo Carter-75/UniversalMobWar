@@ -35,6 +35,12 @@ public class ArchetypeClassifier {
         register("vex", "g");
         register("ravager", "g", "nw");
         
+        // Illagers (use bow category for crossbow - shares enchants)
+        register("pillager", "g", "pro", "bow");
+        register("vindicator", "g", "axe"); // axe wielder
+        register("evoker", "g", "nw"); // spellcaster, no weapon
+        register("illusioner", "g", "pro", "bow");
+        
         // Piglins
         register("piglin", "g"); 
         register("piglin_brute", "g");

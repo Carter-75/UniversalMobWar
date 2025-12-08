@@ -1014,31 +1014,30 @@ public class UpgradeSystem {
             }
         }
 
-        // Bow - Skeletons START with bow (ranged weapon)
+        // Bow/Crossbow - Ranged weapon users START with their weapon
+        // Pillagers, Piglins (ranged), Illusioners use crossbow; others use bow
         boolean hasBow = (profile.categories != null && profile.categories.contains("bow")) || state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
         if (hasBow && state.getItemTier("bow") >= 0) {
-            int tierIndex = state.getItemTier("bow");
-            // Only one bow tier in vanilla, but support for future expansion
-            List<String> bowTiers = List.of("minecraft:bow");
-            if (tierIndex >= 0 && tierIndex < bowTiers.size()) {
-                String itemId = bowTiers.get(tierIndex);
-                if (itemId != null && itemId.contains(":")) {
-                    String[] parts = itemId.split(":", 2);
-                    if (parts.length == 2) {
-                        Identifier id = Identifier.of(parts[0], parts[1]);
-                        var item = net.minecraft.registry.Registries.ITEM.get(id);
-                        if (item != null && item != Items.AIR) {
-                            ItemStack stack = new ItemStack(item);
-                            applyEnchant(mob, stack, "power", state.getLevel("power"));
-                            applyEnchant(mob, stack, "flame", state.getLevel("flame"));
-                            applyEnchant(mob, stack, "punch", state.getLevel("punch"));
-                            applyEnchant(mob, stack, "infinity", state.getLevel("infinity"));
-                            applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
-                            applyEnchant(mob, stack, "mending", state.getLevel("mending"));
-                            mob.equipStack(EquipmentSlot.MAINHAND, stack);
-                        }
-                    }
-                }
+            // Determine if this mob uses crossbow or bow
+            String translationKey = mob.getType().getTranslationKey();
+            boolean usesCrossbow = translationKey.contains("pillager") || 
+                                   translationKey.contains("illusioner") ||
+                                   (translationKey.contains("piglin") && !translationKey.contains("brute") && mob.getUuid().hashCode() % 2 == 1);
+            
+            String weaponItem = usesCrossbow ? "minecraft:crossbow" : "minecraft:bow";
+            
+            Identifier id = Identifier.of("minecraft", usesCrossbow ? "crossbow" : "bow");
+            var item = net.minecraft.registry.Registries.ITEM.get(id);
+            if (item != null && item != Items.AIR) {
+                ItemStack stack = new ItemStack(item);
+                // Both bow and crossbow use same enchants (Power, Punch, etc.)
+                applyEnchant(mob, stack, "power", state.getLevel("power"));
+                applyEnchant(mob, stack, "flame", state.getLevel("flame"));
+                applyEnchant(mob, stack, "punch", state.getLevel("punch"));
+                applyEnchant(mob, stack, "infinity", state.getLevel("infinity"));
+                applyEnchant(mob, stack, "unbreaking", state.getLevel("unbreaking"));
+                applyEnchant(mob, stack, "mending", state.getLevel("mending"));
+                mob.equipStack(EquipmentSlot.MAINHAND, stack);
             }
         }
         
