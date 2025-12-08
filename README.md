@@ -1,26 +1,35 @@
-# Universal Mob War v2.0+ (Evolution & Scaling)
+# Universal Mob War v3.1 (Evolution & Scaling)
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
+![Version](https://img.shields.io/badge/version-3.1.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow) ![Progressive](https://img.shields.io/badge/costs-100%25%20progressive-brightgreen)
 
-**Battlefield overhaul: mobs fight, evolve, form alliances, and scale globally!**
+**Battlefield overhaul: mobs fight, evolve, form alliances, and scale with 100% progressive costs!**
 
-**Works with all vanilla & modded mobs.**
+**Works with all vanilla & modded mobs. True RPG progression system with 8,000+ point curve!**
 
 ---
 
 ## 📋 Core Features
 
-### **🔥 Unified Evolution System (Point-Based Progression)**
-Mobs gain **Skill Points** over time and through combat. Points are **spent like currency** to purchase upgrades:
+### **🔥 Unified Evolution System (100% Progressive Costs)**
+Mobs gain **Skill Points** over time and through combat. Points are **spent like currency** with **PROGRESSIVE COSTS** - every upgrade gets more expensive as you level it up!
 
 - **Skill Point Accumulation:**
   - **Day Scaling:** Points earned based on world day (tiered: 0.1 → 0.5 → 1.0 → 1.5 → 3.0 → 5.0 pts/day)
   - **Kill Scaling:** Bonus points for every mob killed (configurable multiplier)
   - **Formula:** `Total Points = (Day Points × dayMultiplier) + (Kills × killMultiplier)`
 
+- **100% Progressive Cost System (v3.1):**
+  - **ALL 47 SKILLS** have progressive costs - NO flat costs!
+  - Example: Health Boost costs `2/3/4/5/6/7/8/9/10/11 pts` (increases per level)
+  - Example: Healing costs `1/2/3/4/5 pts` (progressive, not flat)
+  - Example: Durability costs `10/12/14/16/18/20/22/24/26/28 pts` (major investment)
+  - **27 Progressive Enchantments** - every enchant level costs more
+  - Total progression: **~8,000 points** (2.3x longer than before)
+  - True RPG curve: Early levels cheap, endgame expensive
+  
 - **Point Spending System:**
   - Mobs start with a "point budget" based on day + kills
-  - Each upgrade **costs points** (e.g., Health Boost = 2 pts, Sharpness I = 3 pts)
+  - Each upgrade **costs MORE per level** (progressive scaling)
   - Spent points are **deducted** from available points (like money!)
   - **Smart Saving:** 50% chance to skip cheap upgrades (<5 pts) when expensive ones (>=10 pts) are available
   - When all points are spent, mob is fully upgraded
@@ -619,6 +628,40 @@ Result: Slow progression, you're a target, challenging early game!
 ## 📄 License & Usage Rights
 
 **Copyright © 2024 Carter. All rights reserved.**
+
+### ✅ You MAY:
+- Use this mod in modpacks (with attribution)
+- Use on servers (public/private)
+- Create videos/content featuring this mod
+- Share official download link
+
+### ❌ You MAY NOT:
+- Redistribute the .jar file directly
+- Modify or decompile
+- Claim as your own
+- Remove credits
+
+### 📋 Attribution Required:
+```
+Universal Mob War by Carter
+Download: [Official Download Page Link]
+```
+
+---
+
+## 🐛 Bug Reports
+
+Report with:
+- Minecraft version
+- Fabric Loader version
+- List of other mods
+- Steps to reproduce
+- Screenshots/logs if applicable
+
+---
+
+**Enjoy watching mobs evolve into unstoppable warriors!** 🎉
+served.**
 
 ### ✅ You MAY:
 - Use this mod in modpacks (with attribution)
