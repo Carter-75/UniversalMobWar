@@ -47,4 +47,24 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
             universalMobWarData.readNbt(nbt.getCompound("UniversalMobWarData"));
         }
     }
+    
+        // Strip ALL equipment from every mob immediately on spawn (before upgrades)
+        @Inject(method = "initialize", at = @At("HEAD"))
+        private void universalmobwar$stripAllEquipmentOnSpawn(
+            net.minecraft.world.ServerWorldAccess world,
+            net.minecraft.world.LocalDifficulty difficulty,
+            net.minecraft.entity.SpawnReason spawnReason,
+            net.minecraft.entity.EntityData entityData,
+            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<net.minecraft.entity.EntityData> cir
+        ) {
+            MobEntity self = (MobEntity)(Object)this;
+            // Remove armor (head, chest, legs, boots)
+            self.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.FEET, net.minecraft.item.ItemStack.EMPTY);
+            // Remove weapons/tools
+            self.equipStack(net.minecraft.entity.EquipmentSlot.MAINHAND, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, net.minecraft.item.ItemStack.EMPTY);
+        }
 }

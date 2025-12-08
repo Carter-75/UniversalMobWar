@@ -952,11 +952,12 @@ public class UpgradeSystem {
     private static void applyEquipmentStats(MobEntity mob, SimState state, PowerProfile profile, EquipmentSlot slot, String slotName, String tierCat) {
         ItemStack stack = mob.getEquippedStack(slot);
         // If there is no stack currently equipped, it may have broken. Handle downgrade mechanic.
+        SimulationContext context = new SimulationContext(mob, profile.totalPoints);
         if (stack.isEmpty()) {
             int lastAppliedTier = profile.specialSkills.getOrDefault("last_tier_" + slotName, -1);
             if (lastAppliedTier >= 0) {
                 // Determine tier list for this category
-                List<String> tiers = getTiersForCategory(tierCat);
+                List<String> tiers = getTiersForCategory(tierCat, context);
                 int prevTier = lastAppliedTier - 1;
                 if (prevTier < 0) {
                     // If lowest tier is wood/gold, the item is lost; otherwise remain at lowest tier
@@ -1051,6 +1052,24 @@ public class UpgradeSystem {
     }
 
     private static List<String> getTiersForCategory(String tierCat) {
+        return getTiersForCategory(tierCat, null);
+    }
+
+    private static List<String> getTiersForCategory(String tierCat, SimulationContext context) {
+        boolean isPiglin = context != null && context.translationKey != null && context.translationKey.contains("piglin");
+        boolean isBrute = context != null && context.translationKey != null && context.translationKey.contains("piglin_brute");
+
+        if (isPiglin || isBrute) {
+            switch (tierCat) {
+                case "helmet": case "head": return ModConfig.getInstance().goldHelmetTiers;
+                case "chest": return ModConfig.getInstance().goldChestTiers;
+                case "legs": return ModConfig.getInstance().goldLegsTiers;
+                case "feet": return ModConfig.getInstance().goldBootsTiers;
+                case "sword": return GOLD_SWORD_TIERS;
+                case "axe": return GOLD_AXE_TIERS;
+                default: return List.of();
+            }
+        }
         return switch (tierCat) {
             case "sword" -> SWORD_TIERS;
             case "axe" -> AXE_TIERS;

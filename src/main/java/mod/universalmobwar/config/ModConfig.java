@@ -138,6 +138,16 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Excluded
     public List<String> bootsTiers = Arrays.asList("leather_boots", "chainmail_boots", "iron_boots", "diamond_boots", "netherite_boots");
 
+        // Gold armor tiers for piglins/brutes only
+        @ConfigEntry.Gui.Excluded
+        public List<String> goldHelmetTiers = Arrays.asList("golden_helmet", "netherite_helmet");
+        @ConfigEntry.Gui.Excluded
+        public List<String> goldChestTiers = Arrays.asList("golden_chestplate", "netherite_chestplate");
+        @ConfigEntry.Gui.Excluded
+        public List<String> goldLegsTiers = Arrays.asList("golden_leggings", "netherite_leggings");
+        @ConfigEntry.Gui.Excluded
+        public List<String> goldBootsTiers = Arrays.asList("golden_boots", "netherite_boots");
+
     private static ConfigHolder<ModConfig> holder;
 
     public static ModConfig getInstance() {
