@@ -32,6 +32,12 @@ public abstract class MobUpgradeTickMixin extends LivingEntity {
 
             MobWarData data = MobWarData.get(mob);
             
+            // Check if mob is fully maxed - if so, skip all upgrade processing
+            var profile = data.getPowerProfile();
+            if (profile != null && profile.isMaxed) {
+                return;
+            }
+            
             // If we have points to spend
             if (data.getSpentPoints() < data.getSkillPoints()) {
                 // Speed up: If we have a LOT of points (e.g. > 100), do multiple steps per tick

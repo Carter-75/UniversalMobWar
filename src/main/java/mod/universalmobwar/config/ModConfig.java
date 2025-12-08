@@ -122,31 +122,31 @@ public class ModConfig implements ConfigData {
 
     // Item tiers (hidden)
     @ConfigEntry.Gui.Excluded
-    public List<String> swordTiers = Arrays.asList("wooden_sword", "stone_sword", "iron_sword", "diamond_sword", "netherite_sword");
+    public List<String> swordTiers = Arrays.asList("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
     @ConfigEntry.Gui.Excluded
-    public List<String> goldSwordTiers = Arrays.asList("golden_sword", "netherite_sword");
+    public List<String> goldSwordTiers = Arrays.asList("minecraft:golden_sword", "minecraft:netherite_sword");
     @ConfigEntry.Gui.Excluded
-    public List<String> axeTiers = Arrays.asList("wooden_axe", "stone_axe", "iron_axe", "diamond_axe", "netherite_axe");
+    public List<String> axeTiers = Arrays.asList("minecraft:wooden_axe", "minecraft:stone_axe", "minecraft:iron_axe", "minecraft:diamond_axe", "minecraft:netherite_axe");
     @ConfigEntry.Gui.Excluded
-    public List<String> goldAxeTiers = Arrays.asList("golden_axe", "netherite_axe");
+    public List<String> goldAxeTiers = Arrays.asList("minecraft:golden_axe", "minecraft:netherite_axe");
     @ConfigEntry.Gui.Excluded
-    public List<String> helmetTiers = Arrays.asList("leather_helmet", "chainmail_helmet", "iron_helmet", "diamond_helmet", "netherite_helmet");
+    public List<String> helmetTiers = Arrays.asList("minecraft:leather_helmet", "minecraft:chainmail_helmet", "minecraft:iron_helmet", "minecraft:diamond_helmet", "minecraft:netherite_helmet");
     @ConfigEntry.Gui.Excluded
-    public List<String> chestTiers = Arrays.asList("leather_chestplate", "chainmail_chestplate", "iron_chestplate", "diamond_chestplate", "netherite_chestplate");
+    public List<String> chestTiers = Arrays.asList("minecraft:leather_chestplate", "minecraft:chainmail_chestplate", "minecraft:iron_chestplate", "minecraft:diamond_chestplate", "minecraft:netherite_chestplate");
     @ConfigEntry.Gui.Excluded
-    public List<String> legsTiers = Arrays.asList("leather_leggings", "chainmail_leggings", "iron_leggings", "diamond_leggings", "netherite_leggings");
+    public List<String> legsTiers = Arrays.asList("minecraft:leather_leggings", "minecraft:chainmail_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
     @ConfigEntry.Gui.Excluded
-    public List<String> bootsTiers = Arrays.asList("leather_boots", "chainmail_boots", "iron_boots", "diamond_boots", "netherite_boots");
+    public List<String> bootsTiers = Arrays.asList("minecraft:leather_boots", "minecraft:chainmail_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
 
         // Gold armor tiers for piglins/brutes only
         @ConfigEntry.Gui.Excluded
-        public List<String> goldHelmetTiers = Arrays.asList("golden_helmet", "netherite_helmet");
+        public List<String> goldHelmetTiers = Arrays.asList("minecraft:golden_helmet", "minecraft:netherite_helmet");
         @ConfigEntry.Gui.Excluded
-        public List<String> goldChestTiers = Arrays.asList("golden_chestplate", "netherite_chestplate");
+        public List<String> goldChestTiers = Arrays.asList("minecraft:golden_chestplate", "minecraft:netherite_chestplate");
         @ConfigEntry.Gui.Excluded
-        public List<String> goldLegsTiers = Arrays.asList("golden_leggings", "netherite_leggings");
+        public List<String> goldLegsTiers = Arrays.asList("minecraft:golden_leggings", "minecraft:netherite_leggings");
         @ConfigEntry.Gui.Excluded
-        public List<String> goldBootsTiers = Arrays.asList("golden_boots", "netherite_boots");
+        public List<String> goldBootsTiers = Arrays.asList("minecraft:golden_boots", "minecraft:netherite_boots");
 
     private static ConfigHolder<ModConfig> holder;
 

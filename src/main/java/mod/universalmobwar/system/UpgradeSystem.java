@@ -520,9 +520,10 @@ public class UpgradeSystem {
         if (state.getLevel("healing") < 5) addOpt(options, state, "healing", "g", "general", cost);
         if (state.getLevel("health_boost") < 10) addOpt(options, state, "health_boost", "g", "general", cost);
         if (state.getLevel("resistance") < 3) addOpt(options, state, "resistance", "g", "general", cost); // 3 levels, lvl 3 adds fire res
-        // Invis 12 levels: 10m, 9m, ... 1m, 0.5m, 0.25m
-        if (state.getLevel("invis_mastery") < 12) addOpt(options, state, "invis_mastery", "g", "general", cost);
+        // Invis Mastery 5 levels per spec
+        if (state.getLevel("invis_mastery") < 5) addOpt(options, state, "invis_mastery", "g", "general", cost);
         if (state.getLevel("strength") < 4) addOpt(options, state, "strength", "g", "general", cost);
+        if (state.getLevel("speed") < 3) addOpt(options, state, "speed", "g", "general", cost);
         if (state.getLevel("shield_chance") < 5) addOpt(options, state, "shield_chance", "g", "offhand", cost);
     }
 
@@ -536,6 +537,7 @@ public class UpgradeSystem {
     private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
         int cost = getCost(state.getCategoryCount("z"), costs);
         if (state.getLevel("hunger_attack") < 3) addOpt(options, state, "hunger_attack", "z", "skill", cost);
+        if (state.getLevel("infectious_bite") < 3) addOpt(options, state, "infectious_bite", "z", "skill", cost);
         
         boolean isReinforcement = context.tags.contains("umw_horde_reinforcement");
         if (!isReinforcement && state.getLevel("horde_summon") < 8) addOpt(options, state, "horde_summon", "z", "skill", cost);
@@ -549,18 +551,20 @@ public class UpgradeSystem {
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("creeper"), costs);
-        if (state.getLevel("creeper_potion_mastery") < 10) addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", cost);
+        if (state.getLevel("creeper_power") < 5) addOpt(options, state, "creeper_power", "creeper", "skill", cost);
+        if (state.getLevel("creeper_potion_mastery") < 3) addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", cost);
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("witch"), costs);
-        if (state.getLevel("witch_potion_mastery") < 10) addOpt(options, state, "witch_potion_mastery", "witch", "skill", cost);
+        if (state.getLevel("witch_potion_mastery") < 5) addOpt(options, state, "witch_potion_mastery", "witch", "skill", cost);
+        if (state.getLevel("witch_harming_upgrade") < 3) addOpt(options, state, "witch_harming_upgrade", "witch", "skill", cost);
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
         int cost = getCost(state.getCategoryCount("cave_spider"), costs);
-        // Poison 1 -> 2 -> 3
-        if (state.getLevel("poison_attack") < 3) addOpt(options, state, "poison_attack", "cave_spider", "skill", cost);
+        // Poison Mastery 1-5 per skilltree spec
+        if (state.getLevel("poison_attack") < 5) addOpt(options, state, "poison_attack", "cave_spider", "skill", cost);
     }
 
     private static void addWeaponUpgrades(SimState state, UpgradeCollector options, int[] costs, String catName, List<String> enchants, List<Integer> maxLevels) {
@@ -955,13 +959,23 @@ public class UpgradeSystem {
         }
 
         // Save special skills to PowerProfile for Mixins
-        profile.specialSkills.clear();
+        // DO NOT CLEAR - just update values so prefixed data remains intact
+        // Update all skills that mixins depend on
         profile.specialSkills.put("horde_summon", state.getLevel("horde_summon"));
         profile.specialSkills.put("hunger_attack", state.getLevel("hunger_attack"));
         profile.specialSkills.put("invis_mastery", state.getLevel("invis_mastery"));
         profile.specialSkills.put("piercing_shot", state.getLevel("piercing_shot"));
         profile.specialSkills.put("multishot_skill", state.getLevel("multishot_skill"));
         profile.specialSkills.put("poison_attack", state.getLevel("poison_attack"));
+        profile.specialSkills.put("infectious_bite", state.getLevel("infectious_bite"));
+        profile.specialSkills.put("creeper_power", state.getLevel("creeper_power"));
+        profile.specialSkills.put("creeper_potion_mastery", state.getLevel("creeper_potion_mastery"));
+        profile.specialSkills.put("speed", state.getLevel("speed"));
+        profile.specialSkills.put("strength", state.getLevel("strength"));
+        profile.specialSkills.put("resistance", state.getLevel("resistance"));
+        profile.specialSkills.put("healing", state.getLevel("healing"));
+        profile.specialSkills.put("health_boost", state.getLevel("health_boost"));
+        profile.specialSkills.put("shield_chance", state.getLevel("shield_chance"));
         
         // Invis Interval Calculation
         if (state.getLevel("invis_mastery") > 0) {
@@ -980,15 +994,10 @@ public class UpgradeSystem {
         }
         
         // Potion Mastery (Points Based)
-        if (state.getLevel("bow_potion_mastery") > 0) {
-            profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
-        }
-        if (state.getLevel("creeper_potion_mastery") > 0) {
-            profile.specialSkills.put("creeper_potion_mastery", state.getLevel("creeper_potion_mastery"));
-        }
-        if (state.getLevel("witch_potion_mastery") > 0) {
-            profile.specialSkills.put("witch_potion_mastery", state.getLevel("witch_potion_mastery"));
-        }
+        // Always save potion mastery skills (even if 0) so mixins can read them
+        profile.specialSkills.put("bow_potion_mastery", state.getLevel("bow_potion_mastery"));
+        profile.specialSkills.put("witch_potion_mastery", state.getLevel("witch_potion_mastery"));
+        profile.specialSkills.put("witch_harming_upgrade", state.getLevel("witch_harming_upgrade"));
         
         spawnUpgradeParticles(mob);
     }

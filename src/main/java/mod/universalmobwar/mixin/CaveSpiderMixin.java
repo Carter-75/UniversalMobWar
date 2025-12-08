@@ -27,14 +27,23 @@ public abstract class CaveSpiderMixin {
         
         int level = profile.specialSkills.getOrDefault("poison_attack", 0);
         if (level <= 0) return;
-        // Level 1: Poison I (7s), Level 2: Poison II (20s), Level 3+: Poison II (20s) + Wither I (5s)
+        // Poison Mastery 1-5: Poison I (7s) -> Poison II (20s) + Wither I
+        // Level 1: Poison I (7s)
+        // Level 2: Poison I (14s)
+        // Level 3: Poison II (14s)
+        // Level 4: Poison II (20s)
+        // Level 5: Poison II (20s) + Wither I (10s)
         if (level == 1) {
             living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 140, 0), spider); // 7s Poison I
         } else if (level == 2) {
+            living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 280, 0), spider); // 14s Poison I
+        } else if (level == 3) {
+            living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 280, 1), spider); // 14s Poison II
+        } else if (level == 4) {
             living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 400, 1), spider); // 20s Poison II
-        } else if (level >= 3) {
+        } else if (level >= 5) {
             living.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, 400, 1), spider); // 20s Poison II
-            living.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 100, 0), spider); // 5s Wither I
+            living.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 200, 0), spider); // 10s Wither I
         }
     }
 }

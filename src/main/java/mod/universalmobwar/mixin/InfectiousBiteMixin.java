@@ -26,8 +26,9 @@ public abstract class InfectiousBiteMixin {
             if (profile != null) {
                 int level = profile.specialSkills.getOrDefault("infectious_bite", 0);
                 if (level > 0) {
-                    float chance = level * 0.10f;
-                    if (zombie.getRandom().nextFloat() < chance) {
+                    // Level 1: 33%, Level 2: 66%, Level 3: 100%
+                    float chance = level * 0.33f;
+                    if (chance >= 1.0f || zombie.getRandom().nextFloat() < chance) {
                         // Force conversion regardless of difficulty
                         villager.convertTo(net.minecraft.entity.EntityType.ZOMBIE_VILLAGER, false);
                         // We don't cancel, so vanilla might try to convert again?

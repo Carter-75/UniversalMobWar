@@ -85,13 +85,14 @@ public abstract class HordeSummonMixin {
                     // This strongly suggests recursion prevention.
                     // I'll set the level to 0 in their profile.
                     
+                    // Add persistent tag BEFORE spawning to prevent skill acquisition
+                    reinforcement.addCommandTag("umw_horde_reinforcement");
+                    reinforcement.addCommandTag("umw_summoned");
+                    
                     world.spawnEntity(reinforcement);
                     
                     // Force profile creation/update
                     mod.universalmobwar.system.GlobalMobScalingSystem.onMobActivated(reinforcement, world);
-                    
-                    // Add persistent tag to prevent future skill acquisition
-                    reinforcement.addCommandTag("umw_horde_reinforcement");
                     
                     PowerProfile profile = mod.universalmobwar.system.GlobalMobScalingSystem.getActiveProfile(reinforcement);
                     if (profile != null) {

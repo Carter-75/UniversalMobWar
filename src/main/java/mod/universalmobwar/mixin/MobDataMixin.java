@@ -58,6 +58,12 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
             org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<net.minecraft.entity.EntityData> cir
         ) {
             MobEntity self = (MobEntity)(Object)this;
+            
+            // Tag spawn eggs so they aren't blocked by natural spawn blocker
+            if (spawnReason == net.minecraft.entity.SpawnReason.SPAWN_EGG) {
+                self.addCommandTag("umw_player_spawned");
+            }
+            
             // Remove armor (head, chest, legs, boots)
             self.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);
             self.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
