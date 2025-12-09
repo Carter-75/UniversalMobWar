@@ -1,7 +1,9 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.config.MobConfig;
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.PowerProfile;
+import mod.universalmobwar.data.MobWarData;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
@@ -14,6 +16,16 @@ import java.util.*;
  * All costs come from individual mob JSON files
  */
 public class UpgradeSystem {
+    
+    // Equipment tier constants from ModConfig
+    public static final List<String> SWORD_TIERS = ModConfig.getInstance().swordTiers;
+    public static final List<String> GOLD_SWORD_TIERS = ModConfig.getInstance().goldSwordTiers;
+    public static final List<String> AXE_TIERS = ModConfig.getInstance().axeTiers;
+    public static final List<String> GOLD_AXE_TIERS = ModConfig.getInstance().goldAxeTiers;
+    public static final List<String> HELMET_TIERS = ModConfig.getInstance().helmetTiers;
+    public static final List<String> CHEST_TIERS = ModConfig.getInstance().chestTiers;
+    public static final List<String> LEGS_TIERS = ModConfig.getInstance().legsTiers;
+    public static final List<String> BOOTS_TIERS = ModConfig.getInstance().bootsTiers;
     
     /**
      * Apply all upgrades to a mob based on available points
@@ -191,5 +203,13 @@ public class UpgradeSystem {
             mob.equipStack(EquipmentSlot.LEGS, new ItemStack(Items.LEATHER_LEGGINGS));
             mob.equipStack(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
         }
+    }
+    
+    /**
+     * Perform one upgrade step for a mob (used by MobUpgradeTickMixin)
+     */
+    public static void performOneStep(MobEntity mob, MobWarData data) {
+        PowerProfile profile = data.getPowerProfile();
+        applyUpgrades(mob, profile);
     }
 }

@@ -49,8 +49,24 @@ public class EvolutionSystem {
         
         // Calculate total points
         double dayPoints = calculateDayPoints(config, currentDay);
-        double killPoints = data.getKillCount() * config.pointSystem.get("kill_scaling").getAsJsonObject()
-            .get("points_per_player_kill").getAsInt();
+        
+        // Get kill scaling from point system
+        double killScaling = 1.0; // Default
+        if (config.pointSystem.containsKey("kill_scaling")) {
+            Object killScalingObj = config.pointSystem.get("kill_scaling");
+            if (killScalingObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> killScalingMap = (Map<String, Object>) killScalingObj;
+                if (killScalingMap.containsKey("points_per_player_kill")) {
+                    Object pointsPerKill = killScalingMap.get("points_per_player_kill");
+                    if (pointsPerKill instanceof Number) {
+                        killScaling = ((Number) pointsPerKill).doubleValue();
+                    }
+                }
+            }
+        }
+        
+        double killPoints = data.getKillCount() * killScaling;
         
         dayPoints *= ModConfig.getInstance().dayScalingMultiplier;
         killPoints *= ModConfig.getInstance().killScalingMultiplier;
