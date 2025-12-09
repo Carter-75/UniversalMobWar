@@ -136,7 +136,10 @@ public class EvolutionSystem {
                 }
             } else {
                 // Fallback to 31+ if day not found
-                totalPoints += dailyMap.get("31+").getAsDouble();
+                Object fallbackObj = dailyMap.get("31+");
+                if (fallbackObj instanceof Number) {
+                    totalPoints += ((Number) fallbackObj).doubleValue();
+                }
             }
         }
         
