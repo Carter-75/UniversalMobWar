@@ -6,71 +6,71 @@
 
   "point_system": {
     "daily_scaling": [
-      { "days": "0-10",  "points_per_day": 0.1 },
-      { "days": "11-15", "points_per_day": 0.5 },
-      { "days": "16-20", "points_per_day": 1.0 },
-      { "days": "21-25", "points_per_day": 1.5 },
-      { "days": "26-30", "points_per_day": 3.0 },
-      { "days": "31+",   "points_per_day": 5.0 }
+      { "days_min": 0,  "days_max": 10, "points_per_day": 0.1 },
+      { "days_min": 11, "days_max": 15, "points_per_day": 0.5 },
+      { "days_min": 16, "days_max": 20, "points_per_day": 1.0 },
+      { "days_min": 21, "days_max": 25, "points_per_day": 1.5 },
+      { "days_min": 26, "days_max": 30, "points_per_day": 3.0 },
+      { "days_min": 31, "days_max": -1, "points_per_day": 5.0 }
     ],
-    "kill_scaling": "1 point per player kill",
-    "spending_logic": { "buy_chance": 0.80, "save_chance": 0.20 }
+    "kill_scaling": 1,
+    "buy_chance": 0.80,
+    "save_chance": 0.20
   },
 
   "tree": {
-    "passive_potion_effects": {
-      "_note": "EMPTY - Bogged is hostile, not passive"
-    },
+    "passive_potion_effects": {},
 
     "hostile_neutral_potion_effects": {
       "healing": [
-        { "level": 1, "cost": 1, "effect": "Permanent Regeneration I" },
-        { "level": 2, "cost": 2, "effect": "Permanent Regeneration II" },
-        { "level": 3, "cost": 3, "effect": "Permanent Regen II + on damage Regen III 10s (60s cd)" },
-        { "level": 4, "cost": 4, "effect": "Permanent Regen II + on damage Regen IV 10s (60s cd)" },
-        { "level": 5, "cost": 5, "effect": "Permanent Regen II + on damage Regen V 20s (60s cd)" }
+        { "level": 1, "cost": 1,  "regen_level": 1, "permanent": true },
+        { "level": 2, "cost": 2,  "regen_level": 2, "permanent": true },
+        { "level": 3, "cost": 3,  "regen_level": 2, "permanent": true, "on_damage_regen_level": 3, "on_damage_duration": 10, "on_damage_cooldown": 60 },
+        { "level": 4, "cost": 4,  "regen_level": 2, "permanent": true, "on_damage_regen_level": 4, "on_damage_duration": 10, "on_damage_cooldown": 60 },
+        { "level": 5, "cost": 5,  "regen_level": 2, "permanent": true, "on_damage_regen_level": 5, "on_damage_duration": 20, "on_damage_cooldown": 60 }
       ],
       "health_boost": [
-        { "level": 1,  "cost": 2,  "effect": "+2 HP (total +2)" },
-        { "level": 2,  "cost": 3,  "effect": "+2 HP (total +4)" },
-        { "level": 3,  "cost": 4,  "effect": "+2 HP (total +6)" },
-        { "level": 4,  "cost": 5,  "effect": "+2 HP (total +8)" },
-        { "level": 5,  "cost": 6,  "effect": "+2 HP (total +10)" },
-        { "level": 6,  "cost": 7,  "effect": "+2 HP (total +12)" },
-        { "level": 7,  "cost": 8,  "effect": "+2 HP (total +14)" },
-        { "level": 8,  "cost": 9,  "effect": "+2 HP (total +16)" },
-        { "level": 9,  "cost": 10, "effect": "+2 HP (total +18)" },
-        { "level": 10, "cost": 11, "effect": "+2 HP (total +20)" }
+        { "level": 1,  "cost": 2,  "hp_bonus": 2,  "hp_total": 2 },
+        { "level": 2,  "cost": 3,  "hp_bonus": 2,  "hp_total": 4 },
+        { "level": 3,  "cost": 4,  "hp_bonus": 2,  "hp_total": 6 },
+        { "level": 4,  "cost": 5,  "hp_bonus": 2,  "hp_total": 8 },
+        { "level": 5,  "cost": 6,  "hp_bonus": 2,  "hp_total": 10 },
+        { "level": 6,  "cost": 7,  "hp_bonus": 2,  "hp_total": 12 },
+        { "level": 7,  "cost": 8,  "hp_bonus": 2,  "hp_total": 14 },
+        { "level": 8,  "cost": 9,  "hp_bonus": 2,  "hp_total": 16 },
+        { "level": 9,  "cost": 10, "hp_bonus": 2,  "hp_total": 18 },
+        { "level": 10, "cost": 11, "hp_bonus": 2,  "hp_total": 20 }
       ],
       "resistance": [
-        { "level": 1, "cost": 4, "effect": "Permanent Resistance I" },
-        { "level": 2, "cost": 6, "effect": "Permanent Resistance II" },
-        { "level": 3, "cost": 8, "effect": "Permanent Resistance II + Fire Resistance I" }
+        { "level": 1, "cost": 4, "resistance_level": 1, "fire_resistance": false },
+        { "level": 2, "cost": 6, "resistance_level": 2, "fire_resistance": false },
+        { "level": 3, "cost": 8, "resistance_level": 2, "fire_resistance": true }
       ],
       "strength": [
-        { "level": 1, "cost": 3, "effect": "Strength I" },
-        { "level": 2, "cost": 5, "effect": "Strength II" },
-        { "level": 3, "cost": 7, "effect": "Strength III" },
-        { "level": 4, "cost": 9, "effect": "Strength IV" }
+        { "level": 1, "cost": 3, "strength_level": 1 },
+        { "level": 2, "cost": 5, "strength_level": 2 },
+        { "level": 3, "cost": 7, "strength_level": 3 },
+        { "level": 4, "cost": 9, "strength_level": 4 }
       ],
       "speed": [
-        { "level": 1, "cost": 6,  "effect": "Speed I" },
-        { "level": 2, "cost": 9,  "effect": "Speed II" },
-        { "level": 3, "cost": 12, "effect": "Speed III" }
+        { "level": 1, "cost": 6,  "speed_level": 1 },
+        { "level": 2, "cost": 9,  "speed_level": 2 },
+        { "level": 3, "cost": 12, "speed_level": 3 }
       ],
       "invisibility_on_hit": [
-        { "level": 1, "cost": 8,  "effect": "5% chance, 5s duration, 60s cooldown" },
-        { "level": 2, "cost": 12, "effect": "20% chance, 8s duration, 60s cooldown" },
-        { "level": 3, "cost": 16, "effect": "40% chance, 12s duration, 60s cooldown" },
-        { "level": 4, "cost": 20, "effect": "60% chance, 16s duration, 60s cooldown" },
-        { "level": 5, "cost": 25, "effect": "80% chance, 20s duration, 60s cooldown" }
+        { "level": 1, "cost": 8,  "chance": 0.05, "duration": 5,  "cooldown": 60 },
+        { "level": 2, "cost": 12, "chance": 0.20, "duration": 8,  "cooldown": 60 },
+        { "level": 3, "cost": 16, "chance": 0.40, "duration": 12, "cooldown": 60 },
+        { "level": 4, "cost": 20, "chance": 0.60, "duration": 16, "cooldown": 60 },
+        { "level": 5, "cost": 25, "chance": 0.80, "duration": 20, "cooldown": 60 }
       ]
     },
 
-    "mainhand": {
+    "weapon": {
       "weapon_type": "bow",
       "spawns_with": false,
-      "base": { "cost": 5, "note": "Purchase bow" },
+      "base_cost": 5,
+      "tiers": [],
       "enchants": {
         "power":      [{ "level": 1, "cost": 2 }, { "level": 2, "cost": 3 }, { "level": 3, "cost": 4 }, { "level": 4, "cost": 5 }, { "level": 5, "cost": 6 }],
         "punch":      [{ "level": 1, "cost": 4 }, { "level": 2, "cost": 5 }],
@@ -80,72 +80,70 @@
         "mending":    [{ "level": 1, "cost": 10 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
-    "offhand": {
-      "item_type": "shield",
-      "base": { "cost": 10, "note": "Purchase shield" },
+    "shield": {
+      "base_cost": 10,
       "enchants": {
         "unbreaking": [{ "level": 1, "cost": 3 }, { "level": 2, "cost": 4 }, { "level": 3, "cost": 5 }],
         "mending":    [{ "level": 1, "cost": 10 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
-    "head": {
-      "armor_type": "helmet",
+    "helmet": {
       "tiers": [
-        { "tier": "leather",    "cost": 3 },
-        { "tier": "chainmail",  "cost": 4 },
-        { "tier": "iron",       "cost": 5 },
-        { "tier": "diamond",    "cost": 6 },
-        { "tier": "netherite",  "cost": 7 }
+        { "tier": "leather",   "cost": 3 },
+        { "tier": "chainmail", "cost": 4 },
+        { "tier": "iron",      "cost": 5 },
+        { "tier": "diamond",   "cost": 6 },
+        { "tier": "netherite", "cost": 7 }
       ],
       "enchants": {
         "protection":            [{ "level": 1, "cost": 3 }, { "level": 2, "cost": 4 }, { "level": 3, "cost": 5 }, { "level": 4, "cost": 6 }],
@@ -159,39 +157,38 @@
         "respiration":           [{ "level": 1, "cost": 4 }, { "level": 2, "cost": 5 }, { "level": 3, "cost": 6 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
-    "body": {
-      "armor_type": "chestplate",
+    "chestplate": {
       "tiers": [
-        { "tier": "leather",    "cost": 3 },
-        { "tier": "chainmail",  "cost": 4 },
-        { "tier": "iron",       "cost": 5 },
-        { "tier": "diamond",    "cost": 6 },
-        { "tier": "netherite",  "cost": 7 }
+        { "tier": "leather",   "cost": 3 },
+        { "tier": "chainmail", "cost": 4 },
+        { "tier": "iron",      "cost": 5 },
+        { "tier": "diamond",   "cost": 6 },
+        { "tier": "netherite", "cost": 7 }
       ],
       "enchants": {
         "protection":            [{ "level": 1, "cost": 3 }, { "level": 2, "cost": 4 }, { "level": 3, "cost": 5 }, { "level": 4, "cost": 6 }],
@@ -203,39 +200,38 @@
         "mending":               [{ "level": 1, "cost": 10 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
-    "legs": {
-      "armor_type": "leggings",
+    "leggings": {
       "tiers": [
-        { "tier": "leather",    "cost": 3 },
-        { "tier": "chainmail",  "cost": 4 },
-        { "tier": "iron",       "cost": 5 },
-        { "tier": "diamond",    "cost": 6 },
-        { "tier": "netherite",  "cost": 7 }
+        { "tier": "leather",   "cost": 3 },
+        { "tier": "chainmail", "cost": 4 },
+        { "tier": "iron",      "cost": 5 },
+        { "tier": "diamond",   "cost": 6 },
+        { "tier": "netherite", "cost": 7 }
       ],
       "enchants": {
         "protection":            [{ "level": 1, "cost": 3 }, { "level": 2, "cost": 4 }, { "level": 3, "cost": 5 }, { "level": 4, "cost": 6 }],
@@ -248,39 +244,38 @@
         "swift_sneak":           [{ "level": 1, "cost": 6 }, { "level": 2, "cost": 8 }, { "level": 3, "cost": 10 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
-    "feet": {
-      "armor_type": "boots",
+    "boots": {
       "tiers": [
-        { "tier": "leather",    "cost": 3 },
-        { "tier": "chainmail",  "cost": 4 },
-        { "tier": "iron",       "cost": 5 },
-        { "tier": "diamond",    "cost": 6 },
-        { "tier": "netherite",  "cost": 7 }
+        { "tier": "leather",   "cost": 3 },
+        { "tier": "chainmail", "cost": 4 },
+        { "tier": "iron",      "cost": 5 },
+        { "tier": "diamond",   "cost": 6 },
+        { "tier": "netherite", "cost": 7 }
       ],
       "enchants": {
         "protection":            [{ "level": 1, "cost": 3 }, { "level": 2, "cost": 4 }, { "level": 3, "cost": 5 }, { "level": 4, "cost": 6 }],
@@ -296,61 +291,61 @@
         "frost_walker":          [{ "level": 1, "cost": 6 }, { "level": 2, "cost": 7 }]
       },
       "drop_mastery": [
-        { "level": 1,  "cost": 5,  "effect": "Drop chance 100% -> 90%" },
-        { "level": 2,  "cost": 7,  "effect": "Drop chance 90% -> 80%" },
-        { "level": 3,  "cost": 9,  "effect": "Drop chance 80% -> 70%" },
-        { "level": 4,  "cost": 11, "effect": "Drop chance 70% -> 60%" },
-        { "level": 5,  "cost": 13, "effect": "Drop chance 60% -> 50%" },
-        { "level": 6,  "cost": 15, "effect": "Drop chance 50% -> 40%" },
-        { "level": 7,  "cost": 17, "effect": "Drop chance 40% -> 30%" },
-        { "level": 8,  "cost": 19, "effect": "Drop chance 30% -> 20%" },
-        { "level": 9,  "cost": 21, "effect": "Drop chance 20% -> 10%" },
-        { "level": 10, "cost": 23, "effect": "Drop chance 10% -> 1%" }
+        { "level": 1,  "cost": 5,  "drop_chance": 0.90 },
+        { "level": 2,  "cost": 7,  "drop_chance": 0.80 },
+        { "level": 3,  "cost": 9,  "drop_chance": 0.70 },
+        { "level": 4,  "cost": 11, "drop_chance": 0.60 },
+        { "level": 5,  "cost": 13, "drop_chance": 0.50 },
+        { "level": 6,  "cost": 15, "drop_chance": 0.40 },
+        { "level": 7,  "cost": 17, "drop_chance": 0.30 },
+        { "level": 8,  "cost": 19, "drop_chance": 0.20 },
+        { "level": 9,  "cost": 21, "drop_chance": 0.10 },
+        { "level": 10, "cost": 23, "drop_chance": 0.01 }
       ],
       "durability_mastery": [
-        { "level": 1,  "cost": 10, "effect": "Durability 1% -> 10%" },
-        { "level": 2,  "cost": 12, "effect": "Durability -> 20%" },
-        { "level": 3,  "cost": 14, "effect": "Durability -> 30%" },
-        { "level": 4,  "cost": 16, "effect": "Durability -> 40%" },
-        { "level": 5,  "cost": 18, "effect": "Durability -> 50%" },
-        { "level": 6,  "cost": 20, "effect": "Durability -> 60%" },
-        { "level": 7,  "cost": 22, "effect": "Durability -> 70%" },
-        { "level": 8,  "cost": 24, "effect": "Durability -> 80%" },
-        { "level": 9,  "cost": 26, "effect": "Durability -> 90%" },
-        { "level": 10, "cost": 28, "effect": "Durability -> 100%" }
+        { "level": 1,  "cost": 10, "durability": 0.10 },
+        { "level": 2,  "cost": 12, "durability": 0.20 },
+        { "level": 3,  "cost": 14, "durability": 0.30 },
+        { "level": 4,  "cost": 16, "durability": 0.40 },
+        { "level": 5,  "cost": 18, "durability": 0.50 },
+        { "level": 6,  "cost": 20, "durability": 0.60 },
+        { "level": 7,  "cost": 22, "durability": 0.70 },
+        { "level": 8,  "cost": 24, "durability": 0.80 },
+        { "level": 9,  "cost": 26, "durability": 0.90 },
+        { "level": 10, "cost": 28, "durability": 1.00 }
       ]
     },
 
     "special_abilities": {
       "horde_summon": [
-        { "level": 1, "cost": 10, "effect": "10% chance to summon ally on hit" },
-        { "level": 2, "cost": 15, "effect": "20% chance to summon ally on hit" },
-        { "level": 3, "cost": 20, "effect": "30% chance to summon ally on hit" },
-        { "level": 4, "cost": 25, "effect": "40% chance to summon ally on hit" },
-        { "level": 5, "cost": 30, "effect": "50% chance to summon ally on hit" }
+        { "level": 1, "cost": 10, "chance": 0.10 },
+        { "level": 2, "cost": 15, "chance": 0.20 },
+        { "level": 3, "cost": 20, "chance": 0.30 },
+        { "level": 4, "cost": 25, "chance": 0.40 },
+        { "level": 5, "cost": 30, "chance": 0.50 }
       ],
       "hunger_attack": [
-        { "level": 1, "cost": 6,  "effect": "Hunger I 10s on hit" },
-        { "level": 2, "cost": 10, "effect": "Hunger II 15s on hit" },
-        { "level": 3, "cost": 14, "effect": "Hunger III 20s on hit" }
+        { "level": 1, "cost": 6,  "hunger_level": 1, "duration": 10 },
+        { "level": 2, "cost": 10, "hunger_level": 2, "duration": 15 },
+        { "level": 3, "cost": 14, "hunger_level": 3, "duration": 20 }
       ],
       "piercing_shot": [
-        { "level": 1, "cost": 8,  "effect": "Arrows pierce 1 enemy" },
-        { "level": 2, "cost": 12, "effect": "Arrows pierce 2 enemies" },
-        { "level": 3, "cost": 16, "effect": "Arrows pierce 3 enemies" },
-        { "level": 4, "cost": 20, "effect": "Arrows pierce 4 enemies" }
+        { "level": 1, "cost": 8,  "pierce_count": 1 },
+        { "level": 2, "cost": 12, "pierce_count": 2 },
+        { "level": 3, "cost": 16, "pierce_count": 3 },
+        { "level": 4, "cost": 20, "pierce_count": 4 }
       ],
       "ranged_potion_mastery": [
-        { "level": 1, "cost": 10, "effect": "20% chance: Slowness I 10s" },
-        { "level": 2, "cost": 15, "effect": "40% chance: Slowness II 15s or Weakness I 10s" },
-        { "level": 3, "cost": 20, "effect": "60% chance: Poison I 10s or Weakness I 15s" },
-        { "level": 4, "cost": 25, "effect": "80% chance: Poison II 15s or Instant Damage I" },
-        { "level": 5, "cost": 30, "effect": "100% chance: Poison II 20s or Instant Damage II or Wither I 10s" }
+        { "level": 1, "cost": 10, "chance": 0.20, "effects": [{ "type": "slowness", "level": 1, "duration": 10 }] },
+        { "level": 2, "cost": 15, "chance": 0.40, "effects": [{ "type": "slowness", "level": 2, "duration": 15 }, { "type": "weakness", "level": 1, "duration": 10 }] },
+        { "level": 3, "cost": 20, "chance": 0.60, "effects": [{ "type": "poison", "level": 1, "duration": 10 }, { "type": "weakness", "level": 1, "duration": 15 }] },
+        { "level": 4, "cost": 25, "chance": 0.80, "effects": [{ "type": "poison", "level": 2, "duration": 15 }, { "type": "instant_damage", "level": 1 }] },
+        { "level": 5, "cost": 30, "chance": 1.00, "effects": [{ "type": "poison", "level": 2, "duration": 20 }, { "type": "instant_damage", "level": 2 }, { "type": "wither", "level": 1, "duration": 10 }] }
       ],
       "multishot": [
-        { "level": 1, "cost": 15, "effect": "+1 extra projectile" },
-        { "level": 2, "cost": 25, "effect": "+2 extra projectiles" },
-        { "level": 3, "cost": 35, "effect": "+3 extra projectiles" }
+        { "level": 1, "cost": 15, "extra_projectiles": 1 },
+        { "level": 2, "cost": 25, "extra_projectiles": 2 },
+        { "level": 3, "cost": 35, "extra_projectiles": 3 }
       ]
     }
   }

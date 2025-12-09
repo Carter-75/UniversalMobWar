@@ -2,53 +2,46 @@
   "mob_name": "Bat",
   "entity_class": "net.minecraft.entity.passive.BatEntity",
   "mob_type": "passive",
-  
-  "equipment": {
-    "weapon": "none",
-    "armor": "none",
-    "shield": false
-  },
-  
-  "skill_trees": [],
-  
+  "tree_name": "Cave Dweller",
+
   "point_system": {
     "daily_scaling": [
-      { "days": "0-10",  "points_per_day": 0.1 },
-      { "days": "11-15", "points_per_day": 0.5 },
-      { "days": "16-20", "points_per_day": 1.0 },
-      { "days": "21-25", "points_per_day": 1.5 },
-      { "days": "26-30", "points_per_day": 3.0 },
-      { "days": "31+",   "points_per_day": 5.0 }
+      { "days_min": 0,  "days_max": 10, "points_per_day": 0.1 },
+      { "days_min": 11, "days_max": 15, "points_per_day": 0.5 },
+      { "days_min": 16, "days_max": 20, "points_per_day": 1.0 },
+      { "days_min": 21, "days_max": 25, "points_per_day": 1.5 },
+      { "days_min": 26, "days_max": 30, "points_per_day": 3.0 },
+      { "days_min": 31, "days_max": -1, "points_per_day": 5.0 }
     ],
-    "kill_scaling": "1 point per player kill",
-    "spending_logic": {
-      "buy_chance": 0.80,
-      "save_chance": 0.20
-    }
+    "kill_scaling": 1,
+    "buy_chance": 0.80,
+    "save_chance": 0.20
   },
-  
-  "available_upgrades": {
+
+  "tree": {
     "passive_potion_effects": {
       "regeneration": [
-        { "level": 1, "cost": 3, "effect": "Permanent Regeneration I" },
-        { "level": 2, "cost": 4, "effect": "Permanent Regeneration II" },
-        { "level": 3, "cost": 5, "effect": "Permanent Regeneration III" }
+        { "level": 1, "cost": 3, "regen_level": 1 },
+        { "level": 2, "cost": 4, "regen_level": 2 },
+        { "level": 3, "cost": 5, "regen_level": 3 }
       ],
       "resistance": [
-        { "level": 1, "cost": 5, "effect": "Permanent Resistance I" }
+        { "level": 1, "cost": 5, "resistance_level": 1 }
       ],
       "health_boost": [
-        { "level": 1, "cost": 4, "hp": "+2", "total": "+2" },
-        { "level": 2, "cost": 5, "hp": "+2", "total": "+4" },
-        { "level": 3, "cost": 6, "hp": "+2", "total": "+6" }
+        { "level": 1, "cost": 4, "hp_bonus": 2, "hp_total": 2 },
+        { "level": 2, "cost": 5, "hp_bonus": 2, "hp_total": 4 },
+        { "level": 3, "cost": 6, "hp_bonus": 2, "hp_total": 6 }
       ]
     },
-    "hostile_and_neutral_potion_effects": {},
-    "item_masteries": {},
-    "weapon_progression": {},
-    "armor_progression": {},
-    "enchantments": {}
-  },
-  
-  "notes": "Bat is a passive mob with no equipment or skill trees. Only has access to passive potion effects for survivability."
+
+    "hostile_neutral_potion_effects": {},
+    "weapon": {},
+    "shield": {},
+    "helmet": {},
+    "chestplate": {},
+    "leggings": {},
+    "boots": {},
+    "special_abilities": {}
+  }
 }
