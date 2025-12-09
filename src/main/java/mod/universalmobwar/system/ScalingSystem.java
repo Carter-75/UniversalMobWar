@@ -62,7 +62,9 @@ public class ScalingSystem {
     // List of all available mob config files
     private static final String[] IMPLEMENTED_MOBS = {
         "allay", "armadillo", "axolotl", "bat", "bee",
-        "blaze", "bogged", "breeze", "camel", "cat"
+        "blaze", "bogged", "breeze", "camel", "cat",
+        "cave_spider", "chicken", "cod", "cow", "creeper",
+        "dolphin"
     };
     
     private static boolean configsLoaded = false;
