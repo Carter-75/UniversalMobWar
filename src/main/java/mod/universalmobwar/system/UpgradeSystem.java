@@ -160,48 +160,197 @@ public class UpgradeSystem {
     }
     
     /**
-     * Apply weapon/armor based on config and levels
+     * Apply weapon/armor based on config and levels - fully data-driven from mob JSON
      */
     private static void applyEquipment(MobEntity mob, MobConfig config, Map<String, Integer> levels) {
-        // Weapon
-        if (config.startsWithWeapon) {
-            // Mob starts with weapon - equip base version
-            if (config.weapon.contains("bow")) {
-                mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
-            } else if (config.weapon.contains("crossbow")) {
-                mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
-            } else if (config.weapon.contains("trident")) {
-                mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.TRIDENT));
-            } else if (config.weapon.contains("iron_axe")) {
-                mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_AXE));
-            } else if (config.weapon.contains("gold_axe")) {
-                mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_AXE));
-            }
-        } else {
-            // Melee weapons must be purchased
-            int swordLevel = levels.getOrDefault("sharpness", 0); // Using sharpness as proxy for "has sword"
-            if (swordLevel > 0) {
-                if (config.weapon.contains("stone_sword")) {
-                    mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE_SWORD));
-                } else if (config.weapon.contains("normal_sword")) {
-                    mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.WOODEN_SWORD));
-                }
-            }
-        }
+        // Apply weapon based on mob's weapon type from JSON
+        applyWeapon(mob, config, levels);
         
-        // Shield
-        if (config.shield && levels.getOrDefault("shield_chance", 0) > 0) {
+        // Shield (if mob has shield enabled in JSON)
+        if (config.shield && levels.getOrDefault("shield_tier", 0) > 0) {
             mob.equipStack(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
         }
         
-        // Armor (TODO: implement tier progression)
-        // For now, just basic leather if purchased
-        int armorLevel = levels.getOrDefault("protection", 0);
-        if (armorLevel > 0 && !config.armor.equals("none")) {
-            mob.equipStack(EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
-            mob.equipStack(EquipmentSlot.CHEST, new ItemStack(Items.LEATHER_CHESTPLATE));
-            mob.equipStack(EquipmentSlot.LEGS, new ItemStack(Items.LEATHER_LEGGINGS));
-            mob.equipStack(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
+        // Armor - full tier progression based on purchased levels
+        if (!config.armor.equals("none")) {
+            applyArmorTiers(mob, config, levels);
+        }
+    }
+    
+    /**
+     * Apply weapon based on mob's weapon type and purchased tier
+     */
+    private static void applyWeapon(MobEntity mob, MobConfig config, Map<String, Integer> levels) {
+        String weaponType = config.weapon.toLowerCase();
+        int weaponTier = levels.getOrDefault("weapon_tier", config.startsWithWeapon ? 1 : 0);
+        
+        if (weaponTier <= 0) return; // No weapon
+        
+        ItemStack weapon = null;
+        
+        // Ranged weapons (always start with)
+        if (weaponType.contains("bow")) {
+            weapon = new ItemStack(Items.BOW);
+        } else if (weaponType.contains("crossbow")) {
+            weapon = new ItemStack(Items.CROSSBOW);
+        } else if (weaponType.contains("trident")) {
+            weapon = new ItemStack(Items.TRIDENT);
+            
+        // Axes (for Piglins/Vindicators)
+        } else if (weaponType.contains("gold_axe") || weaponType.contains("golden_axe")) {
+            // Gold axes: golden -> netherite
+            weapon = weaponTier >= 2 ? new ItemStack(Items.NETHERITE_AXE) : new ItemStack(Items.GOLDEN_AXE);
+        } else if (weaponType.contains("iron_axe")) {
+            // Regular axes: iron -> diamond -> netherite
+            if (weaponTier >= 3) weapon = new ItemStack(Items.NETHERITE_AXE);
+            else if (weaponTier == 2) weapon = new ItemStack(Items.DIAMOND_AXE);
+            else weapon = new ItemStack(Items.IRON_AXE);
+            
+        // Swords (most common)
+        } else if (weaponType.contains("gold_sword") || weaponType.contains("golden_sword")) {
+            // Gold swords: golden -> netherite
+            weapon = weaponTier >= 2 ? new ItemStack(Items.NETHERITE_SWORD) : new ItemStack(Items.GOLDEN_SWORD);
+        } else if (weaponType.contains("stone_sword")) {
+            // Stone sword progression: stone -> iron -> diamond -> netherite
+            if (weaponTier >= 4) weapon = new ItemStack(Items.NETHERITE_SWORD);
+            else if (weaponTier == 3) weapon = new ItemStack(Items.DIAMOND_SWORD);
+            else if (weaponTier == 2) weapon = new ItemStack(Items.IRON_SWORD);
+            else weapon = new ItemStack(Items.STONE_SWORD);
+        } else if (weaponType.contains("normal_sword") || weaponType.contains("sword")) {
+            // Normal sword progression: wood -> stone -> iron -> diamond -> netherite
+            if (weaponTier >= 5) weapon = new ItemStack(Items.NETHERITE_SWORD);
+            else if (weaponTier == 4) weapon = new ItemStack(Items.DIAMOND_SWORD);
+            else if (weaponTier == 3) weapon = new ItemStack(Items.IRON_SWORD);
+            else if (weaponTier == 2) weapon = new ItemStack(Items.STONE_SWORD);
+            else weapon = new ItemStack(Items.WOODEN_SWORD);
+        }
+        
+        if (weapon != null) {
+            mob.equipStack(EquipmentSlot.MAINHAND, weapon);
+        }
+    }
+    
+    /**
+     * Apply armor based on tier progression
+     */
+    private static void applyArmorTiers(MobEntity mob, MobConfig config, Map<String, Integer> levels) {
+        // Determine armor tier from purchased levels
+        int helmetLevel = levels.getOrDefault("helmet_tier", 0);
+        int chestLevel = levels.getOrDefault("chestplate_tier", 0);
+        int legsLevel = levels.getOrDefault("leggings_tier", 0);
+        int bootsLevel = levels.getOrDefault("boots_tier", 0);
+        
+        // Use gold armor for Piglins, regular armor for others
+        boolean useGold = config.mobName.equalsIgnoreCase("Piglin") || 
+                          config.mobName.equalsIgnoreCase("Piglin_Brute") ||
+                          config.mobName.equalsIgnoreCase("Zombified_Piglin");
+        
+        // Helmet
+        if (helmetLevel > 0) {
+            ItemStack helmet = getArmorPiece(helmetLevel, "helmet", useGold);
+            if (helmet != null) mob.equipStack(EquipmentSlot.HEAD, helmet);
+        }
+        
+        // Chestplate
+        if (chestLevel > 0) {
+            ItemStack chest = getArmorPiece(chestLevel, "chestplate", useGold);
+            if (chest != null) mob.equipStack(EquipmentSlot.CHEST, chest);
+        }
+        
+        // Leggings
+        if (legsLevel > 0) {
+            ItemStack legs = getArmorPiece(legsLevel, "leggings", useGold);
+            if (legs != null) mob.equipStack(EquipmentSlot.LEGS, legs);
+        }
+        
+        // Boots
+        if (bootsLevel > 0) {
+            ItemStack boots = getArmorPiece(bootsLevel, "boots", useGold);
+            if (boots != null) mob.equipStack(EquipmentSlot.FEET, boots);
+        }
+    }
+    
+    /**
+     * Get armor piece ItemStack based on tier level
+     */
+    private static ItemStack getArmorPiece(int tier, String type, boolean useGold) {
+        if (useGold) {
+            // Gold armor progression: gold -> netherite
+            switch (tier) {
+                case 1: return getGoldArmor(type);
+                case 2: return getNetheriteArmor(type);
+                default: return getGoldArmor(type);
+            }
+        } else {
+            // Regular armor progression: leather -> chain -> iron -> diamond -> netherite
+            switch (tier) {
+                case 1: return getLeatherArmor(type);
+                case 2: return getChainmailArmor(type);
+                case 3: return getIronArmor(type);
+                case 4: return getDiamondArmor(type);
+                case 5: return getNetheriteArmor(type);
+                default: return getLeatherArmor(type);
+            }
+        }
+    }
+    
+    private static ItemStack getLeatherArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.LEATHER_HELMET);
+            case "chestplate": return new ItemStack(Items.LEATHER_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.LEATHER_LEGGINGS);
+            case "boots": return new ItemStack(Items.LEATHER_BOOTS);
+            default: return null;
+        }
+    }
+    
+    private static ItemStack getChainmailArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.CHAINMAIL_HELMET);
+            case "chestplate": return new ItemStack(Items.CHAINMAIL_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.CHAINMAIL_LEGGINGS);
+            case "boots": return new ItemStack(Items.CHAINMAIL_BOOTS);
+            default: return null;
+        }
+    }
+    
+    private static ItemStack getIronArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.IRON_HELMET);
+            case "chestplate": return new ItemStack(Items.IRON_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.IRON_LEGGINGS);
+            case "boots": return new ItemStack(Items.IRON_BOOTS);
+            default: return null;
+        }
+    }
+    
+    private static ItemStack getDiamondArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.DIAMOND_HELMET);
+            case "chestplate": return new ItemStack(Items.DIAMOND_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.DIAMOND_LEGGINGS);
+            case "boots": return new ItemStack(Items.DIAMOND_BOOTS);
+            default: return null;
+        }
+    }
+    
+    private static ItemStack getNetheriteArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.NETHERITE_HELMET);
+            case "chestplate": return new ItemStack(Items.NETHERITE_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.NETHERITE_LEGGINGS);
+            case "boots": return new ItemStack(Items.NETHERITE_BOOTS);
+            default: return null;
+        }
+    }
+    
+    private static ItemStack getGoldArmor(String type) {
+        switch (type) {
+            case "helmet": return new ItemStack(Items.GOLDEN_HELMET);
+            case "chestplate": return new ItemStack(Items.GOLDEN_CHESTPLATE);
+            case "leggings": return new ItemStack(Items.GOLDEN_LEGGINGS);
+            case "boots": return new ItemStack(Items.GOLDEN_BOOTS);
+            default: return null;
         }
     }
     
