@@ -2,6 +2,7 @@ package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.command.RaidBossSpawnCommand;
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.server.world.ServerWorld;
@@ -14,8 +15,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
+ * WARLORD SYSTEM - Raid Integration
+ * 
  * Injects the Mob Warlord boss into the final raid wave.
- * Very rare spawn chance (1-2%) for ultimate challenge.
+ * 
+ * This system works independently and can be enabled/disabled via:
+ * - Config: warlordEnabled
+ * 
+ * Does NOT depend on: Targeting, Alliance, or Scaling systems
  */
 @Mixin(Raid.class)
 public abstract class RaidSpawningMixin {
@@ -31,19 +38,29 @@ public abstract class RaidSpawningMixin {
     
     /**
      * Injects boss spawning logic into the raid wave spawning.
-     * Only spawns on final wave (wave 6+) with 1.5% chance.
+     * Only spawns on final wave (wave 6+) with configurable chance.
      * Can be forced with /mobwar raid forceboss command.
      */
     @Inject(method = "spawnNextWave", at = @At("TAIL"))
     private void universalmobwar$spawnWarlordBoss(BlockPos pos, CallbackInfo ci) {
-        // Only spawn on final waves (6+, which is typically the last wave)
-        if (this.wavesSpawned < 6) return;
+        // Check if warlord system is enabled
+        ModConfig config = ModConfig.getInstance();
+        if (!config.isWarlordActive()) return;
+        
+        // Only spawn on final waves (configurable minimum raid level)
+        if (this.wavesSpawned < config.warlordMinRaidLevel) return;
         
         // Check if force spawn is active (from command)
         boolean forceSpawn = RaidBossSpawnCommand.shouldForceSpawn();
         
-        // Very rare spawn chance - 1.5% (1 in 67 raids) OR forced by command
-        if (!forceSpawn && Math.random() > 0.015) return;
+        // Check if always spawn on final wave is enabled
+        if (config.alwaysSpawnWarlordOnFinalWave) {
+            forceSpawn = true;
+        }
+        
+        // Configurable spawn chance (default 25%) OR forced by command
+        double spawnChance = config.warlordSpawnChance / 100.0;
+        if (!forceSpawn && Math.random() > spawnChance) return;
         
         try {
             // Find suitable spawn position near raid center

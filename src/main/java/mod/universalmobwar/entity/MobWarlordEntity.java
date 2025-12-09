@@ -38,9 +38,23 @@ import java.util.ArrayList;
 import java.util.*;
 
 /**
+ * WARLORD SYSTEM - Independent Module
+ * 
  * The Mob Warlord - A giant boss that summons and commands armies of mobs.
  * All spawned minions are loyal to the warlord and never attack it or each other.
  * Uses HostileEntity for maximum compatibility with Iris Shaders and rendering mods.
+ * 
+ * This system works independently and can be enabled/disabled via:
+ * - Config: warlordEnabled
+ * 
+ * Configurable options:
+ * - warlordSpawnChance (default 25%)
+ * - warlordMinRaidLevel (default 3)
+ * - warlordMinionCount (default 20)
+ * - warlordHealthMultiplierPercent (default 300%)
+ * - warlordDamageMultiplierPercent (default 200%)
+ * 
+ * Does NOT depend on: Targeting, Alliance, or Scaling systems
  */
 public class MobWarlordEntity extends HostileEntity {
     
@@ -63,7 +77,10 @@ public class MobWarlordEntity extends HostileEntity {
     private final int validationOffset; // 0-60 tick offset for validation
     private final int summonOffset; // 0-40 tick offset for summoning checks
     
-    private static final int MAX_MINIONS = 20;
+    // Get max minions from config (default 20)
+    private static int getMaxMinions() {
+        return ModConfig.getInstance().warlordMinionCount;
+    }
     private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
     private static final int CLEANUP_COOLDOWN = 100; // 5 seconds - performance optimization for large modpacks
@@ -279,7 +296,7 @@ public class MobWarlordEntity extends HostileEntity {
             float healthPercent = this.getHealth() / this.getMaxHealth();
             
             // More aggressive summoning when hurt
-            boolean shouldSummon = currentMinions < MAX_MINIONS && (
+            boolean shouldSummon = currentMinions < getMaxMinions() && (
                 currentMinions < 5 || 
                 (healthPercent < 0.75f && currentMinions < 10) ||
                 (healthPercent < 0.5f && currentMinions < 15)
@@ -481,7 +498,7 @@ public class MobWarlordEntity extends HostileEntity {
      */
     public void tryConvertKilledMob(MobEntity killedMob) {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
-        if (minionUuids.size() >= MAX_MINIONS) return;
+        if (minionUuids.size() >= getMaxMinions()) return;
         if (killedMob == null || !killedMob.isAlive()) return;
         
         // CRITICAL: Never convert other Mob Warlords (prevents infinite loops and conflicts)
@@ -576,7 +593,7 @@ public class MobWarlordEntity extends HostileEntity {
         // Check if neutral mobs should be aggressive
         boolean neutralAggressive = serverWorld.getGameRules().getBoolean(UniversalMobWarMod.NEUTRAL_MOBS_AGGRESSIVE_RULE);
         
-        for (int i = 0; i < count && minionUuids.size() < MAX_MINIONS; i++) {
+        for (int i = 0; i < count && minionUuids.size() < getMaxMinions(); i++) {
             EntityType<?> minionType = getRandomMobType(neutralAggressive);
             if (minionType == null) continue;
             
