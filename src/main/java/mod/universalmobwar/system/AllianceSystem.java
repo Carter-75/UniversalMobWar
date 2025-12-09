@@ -1,6 +1,6 @@
-
 package mod.universalmobwar.system;
 
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.util.OperationScheduler;
 import net.minecraft.entity.LivingEntity;
@@ -15,25 +15,83 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * ALLIANCE SYSTEM - Independent Module
+ * 
  * Manages mob alliances and friend-based combat assistance.
  * Mobs attacking the same target become temporary allies.
+ * 
+ * This system works independently and can be enabled/disabled via:
+ * - Config: allianceEnabled
+ * - Gamerule: universalMobWarAlliances
+ * 
+ * Does NOT depend on: Targeting, Scaling, or Warlord systems
  */
 public class AllianceSystem {
+    
+    // ==========================================================================
+    //                              CONFIGURATION
+    // ==========================================================================
+    
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
     
     // Tracks when alliances were formed (for expiration)
     private static final Map<UUID, Map<UUID, Long>> allianceTimestamps = new HashMap<>();
     
-    // Weak alliances (different species)
-    private static final long ALLIANCE_DURATION_MS = 5000; // 5 seconds - very temporary
-    private static final double ALLIANCE_BREAK_CHANCE = 0.3; // 30% chance to break alliance early
-    
-    // Strong alliances (same species, when same-species combat is disabled)
-    private static final long SAME_SPECIES_ALLIANCE_DURATION_MS = 20000; // 20 seconds - much stronger
-    private static final double SAME_SPECIES_ALLIANCE_BREAK_CHANCE = 0.05; // Only 5% chance to refuse
-    
     // Tracks species-based alliance strength
     private static final Map<UUID, Map<UUID, Boolean>> strongAlliances = new HashMap<>();
+    
+    // ==========================================================================
+    //                           HELPER METHODS
+    // ==========================================================================
+    
+    /**
+     * Check if alliance system is active (config + gamerule)
+     */
+    public static boolean isEnabled(ServerWorld world) {
+        ModConfig config = ModConfig.getInstance();
+        if (!config.isAllianceActive()) return false;
+        
+        // Also check gamerule if available
+        try {
+            return world.getGameRules().getBoolean(
+                mod.universalmobwar.UniversalMobWarMod.ALLIANCE_SYSTEM_RULE
+            );
+        } catch (Exception e) {
+            return config.allianceEnabled;
+        }
+    }
+    
+    /**
+     * Get weak alliance duration from config (default 5 seconds)
+     */
+    private static long getWeakAllianceDuration() {
+        return ModConfig.getInstance().weakAllianceDurationMs;
+    }
+    
+    /**
+     * Get strong alliance duration from config (default 20 seconds)
+     */
+    private static long getStrongAllianceDuration() {
+        return ModConfig.getInstance().strongAllianceDurationMs;
+    }
+    
+    /**
+     * Get weak alliance break chance from config (default 30%)
+     */
+    private static double getWeakAllianceBreakChance() {
+        return ModConfig.getInstance().allianceBreakChancePercent / 100.0;
+    }
+    
+    /**
+     * Get strong alliance break chance from config (default 5%)
+     */
+    private static double getStrongAllianceBreakChance() {
+        return ModConfig.getInstance().strongAllianceBreakChancePercent / 100.0;
+    }
+    
+    // ==========================================================================
+    //                           MAIN UPDATE METHOD
+    // ==========================================================================
     
     /**
      * Updates alliances for a mob based on who they're fighting with.
@@ -44,6 +102,9 @@ public class AllianceSystem {
      * Alliances break immediately when target dies or changes.
      */
     public static void updateAlliances(MobEntity mob, ServerWorld world) {
+        // Check if alliance system is enabled
+        if (!isEnabled(world)) return;
+        
         String mobId = mob.getUuid().toString();
         
         // SMART SCHEDULING: Only process if not overlapping with other operations
@@ -53,7 +114,9 @@ public class AllianceSystem {
             OperationScheduler.incrementAllianceQueue(); // Track queue depth
             SCHEDULER.schedule(() -> {
                 world.getServer().execute(() -> {
-                    updateAlliancesInternal(mob, world);
+                    if (isEnabled(world)) { // Re-check before executing
+                        updateAlliancesInternal(mob, world);
+                    }
                     OperationScheduler.decrementAllianceQueue(); // Done - free queue slot
                 });
             }, 300, TimeUnit.MILLISECONDS);
@@ -116,7 +179,7 @@ public class AllianceSystem {
             boolean isStrongAlliance = sameSpecies && ignoreSameSpecies;
             
             // If chaos mode (same-species can fight), no special bonding
-            double breakChance = isStrongAlliance ? SAME_SPECIES_ALLIANCE_BREAK_CHANCE : ALLIANCE_BREAK_CHANCE;
+            double breakChance = isStrongAlliance ? getStrongAllianceBreakChance() : getWeakAllianceBreakChance();
             
             // Random chance to not ally with this specific mob (trust issues)
             if (Math.random() < breakChance) continue;
@@ -258,6 +321,10 @@ public class AllianceSystem {
         }
     }
     
+    // ==========================================================================
+    //                           CLEANUP METHODS
+    // ==========================================================================
+    
     /**
      * Cleans up expired alliances.
      * Strong alliances (same species) last longer than weak alliances.
@@ -280,8 +347,8 @@ public class AllianceSystem {
             // Check if this is a strong alliance
             boolean isStrongAlliance = strongAllyMap != null && strongAllyMap.getOrDefault(allyUuid, false);
             
-            // Use appropriate duration based on alliance strength
-            long maxDuration = isStrongAlliance ? SAME_SPECIES_ALLIANCE_DURATION_MS : ALLIANCE_DURATION_MS;
+            // Use appropriate duration based on alliance strength (from config)
+            long maxDuration = isStrongAlliance ? getStrongAllianceDuration() : getWeakAllianceDuration();
             
             if (allianceAge > maxDuration) {
                 toRemove.add(allyUuid);
@@ -303,6 +370,10 @@ public class AllianceSystem {
             MobWarData.save(mob, mobData);
         }
     }
+    
+    // ==========================================================================
+    //                           QUERY METHODS
+    // ==========================================================================
     
     /**
      * Checks if two mobs are allies.
