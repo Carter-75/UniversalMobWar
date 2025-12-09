@@ -9,6 +9,7 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import java.util.Map;
 
 /**
  * CLEAN EVOLUTION SYSTEM
@@ -119,13 +120,20 @@ public class EvolutionSystem {
     private static double calculateDayPoints(MobConfig config, long currentDay) {
         double totalPoints = 0.0;
         
-        var dailyMap = config.pointSystem.get("daily_scaling_map").getAsJsonObject();
+        Object dailyMapObj = config.pointSystem.get("daily_scaling_map");
+        if (!(dailyMapObj instanceof Map)) return 0.0;
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dailyMap = (Map<String, Object>) dailyMapObj;
         
         for (long day = 0; day <= currentDay; day++) {
             String key = (day >= 31) ? "31+" : String.valueOf(day);
             
-            if (dailyMap.has(key)) {
-                totalPoints += dailyMap.get(key).getAsDouble();
+            if (dailyMap.containsKey(key)) {
+                Object pointsObj = dailyMap.get(key);
+                if (pointsObj instanceof Number) {
+                    totalPoints += ((Number) pointsObj).doubleValue();
+                }
             } else {
                 // Fallback to 31+ if day not found
                 totalPoints += dailyMap.get("31+").getAsDouble();

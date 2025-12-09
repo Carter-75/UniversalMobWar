@@ -23,6 +23,7 @@ public class MobConfig {
     public final String weapon;
     public final String armor;
     public final boolean shield;
+    public final boolean startsWithWeapon;
     public final List<String> assignedTrees;
     
     // Point system (same for all mobs but stored per-mob for convenience)
@@ -58,6 +59,7 @@ public class MobConfig {
         this.weapon = json.get("weapon").getAsString();
         this.armor = json.get("armor").getAsString();
         this.shield = json.get("shield").getAsBoolean();
+        this.startsWithWeapon = json.has("starts_with_weapon") ? json.get("starts_with_weapon").getAsBoolean() : false;
         
         // Parse assigned trees
         this.assignedTrees = new ArrayList<>();

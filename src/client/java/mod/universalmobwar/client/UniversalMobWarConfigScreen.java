@@ -124,8 +124,6 @@ public class UniversalMobWarConfigScreen extends Screen {
                 addSlider(x, y, w, h, "Day Multiplier: ", config.dayScalingMultiplier, 0.0, 10.0, val -> config.dayScalingMultiplier = val);
                 y += gap;
                 addSlider(x, y, w, h, "Kill Multiplier: ", config.killScalingMultiplier, 0.0, 10.0, val -> config.killScalingMultiplier = val);
-                y += gap;
-                addSlider(x, y, w, h, "Max Tier: ", (double)config.maxTier, 1, 100, val -> config.maxTier = val.intValue());
                 break;
 
             case PERFORMANCE:

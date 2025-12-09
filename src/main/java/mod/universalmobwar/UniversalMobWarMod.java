@@ -88,9 +88,6 @@ public class UniversalMobWarMod implements ModInitializer {
 		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 		ModConfig config = ModConfig.getInstance();
 		
-		// Add special tags based on config
-		mod.universalmobwar.system.ArchetypeClassifier.addSpecialTags();
-		
 		// Register Skill Tree Events (Projectiles, etc.)
 		// SkillTreeEvents.register();
 		
