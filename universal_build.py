@@ -263,6 +263,27 @@ class UniversalBuildSystem:
         self.log_to_file("GRADLE BUILD")
         self.log_to_file("=" * 80)
         
+        # Check Java version first
+        try:
+            java_check = subprocess.run(["java", "-version"], capture_output=True, text=True, timeout=5)
+            java_output = java_check.stderr + java_check.stdout
+            
+            # Extract version number
+            import re
+            version_match = re.search(r'version "(\d+)', java_output)
+            if version_match:
+                java_version = int(version_match.group(1))
+                if java_version < 17:
+                    error(f"Java {java_version} detected. Java 17+ required (Java 21 recommended)")
+                    error("Please install Java 21: https://adoptium.net/")
+                    self.log_to_file(f"❌ Java version too old: {java_version} (need 17+)")
+                    return False
+                else:
+                    info(f"Java {java_version} detected ✓")
+                    self.log_to_file(f"Java version: {java_version}")
+        except Exception as e:
+            warning(f"Could not check Java version: {e}")
+        
         gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
         
         # Clean
