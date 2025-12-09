@@ -74,8 +74,8 @@ public class MobDefinition {
     private static ArmorType parseArmorType(String armor) {
         if (armor == null || armor.equals("none")) return ArmorType.NONE;
         return switch (armor) {
-            case "normal", "full_normal", "full_normal_possible" -> ArmorType.FULL_NORMAL;
-            case "gold", "full_gold" -> ArmorType.FULL_GOLD;
+            case "normal" -> ArmorType.FULL_NORMAL;
+            case "gold" -> ArmorType.FULL_GOLD;
             default -> ArmorType.NONE;
         };
     }
