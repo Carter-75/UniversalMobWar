@@ -6,9 +6,9 @@
 ║                    ONE SCRIPT TO RULE THEM ALL                            ║
 ║                                                                           ║
 ║  Features:                                                                ║
-║    ✓ Validate all 80 mob JSON configs                                    ║
+║    ✓ Validate mob JSON configs (supports partial completion)             ║
 ║    ✓ Check Java syntax & 1.21.1 API compatibility                        ║
-║    ✓ Verify all 22 mixins                                                ║
+║    ✓ Verify mixins                                                       ║
 ║    ✓ Build with Gradle                                                   ║
 ║    ✓ Run comprehensive tests                                             ║
 ║    ✓ Git commit & push (with authentication)                             ║
@@ -82,7 +82,6 @@ class UniversalBuildSystem:
         self.log_to_file("=" * 80)
         
         self.validate_json_configs()
-        self.validate_mob_completeness()
         self.validate_java_syntax()
         self.validate_mixins()
         self.validate_gradle()
@@ -90,15 +89,18 @@ class UniversalBuildSystem:
         return len(self.errors) == 0
     
     def validate_json_configs(self):
-        """Validate all 80 mob JSON files"""
-        info("Validating 80 mob JSON configuration files...")
+        """Validate mob JSON files - supports partial completion"""
+        info("Validating mob JSON configuration files...")
         
         json_dir = self.root / "src/main/resources/mob_configs"
         json_files = list(json_dir.glob("*.json"))
         
-        if len(json_files) != 80:
-            error(f"Expected 80 mob configs, found {len(json_files)}")
-            self.errors.append("Incorrect number of mob configs")
+        if len(json_files) == 0:
+            error("No mob config files found!")
+            self.errors.append("No mob configs found")
+            return
+        
+        info(f"Found {len(json_files)}/80 mob configs")
         
         valid = 0
         for json_file in json_files:
@@ -106,11 +108,9 @@ class UniversalBuildSystem:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
                     
-                # Check required fields
+                # Check required fields for our current structure
                 required = [
-                    "mob_name", "mob_type", "weapon", "armor", "shield",
-                    "assigned_trees", "point_system", "universal_upgrades",
-                    "starts_with_weapon"
+                    "mob_name", "mob_type", "point_system", "tree"
                 ]
                 
                 missing = [field for field in required if field not in data]
@@ -118,39 +118,25 @@ class UniversalBuildSystem:
                     error(f"{json_file.name}: Missing fields: {', '.join(missing)}")
                     self.errors.append(f"{json_file.name}: Missing required fields")
                 else:
-                    valid += 1
+                    # Validate point_system structure
+                    ps = data.get("point_system", {})
+                    if "daily_scaling" not in ps:
+                        error(f"{json_file.name}: Missing daily_scaling in point_system")
+                        self.errors.append(f"{json_file.name}: Point system incomplete")
+                    else:
+                        valid += 1
                     
             except json.JSONDecodeError as e:
                 error(f"{json_file.name}: Invalid JSON - {e}")
                 self.errors.append(f"{json_file.name}: JSON parse error")
         
-        if valid == 80:
-            success(f"All 80 mob configs are valid!")
+        if valid == len(json_files):
+            success(f"All {valid} mob configs are valid!")
         else:
-            error(f"Only {valid}/80 configs are valid")
-    
-    def validate_mob_completeness(self):
-        """Check mob config structure"""
-        info("Checking mob configuration completeness...")
+            warning(f"{valid}/{len(json_files)} configs are valid")
         
-        json_dir = self.root / "src/main/resources/mob_configs"
-        
-        for json_file in json_dir.glob("*.json"):
-            with open(json_file, 'r') as f:
-                data = json.load(f)
-            
-            # Check point_system structure
-            if "point_system" in data:
-                ps = data["point_system"]
-                if "daily_scaling_map" not in ps:
-                    error(f"{json_file.name}: Missing daily_scaling_map")
-                    self.errors.append(f"{json_file.name}: Point system incomplete")
-                if "spending_trigger" not in ps:
-                    error(f"{json_file.name}: Missing spending_trigger")
-                    self.errors.append(f"{json_file.name}: Point system incomplete")
-        
-        if not self.errors:
-            success("All mob configurations are complete")
+        # Show progress
+        info(f"Progress: {len(json_files)}/80 mobs implemented ({len(json_files)*100//80}%)")
     
     def validate_java_syntax(self):
         """Check Java code for 1.21.1 compatibility"""
@@ -169,7 +155,6 @@ class UniversalBuildSystem:
                         self.errors.append(f"{java_file.name}: Old API detected")
                         old_identifier_count += 1
             except UnicodeDecodeError:
-                # Try with different encoding
                 try:
                     with open(java_file, 'r', encoding='latin-1') as f:
                         content = f.read()
@@ -182,61 +167,48 @@ class UniversalBuildSystem:
         
         if old_identifier_count == 0:
             success("All code uses 1.21.1 APIs (Identifier.of)")
-        
-        # Check for deprecated imports
-        deprecated_imports = ["SkillTreeConfig", "MobDefinition"]
-        for java_file in java_files:
-            try:
-                with open(java_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    for dep in deprecated_imports:
-                        if f"import.*{dep}" in content and "MobConfig" not in content:
-                            error(f"{java_file.name}: Imports deprecated class {dep}")
-                            self.errors.append(f"{java_file.name}: Deprecated import")
-            except UnicodeDecodeError:
-                try:
-                    with open(java_file, 'r', encoding='latin-1') as f:
-                        content = f.read()
-                        for dep in deprecated_imports:
-                            if f"import.*{dep}" in content and "MobConfig" not in content:
-                                error(f"{java_file.name}: Imports deprecated class {dep}")
-                                self.errors.append(f"{java_file.name}: Deprecated import")
-                except Exception as e:
-                    warning(f"Could not read {java_file.name}: {e}")
-        
-        if not self.errors:
-            success("No deprecated imports found")
     
     def validate_mixins(self):
-        """Verify all 22 mixins exist"""
+        """Verify mixins exist"""
         info("Validating mixin implementations...")
         
         mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin"
+        mob_mixin_dir = mixin_dir / "mob"
         
-        critical_mixins = [
+        # Check core mixins
+        core_mixins = [
             "MobDataMixin.java",
-            "MobUpgradeTickMixin.java",
-            "UniversalBaseTreeMixin.java",
             "MobDeathTrackerMixin.java",
-            "EquipmentBreakMixin.java",
         ]
         
-        for mixin in critical_mixins:
+        for mixin in core_mixins:
             mixin_path = mixin_dir / mixin
             if mixin_path.exists():
-                success(f"Critical mixin present: {mixin}")
+                success(f"Core mixin present: {mixin}")
             else:
-                error(f"Missing critical mixin: {mixin}")
+                error(f"Missing core mixin: {mixin}")
                 self.errors.append(f"Missing: {mixin}")
+        
+        # Count mob mixins
+        if mob_mixin_dir.exists():
+            mob_mixins = list(mob_mixin_dir.glob("*.java"))
+            info(f"Mob mixins found: {len(mob_mixins)}")
+            
+            # Check that each JSON has a corresponding mixin
+            json_dir = self.root / "src/main/resources/mob_configs"
+            for json_file in json_dir.glob("*.json"):
+                mob_name = json_file.stem.title().replace("_", "")
+                mixin_name = f"{mob_name}Mixin.java"
+                mixin_path = mob_mixin_dir / mixin_name
+                if not mixin_path.exists():
+                    warning(f"Missing mixin for {json_file.name}: {mixin_name}")
+                    self.warnings.append(f"Missing mixin: {mixin_name}")
         
         # Count total mixins
         total_mixins = len(list(mixin_dir.glob("*.java")))
+        if mob_mixin_dir.exists():
+            total_mixins += len(list(mob_mixin_dir.glob("*.java")))
         info(f"Total mixins found: {total_mixins}")
-        
-        if total_mixins >= 22:
-            success(f"All {total_mixins} mixins present")
-        else:
-            warning(f"Expected 22+ mixins, found {total_mixins}")
     
     def validate_gradle(self):
         """Check Gradle configuration"""
@@ -268,8 +240,6 @@ class UniversalBuildSystem:
             java_check = subprocess.run(["java", "-version"], capture_output=True, text=True, timeout=5)
             java_output = java_check.stderr + java_check.stdout
             
-            # Extract version number
-            import re
             version_match = re.search(r'version "(\d+)', java_output)
             if version_match:
                 java_version = int(version_match.group(1))
@@ -318,7 +288,7 @@ class UniversalBuildSystem:
             if result.returncode == 0:
                 success("Build successful!")
                 self.log_to_file("✅ Build successful!")
-                self.log_to_file("\nBuild output:\n" + result.stdout[-500:])  # Last 500 chars
+                self.log_to_file("\nBuild output:\n" + result.stdout[-500:])
                 
                 # Find JAR
                 libs_dir = self.root / "build/libs"
@@ -340,11 +310,9 @@ class UniversalBuildSystem:
                 error("Build failed!")
                 self.log_to_file("❌ Build failed!")
                 
-                # Extract actual compilation errors
                 full_output = result.stdout + "\n" + result.stderr
                 self.log_to_file("\n=== FULL BUILD OUTPUT ===\n" + full_output)
                 
-                # Find and display Java compilation errors
                 lines = full_output.split('\n')
                 error_lines = []
                 capture = False
@@ -353,7 +321,7 @@ class UniversalBuildSystem:
                         capture = True
                     if capture:
                         error_lines.append(line)
-                        if len(error_lines) > 50:  # Limit output
+                        if len(error_lines) > 50:
                             break
                 
                 if error_lines:
@@ -362,7 +330,7 @@ class UniversalBuildSystem:
                     print("=" * 80)
                     print('\n'.join(error_lines[:50]))
                 else:
-                    print(result.stdout[-2000:])  # Print last 2000 chars if no specific errors found
+                    print(result.stdout[-2000:])
                     print(result.stderr[-2000:])
                 
                 return False
@@ -380,7 +348,6 @@ class UniversalBuildSystem:
         self.log_to_file("=" * 80)
         
         try:
-            # Check if there are changes
             result = subprocess.run(
                 ["git", "status", "--porcelain"],
                 cwd=self.root,
@@ -393,12 +360,10 @@ class UniversalBuildSystem:
                 self.log_to_file("No changes to commit")
                 return True
             
-            # Add all
             subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
             success("Files staged")
             self.log_to_file("✅ Files staged")
             
-            # Commit
             commit_msg = f"{message}\n\nGenerated: {self.timestamp}"
             subprocess.run(
                 ["git", "commit", "-m", commit_msg],
@@ -408,7 +373,6 @@ class UniversalBuildSystem:
             success(f"Committed: {message}")
             self.log_to_file(f"✅ Committed: {message}")
             
-            # Push
             info("Pushing to GitHub...")
             self.log_to_file("Pushing to GitHub...")
             result = subprocess.run(
@@ -441,15 +405,24 @@ class UniversalBuildSystem:
         """Generate build report"""
         header("BUILD REPORT")
         
-        # Clear old log and start fresh
+        # Get counts
+        json_dir = self.root / "src/main/resources/mob_configs"
+        json_count = len(list(json_dir.glob("*.json"))) if json_dir.exists() else 0
+        
+        mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin"
+        mob_mixin_dir = mixin_dir / "mob"
+        mixin_count = len(list(mixin_dir.glob("*.java"))) if mixin_dir.exists() else 0
+        if mob_mixin_dir.exists():
+            mixin_count += len(list(mob_mixin_dir.glob("*.java")))
+        
         with open(self.log_file, 'w', encoding='utf-8') as f:
             f.write("=" * 80 + "\n")
             f.write("UNIVERSAL MOB WAR - BUILD LOG\n")
             f.write("=" * 80 + "\n\n")
             f.write(f"Timestamp: {self.timestamp}\n")
             f.write(f"Minecraft Version: 1.21.1\n")
-            f.write(f"Mob Configs: 80\n")
-            f.write(f"Mixins: 22\n\n")
+            f.write(f"Mob Configs: {json_count}/80\n")
+            f.write(f"Mixins: {mixin_count}\n\n")
         
         if not self.errors:
             success("✅ ALL CHECKS PASSED!")

@@ -321,53 +321,59 @@ A legendary boss that spawns during raids:
 
 ## 🏗️ Technical Architecture
 
-### 80 Individual Mob JSONs
+### Individual Mob JSON Configs
 Each mob has a complete configuration file in `src/main/resources/mob_configs/`:
 
 ```
 mob_configs/
-├── Zombie.json          (Universal tree + Zombie tree + costs)
-├── Skeleton.json        (Universal tree + Skeleton tree + costs)
-├── Creeper.json         (Universal tree + Creeper tree + costs)
-├── Piglin.json          (Gold equipment + special rules)
-└── ... (80 total files)
+├── allay.json           (Passive mob - regeneration, resistance, health boost)
+├── blaze.json           (Hostile + ranged tree - potion effects + ranged abilities)
+├── bogged.json          (Hostile + equipment + zombie/ranged trees - full progression)
+├── ... (80 total files when complete)
 ```
 
 **Each JSON contains**:
-- Point earning system (daily scaling map, kill scaling)
-- Universal upgrades (health, strength, speed, healing, etc.)
-- Mob-specific skill trees
-- Equipment costs and progression
-- Enchantment costs (all 27 enchants, mob uses relevant ones)
-- Starting weapon/armor configuration
-- Shield availability
+- `mob_name`, `entity_class`, `mob_type` - Basic mob info
+- `tree_name` - Descriptive skill tree name
+- `point_system` - Daily scaling table, kill scaling, buy/save chances
+- `tree` - All applicable upgrades with costs:
+  - Potion effects (passive OR hostile/neutral based on mob type)
+  - Weapon progression (if applicable) with tiers, enchants, masteries
+  - Shield (if applicable)
+  - Armor progression (helmet, chestplate, leggings, boots)
+  - Special abilities from mob's skill trees
 
-### Batched Upgrade System
+### Mob Mixin Architecture
 
-On mob spawn or trigger (1+ days passed):
+Each mob has a dedicated mixin file with **fully embedded progression logic**:
 
-1. **Collection Phase**: Gather all mobs needing upgrades into queue
-2. **Parallel Processing**: Multithreaded calculation of all upgrade decisions
-   - Each mob: Run 80%/20% buy/save loop
-   - Calculate final equipment/stats
-   - Complete within configurable time (default 5s)
-3. **Application Phase**: Main thread applies all equipment/effects in one batch
+```
+mixin/mob/
+├── AllayMixin.java       (Passive mob template)
+├── BeeMixin.java         (Neutral mob template)  
+├── BoggedMixin.java      (Hostile + full equipment template)
+├── BlazeMixin.java       (Hostile + ranged tree template)
+└── ... (one per mob)
+```
 
-**Performance**: Dynamic thread allocation (CPU cores), prevents lag spikes, scales with world size
+**Each Mixin contains**:
+- Complete point calculation using `world.getTime()`
+- All upgrade costs and effect application
+- NBT persistence for all progression data
+- Tick handler with `lastUpdateTick` for 1-day inactivity trigger
+- 80%/20% buy/save spending logic
+- No external dependencies (fully standalone)
 
-### 22 Core Mixins
+### Core System Mixins
 
-- `MobDataMixin`: Attach upgrade data to mobs (saves to NBT)
-- `MobUpgradeTickMixin`: Trigger upgrade calculations every 20 ticks
-- `UniversalBaseTreeMixin`: Apply universal buffs (Regen, Speed, Strength)
-- `EquipmentBreakMixin`: Downgrade items on break
+- `MobDataMixin`: Attach MobWarData to mobs (saves to NBT)
 - `MobDeathTrackerMixin`: Track player kills per mob type
-- `HordeSummonMixin`: Zombie reinforcement spawning
-- `CreeperExplosionMixin`: Dynamic explosion radius
-- `BowPotionMixin`: Skeleton potion arrows
-- `WitchPotionMixin`: Witch potion throw speed
-- `CaveSpiderMixin`: Enhanced poison effects
-- ... (22 total mixins for all features)
+- `MobRevengeBlockerMixin`: Prevent revenge targeting issues
+- `NaturalMobSpawnBlockerMixin`: Control natural spawning
+- `NeutralMobBehaviorMixin`: Neutral mob aggression handling
+- `RaidSpawningMixin`: Raid and Warlord boss integration
+- `UniversalSummonerTrackingMixin`: Summoned mob tracking
+- `WarlordMinionProtectionMixin`: Boss minion protection
 
 ### Data Persistence
 
@@ -418,10 +424,11 @@ python universal_build.py --deploy
 ```
 
 **Build Script Features**:
-- Validates 80 mob JSON configurations
-- Checks Java code for 1.21.1 API compatibility
-- Verifies all 22 mixins present
+- Validates mob JSON configurations (supports partial completion)
+- Checks Java code for 1.21.1 API compatibility  
+- Verifies core mixins and mob mixins are present
 - Runs full Gradle build
+- Shows progress: `X/80 mobs implemented`
 - Single log file: `universal_build.log`
 
 ---
@@ -498,7 +505,7 @@ Report bugs on GitHub with:
 
 Universal Mob War transforms Minecraft into a dynamic battlefield:
 
-- ✅ **80 individual mob configs** with complete upgrade paths
+- ✅ **80 individual mob configs** with complete upgrade paths (in progress)
 - ✅ **Progressive point economy** with 80%/20% buy/save system
 - ✅ **5-tier equipment progression** (Wood → Netherite)
 - ✅ **27 enchantments** with multi-level costs
