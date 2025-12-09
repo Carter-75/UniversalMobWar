@@ -77,10 +77,10 @@ Spending Loop (simplified):
 ... OR continue buying until save roll or broke
 
 Final Result:
-- Diamond Sword (Sharpness IV, Fire Aspect II)
-- Full Iron Armor (Protection II)
-- Health: 30 HP, Strength II, Speed I
-- Special: Horde Summon 30% chance, Infectious Bite
+- Diamond Sword (Sharpness V, Fire Aspect II, Looting II)
+- Full Diamond Armor (Protection III, Thorns II)
+- Health: 34 HP, Strength III, Speed II, Regeneration II
+- Special: Horde Summon 30% chance, Hunger Attack II
 ```
 
 ---
@@ -179,31 +179,30 @@ When an item reaches 0 durability:
 - `weapon_tier` (1-5): Weapon material progression
 - `helmet_tier`, `chestplate_tier`, `leggings_tier`, `boots_tier` (1-5 each)
 
-### Zombie Tree (Zombie, Husk, Drowned, Zoglin)
+### Zombie Tree (Zombie, Husk, Drowned, Zoglin, Giant)
 
-- `horde_summon` (10 levels): 10% → 100% chance to summon 2-4 reinforcements
-- `infection` (8 levels): 11% → 100% convert Villagers to Zombies
-- `hunger_attack` (5 levels): Inflict Hunger I-V for 10s
+- `horde_summon` (5 levels): 10% → 50% chance to summon 2-4 reinforcements (costs 10-30)
+- `hunger_attack` (3 levels): Inflict Hunger I-III for 10-20s (costs 6-14)
 
-### Skeleton Tree (Skeleton, Stray, Bogged, Wither Skeleton)
+### Ranged Tree (Skeleton, Stray, Bogged, Blaze, Breeze, Drowned, Illusioner, Llama, Pillager, Shulker, Snow Golem, Trader Llama, Witch, Wither)
 
-- `piercing_shot` (7 levels): 10% → 70% chance for piercing arrows
-- `bow_potion` (8 levels): Fire Poison/Wither arrows (3s → 10s duration)
-- `multishot` (5 levels): 10% → 50% chance to fire 2-3 arrows
+- `piercing_shot` (4 levels): Arrows pierce 1-4 targets (costs 8-20)
+- `bow_potion_mastery` (5 levels): 20% → 100% chance for potion arrows (Slowness → Poison II/Wither) (costs 10-30)
+- `multishot` (3 levels): Fire +1 to +3 extra arrows (costs 15-35)
 
 ### Creeper Tree
 
-- `creeper_power` (10 levels): Explosion radius 3.0 → 12.0 blocks
-- `creeper_potion` (7 levels): Lingering Poison I-III cloud (5s → 11s)
+- `creeper_power` (5 levels): Explosion radius 4.25 → 10.0 blocks (costs 10-30)
+- `creeper_potion_cloud` (4 levels): Lingering effects - Slowness/Weakness/Poison/Wither (costs 12-30)
 
 ### Witch Tree
 
-- `witch_potion` (5 levels): Throw potions 100% → 500% faster
-- `witch_harming` (6 levels): Instant Damage I → II + Wither I → II
+- `potion_throw_speed` (5 levels): Throw potions 1.15× → 1.75× faster with better accuracy (costs 10-30)
+- `extra_potion_bag` (3 levels): Add Instant Damage I → II + Wither I to potion throws (costs 12-24)
 
 ### Cave Spider Tree
 
-- `poison_mastery` (9 levels): Poison I (5s) → Poison II (20s) + Wither I
+- `poison_mastery` (6 levels): Poison I (7s) → Poison II (20s) + Wither I + Slowness II (costs 0-24)
 
 ---
 
