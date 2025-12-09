@@ -131,19 +131,18 @@ public class UniversalMobWarMod implements ModInitializer {
 		ALLIANCE_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
 			"universalMobWarAlliances",
 			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.allianceSystemEnabled, (server, rule) -> {})
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.allianceEnabled, (server, rule) -> {})
 		);
 		
-		// Register gamerule for evolution system
+		// Register gamerule for evolution/scaling system
 		EVOLUTION_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
 			"universalMobWarEvolution",
 			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.evolutionSystemEnabled, (server, rule) -> {})
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.scalingEnabled, (server, rule) -> {})
 		);
 		
-		// Register gamerule for range multiplier (stored as int, divided by 100 to get actual value)
-		// Range: 1 to 10000 (represents 0.01 to 100.0)
-		int defaultRange = (int)(config.rangeMultiplier * 100);
+		// Register gamerule for range multiplier (stored as int percent)
+		int defaultRange = config.rangeMultiplierPercent;
 		RANGE_MULTIPLIER_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
 			"universalMobWarRangeMultiplier",
 			GameRules.Category.MOBS,

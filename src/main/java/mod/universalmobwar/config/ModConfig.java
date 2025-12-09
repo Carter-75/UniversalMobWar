@@ -12,21 +12,34 @@ import java.util.List;
 
 /**
  * Universal Mob War Configuration
- * All settings for mob evolution, alliances, and battles
+ * 
+ * The mod has 4 independent systems that can be enabled/disabled separately:
+ * 1. TARGETING - Mobs fight each other
+ * 2. ALLIANCE - Mobs team up against common enemies
+ * 3. MOB SCALING - Mobs get stronger over time (progression system)
+ * 4. MOB WARLORD - Raid boss that spawns during raids
+ * 
+ * Each system works independently. Disabling one doesn't affect others.
  */
 @Config(name = "universalmobwar")
 public class ModConfig implements ConfigData {
 
-    // ========== GENERAL SETTINGS ==========
+    // ==========================================================================
+    //                              MASTER CONTROL
+    // ==========================================================================
+    
     @ConfigEntry.Category("general")
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean modEnabled = true;
+
+    // ==========================================================================
+    //                         SECTION 1: TARGETING SYSTEM
+    // Controls whether mobs fight each other
+    // ==========================================================================
     
+    @ConfigEntry.Category("targeting")
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean evolutionSystemEnabled = true;
-    
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean allianceSystemEnabled = true;
+    public boolean targetingEnabled = true;
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean targetPlayers = true;
@@ -37,36 +50,74 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean neutralMobsAlwaysAggressive = false;
     
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 5000)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean disableNaturalMobSpawns = false;
+    public int rangeMultiplierPercent = 100; // 100 = 1.0x, 200 = 2.0x, etc.
+
+    // ==========================================================================
+    //                         SECTION 2: ALLIANCE SYSTEM
+    // Controls whether mobs form temporary alliances
+    // ==========================================================================
     
-    @ConfigEntry.BoundedDiscrete(min = 0, max = 50)
+    @ConfigEntry.Category("alliance")
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public double rangeMultiplier = 1.0;
+    public boolean allianceEnabled = true;
     
-    // ========== MOB EVOLUTION ==========
-    @ConfigEntry.Category("evolution")
+    @ConfigEntry.BoundedDiscrete(min = 1000, max = 60000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int weakAllianceDurationMs = 5000; // Different species
+    
+    @ConfigEntry.BoundedDiscrete(min = 1000, max = 120000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int strongAllianceDurationMs = 20000; // Same species
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int allianceBreakChancePercent = 30; // Weak alliance break chance
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int strongAllianceBreakChancePercent = 5; // Strong alliance break chance
+
+    // ==========================================================================
+    //                       SECTION 3: MOB SCALING SYSTEM
+    // Controls mob progression (getting stronger over time)
+    // ==========================================================================
+    
+    @ConfigEntry.Category("scaling")
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean scalingEnabled = true;
     
-    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 1000)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public double dayScalingMultiplier = 1.0;
+    public int dayScalingMultiplierPercent = 100; // 100 = 1.0x
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 1000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int killScalingMultiplierPercent = 100; // 100 = 1.0x
     
     @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public double killScalingMultiplier = 1.0;
+    public int buyChancePercent = 80; // 80% chance to buy upgrade
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int saveChancePercent = 20; // 20% chance to save points
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowModdedScaling = true;
+
+    // ==========================================================================
+    //                       SECTION 4: MOB WARLORD SYSTEM
+    // Controls the raid boss feature
+    // ==========================================================================
     
-    // ========== MOB WARLORD (RAID BOSS) ==========
     @ConfigEntry.Category("warlord")
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean enableMobWarlord = true;
+    public boolean warlordEnabled = true;
     
     @ConfigEntry.Gui.Tooltip(count = 3)
     public boolean alwaysSpawnWarlordOnFinalWave = false;
@@ -83,15 +134,49 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int warlordMinionCount = 20;
     
-    @ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+    @ConfigEntry.BoundedDiscrete(min = 100, max = 1000)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public double warlordHealthMultiplier = 3.0;
+    public int warlordHealthMultiplierPercent = 300; // 300 = 3.0x
     
-    @ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+    @ConfigEntry.BoundedDiscrete(min = 100, max = 1000)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public double warlordDamageMultiplier = 2.0;
+    public int warlordDamageMultiplierPercent = 200; // 200 = 2.0x
+
+    // ==========================================================================
+    //                            PERFORMANCE
+    // Shared performance settings that affect all systems
+    // ==========================================================================
     
-    // ========== VISUALS ==========
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean performanceMode = false;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean enableBatching = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean enableAsyncTasks = true;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1000, max = 30000)
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public int upgradeProcessingTimeMs = 5000; // Default 5 seconds per skilltree.txt
+    
+    @ConfigEntry.BoundedDiscrete(min = 100, max = 5000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int targetingCacheMs = 1500;
+    
+    @ConfigEntry.BoundedDiscrete(min = 10, max = 200)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int targetingMaxQueriesPerTick = 50;
+    
+    @ConfigEntry.BoundedDiscrete(min = 50, max = 1000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int mobDataSaveDebounceMs = 200;
+
+    // ==========================================================================
+    //                              VISUALS
+    // ==========================================================================
+    
     @ConfigEntry.Category("visuals")
     @ConfigEntry.Gui.Tooltip(count = 1)
     public boolean showTargetLines = true;
@@ -112,33 +197,6 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int minFpsForVisuals = 30;
     
-    // ========== PERFORMANCE ==========
-    @ConfigEntry.Category("performance")
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean performanceMode = false;
-    
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean enableBatching = true;
-    
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean enableAsyncTasks = true;
-    
-    @ConfigEntry.BoundedDiscrete(min = 1000, max = 30000)
-    @ConfigEntry.Gui.Tooltip(count = 3)
-    public int upgradeProcessingTimeMs = 5000;
-    
-    @ConfigEntry.BoundedDiscrete(min = 100, max = 5000)
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public int targetingCacheMs = 1500;
-    
-    @ConfigEntry.BoundedDiscrete(min = 10, max = 200)
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public int targetingMaxQueriesPerTick = 50;
-    
-    @ConfigEntry.BoundedDiscrete(min = 50, max = 1000)
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public int mobDataSaveDebounceMs = 200;
-    
     @ConfigEntry.BoundedDiscrete(min = 1, max = 50)
     @ConfigEntry.Gui.Tooltip(count = 1)
     public int maxParticlesPerConnection = 8;
@@ -146,16 +204,22 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.BoundedDiscrete(min = 1, max = 100)
     @ConfigEntry.Gui.Tooltip(count = 1)
     public int maxDrawnMinionConnections = 15;
+
+    // ==========================================================================
+    //                               DEBUG
+    // ==========================================================================
     
-    // ========== DEBUG ==========
     @ConfigEntry.Category("debug")
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean debugUpgradeLog = false;
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean debugLogging = false;
+
+    // ==========================================================================
+    //                             MOB LISTS
+    // ==========================================================================
     
-    // ========== MOB LISTS ==========
     @ConfigEntry.Category("mobs")
     @ConfigEntry.Gui.Tooltip(count = 2)
     public List<String> excludedMobs = new ArrayList<>();
@@ -163,7 +227,10 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Excluded
     public List<String> specialMobs = Arrays.asList("witch", "creeper", "cave_spider");
 
-    // ========== EQUIPMENT TIERS (Hidden) ==========
+    // ==========================================================================
+    //                        EQUIPMENT TIERS (Hidden)
+    // ==========================================================================
+    
     @ConfigEntry.Gui.Excluded
     public List<String> swordTiers = Arrays.asList(
         "minecraft:wooden_sword", 
@@ -254,7 +321,10 @@ public class ModConfig implements ConfigData {
         "minecraft:netherite_boots"
     );
 
-    // ========== INTERNAL ==========
+    // ==========================================================================
+    //                              INTERNAL
+    // ==========================================================================
+    
     private static ConfigHolder<ModConfig> holder;
 
     public static ModConfig getInstance() {
@@ -268,6 +338,10 @@ public class ModConfig implements ConfigData {
         if (holder != null) holder.save();
     }
 
+    // ==========================================================================
+    //                           HELPER METHODS
+    // ==========================================================================
+    
     public boolean isMobExcluded(String entityTypeId) {
         return excludedMobs.contains(entityTypeId);
     }
@@ -283,5 +357,93 @@ public class ModConfig implements ConfigData {
         if (excludedMobs.remove(entityTypeId)) {
             save();
         }
+    }
+    
+    // Convenience getters that convert percent to decimal
+    public double getRangeMultiplier() {
+        return rangeMultiplierPercent / 100.0;
+    }
+    
+    public double getDayScalingMultiplier() {
+        return dayScalingMultiplierPercent / 100.0;
+    }
+    
+    public double getKillScalingMultiplier() {
+        return killScalingMultiplierPercent / 100.0;
+    }
+    
+    public double getWarlordHealthMultiplier() {
+        return warlordHealthMultiplierPercent / 100.0;
+    }
+    
+    public double getWarlordDamageMultiplier() {
+        return warlordDamageMultiplierPercent / 100.0;
+    }
+    
+    public double getBuyChance() {
+        return buyChancePercent / 100.0;
+    }
+    
+    public double getSaveChance() {
+        return saveChancePercent / 100.0;
+    }
+    
+    // Section enable checks
+    public boolean isTargetingActive() {
+        return modEnabled && targetingEnabled;
+    }
+    
+    public boolean isAllianceActive() {
+        return modEnabled && allianceEnabled;
+    }
+    
+    public boolean isScalingActive() {
+        return modEnabled && scalingEnabled;
+    }
+    
+    public boolean isWarlordActive() {
+        return modEnabled && warlordEnabled;
+    }
+    
+    // ==========================================================================
+    //                         LEGACY COMPATIBILITY
+    // These fields maintain compatibility with older code
+    // ==========================================================================
+    
+    @ConfigEntry.Gui.Excluded
+    public transient boolean evolutionSystemEnabled = true; // Maps to scalingEnabled
+    
+    @ConfigEntry.Gui.Excluded  
+    public transient boolean allianceSystemEnabled = true; // Maps to allianceEnabled
+    
+    @ConfigEntry.Gui.Excluded
+    public transient boolean enableMobWarlord = true; // Maps to warlordEnabled
+    
+    @ConfigEntry.Gui.Excluded
+    public transient double rangeMultiplier = 1.0; // Maps to getRangeMultiplier()
+    
+    @ConfigEntry.Gui.Excluded
+    public transient double dayScalingMultiplier = 1.0;
+    
+    @ConfigEntry.Gui.Excluded
+    public transient double killScalingMultiplier = 1.0;
+    
+    @ConfigEntry.Gui.Excluded
+    public transient double warlordHealthMultiplier = 3.0;
+    
+    @ConfigEntry.Gui.Excluded
+    public transient double warlordDamageMultiplier = 2.0;
+    
+    // Sync legacy fields on load
+    @Override
+    public void validatePostLoad() throws ValidationException {
+        evolutionSystemEnabled = scalingEnabled;
+        allianceSystemEnabled = allianceEnabled;
+        enableMobWarlord = warlordEnabled;
+        rangeMultiplier = getRangeMultiplier();
+        dayScalingMultiplier = getDayScalingMultiplier();
+        killScalingMultiplier = getKillScalingMultiplier();
+        warlordHealthMultiplier = getWarlordHealthMultiplier();
+        warlordDamageMultiplier = getWarlordDamageMultiplier();
     }
 }
