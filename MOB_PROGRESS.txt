@@ -197,9 +197,41 @@ SPENDING LOGIC:
   Loop: while points available AND affordable upgrades exist:
     1. List all affordable upgrades (equal weight)
     2. Pick one random upgrade
-    3. 80% chance: BUY it, continue loop
-    4. 20% chance: SAVE points, stop spending this cycle
+    3. If cost=0: ALWAYS buy (no save chance)
+    4. If cost>0: 80% chance BUY, 20% chance SAVE and stop
+    5. If bought, continue loop
   All purchases accumulate, applied in one batch when loop ends.
+
+SLOT LOCKING RULES:
+  Each equipment slot can only hold ONE item at a time.
+  Once a slot is filled, all other items for that slot are LOCKED (not in affordable list).
+  Slots unlock when item is removed (broken at lowest tier).
+
+  Slots:
+    - weapon (mainhand): Only one weapon. If mob has gold_sword, cannot buy crossbow until gold_sword gone.
+    - shield (offhand): Only one shield.
+    - helmet: Only one helmet.
+    - chestplate: Only one chestplate.
+    - leggings: Only one leggings.
+    - boots: Only one boots.
+
+  This means for Piglin with gold_sword AND crossbow both at base_cost=0:
+    - On spawn, both are in affordable list
+    - Random pick selects one (e.g. crossbow)
+    - Crossbow bought, weapon slot filled
+    - Gold_sword now LOCKED (not affordable) because weapon slot occupied
+    - If crossbow breaks and is removed, gold_sword unlocks again
+
+UPGRADE PATH LOGIC:
+  For items with tiers (swords, axes, armor):
+    - Must own current tier to upgrade to next tier
+    - Tier upgrades require: Drop Mastery 10 + Durability Mastery 10 + all enchants maxed
+    - Each tier is a separate upgrade in the affordable list
+    - Cannot skip tiers
+
+  For items without tiers (bow, crossbow, trident, shield):
+    - Only one "tier" exists
+    - Progression is through enchants and masteries only
 
 ================================================================================
                          POTION EFFECTS - PASSIVE MOBS
@@ -326,16 +358,6 @@ crossbow (Pillager, Illusioner, Piglin 50%):
 
 trident (Drowned):
   base_cost=0 (spawns with it), no tiers, enchants only
-
-SPENDING RULE FOR base_cost=0:
-  If base_cost=0, the mob ALWAYS buys it (never saves).
-  This ensures mobs that naturally spawn with a weapon will get it on spawn.
-
-PIGLIN SPECIAL CASE:
-  Piglin has TWO weapon paths: gold_sword and crossbow (both base_cost=0)
-  Random selection picks one, that one gets bought.
-  Once mainhand has a weapon, other weapon path is LOCKED.
-  If mainhand weapon is lost (broken), other path becomes available again.
 
 ================================================================================
                            WEAPON ENCHANTMENTS
