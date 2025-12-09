@@ -25,7 +25,8 @@
 		"mob.BlazeMixin",
 		"mob.BoggedMixin",
 		"mob.BreezeMixin",
-		"mob.CamelMixin"
+		"mob.CamelMixin",
+		"mob.CatMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
