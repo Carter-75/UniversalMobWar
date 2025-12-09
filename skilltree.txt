@@ -231,7 +231,7 @@
       "Bat": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Bee": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Blaze": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
-      "Bogged": { "type": "hostile", "weapon": "bow", "armor": "full_normal", "shield": true, "trees": ["r"] },
+      "Bogged": { "type": "hostile", "weapon": "bow", "armor": "full_normal", "shield": true, "trees": ["z","r"] },
       "Breeze": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
       "Camel": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Cat": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
