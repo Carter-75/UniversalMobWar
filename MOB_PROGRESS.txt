@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 2 / 80 mobs completed
+PROGRESS: 3 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -10,7 +10,7 @@ PROGRESS: 2 / 80 mobs completed
 
 1.  [X] Allay              - DONE
 2.  [X] Armadillo          - DONE
-3.  [ ] Axolotl
+3.  [X] Axolotl            - DONE
 4.  [ ] Bat
 5.  [ ] Bee
 6.  [ ] Blaze
