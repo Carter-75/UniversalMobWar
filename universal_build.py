@@ -201,29 +201,47 @@ class UniversalBuildSystem:
         
         # =======================================================================
         # SECTION 3: SCALING SYSTEM (MOB PROGRESSION)
-        # Mobs get stronger over time - STANDALONE MIXINS (NO CONNECTION FILE)
+        # Mobs get stronger over time - CENTRALIZED SYSTEM
+        # ScalingSystem.java reads ALL JSON configs and handles ALL upgrades
         # =======================================================================
         scaling_connected = False
         scaling_status = []
         
-        # Check for mob mixins with progression logic
-        mob_mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin/mob"
+        # Check for central ScalingSystem.java
+        scaling_system_file = base_path / "system/ScalingSystem.java"
         json_dir = self.root / "src/main/resources/mob_configs"
         config_file = base_path / "config/ModConfig.java"
+        mob_data_mixin = self.root / "src/main/java/mod/universalmobwar/mixin/MobDataMixin.java"
         
-        mob_mixins = list(mob_mixin_dir.glob("*.java")) if mob_mixin_dir.exists() else []
         json_configs = list(json_dir.glob("*.json")) if json_dir.exists() else []
         
-        # Check if mixins have standalone progression logic
-        mixins_with_progression = 0
-        for mixin_file in mob_mixins:
-            content = mixin_file.read_text(encoding='utf-8', errors='ignore')
-            has_points = "totalPoints" in content or "spentPoints" in content
-            has_spending = "spendPoints" in content
-            has_nbt = "writeCustomDataToNbt" in content
-            has_tick = "onTick" in content or 'method = "tick"' in content
-            if has_points and has_spending and has_nbt and has_tick:
-                mixins_with_progression += 1
+        # Check if ScalingSystem.java exists and has required components
+        has_scaling_system = False
+        has_json_loading = False
+        has_point_calculation = False
+        has_upgrade_spending = False
+        has_effect_application = False
+        
+        if scaling_system_file.exists():
+            content = scaling_system_file.read_text(encoding='utf-8', errors='ignore')
+            has_scaling_system = True
+            has_json_loading = "loadMobConfig" in content and "MOB_CONFIGS" in content
+            has_point_calculation = "calculateWorldAgePoints" in content
+            has_upgrade_spending = "spendPoints" in content and "getAffordableUpgrades" in content
+            has_effect_application = "applyEffects" in content
+        
+        # Check if mob mixins call ScalingSystem
+        mixin_calls_scaling = False
+        mixins_calling_scaling = 0
+        total_mob_mixins = 0
+        mob_mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin/mob"
+        if mob_mixin_dir.exists():
+            for mixin_file in mob_mixin_dir.glob("*.java"):
+                total_mob_mixins += 1
+                mixin_content = mixin_file.read_text(encoding='utf-8', errors='ignore')
+                if "ScalingSystem.processMobTick" in mixin_content:
+                    mixins_calling_scaling += 1
+        mixin_calls_scaling = mixins_calling_scaling > 0 and mixins_calling_scaling == total_mob_mixins
         
         # Check config for scaling options
         config_has_scaling = False
@@ -231,38 +249,54 @@ class UniversalBuildSystem:
             config_content = config_file.read_text(encoding='utf-8', errors='ignore')
             config_has_scaling = "scalingEnabled" in config_content and "isScalingActive()" in config_content
         
-        scaling_status.append(f"Mob mixins with standalone progression: {mixins_with_progression}/{len(mob_mixins)}")
-        scaling_status.append(f"JSON configs with upgrade data: {len(json_configs)}/80")
-        
-        # Scaling uses STANDALONE architecture - each mixin handles its own progression
-        # No central connection file needed - mobs tick and spend points independently
-        if mixins_with_progression > 0 and config_has_scaling:
-            scaling_status.append("Config checks (isScalingActive) ✓")
-            scaling_status.append("Architecture: Standalone mixins (each mob self-manages)")
-            # Partial connection - mixins work but don't read from JSON yet
-            scaling_connected = False  # Not fully connected until JSON loading works
-        elif mixins_with_progression > 0:
-            scaling_status.append("⚠️  Mixins have progression but config integration missing")
-            scaling_connected = False
+        # Build status report
+        if has_scaling_system:
+            scaling_status.append("ScalingSystem.java present ✓")
+            if has_json_loading:
+                scaling_status.append("JSON config loading ✓")
+            if has_point_calculation:
+                scaling_status.append("Point calculation from world age ✓")
+            if has_upgrade_spending:
+                scaling_status.append("Upgrade spending logic (80/20) ✓")
+            if has_effect_application:
+                scaling_status.append("Effect application ✓")
         else:
-            scaling_status.append("❌ No mixins with progression logic found")
+            scaling_status.append("❌ ScalingSystem.java not found")
         
-        self.systems["scaling"]["connected"] = scaling_connected
+        if mixin_calls_scaling:
+            scaling_status.append(f"Mob mixins call ScalingSystem ({mixins_calling_scaling}/{total_mob_mixins}) ✓")
+        else:
+            scaling_status.append(f"⚠️ Mob mixins calling ScalingSystem: {mixins_calling_scaling}/{total_mob_mixins}")
         
-        # Special status for scaling - it's PARTIAL because mixins work but don't read JSON
-        if mixins_with_progression > 0:
+        if config_has_scaling:
+            scaling_status.append("Config checks (isScalingActive) ✓")
+        
+        scaling_status.append(f"JSON configs: {len(json_configs)}/80 mobs implemented")
+        
+        # Determine if fully connected
+        # FULLY CONNECTED = ScalingSystem exists + loads JSON + MobDataMixin calls it
+        if (has_scaling_system and has_json_loading and has_point_calculation and 
+            has_upgrade_spending and has_effect_application and mixin_calls_scaling and 
+            config_has_scaling and len(json_configs) > 0):
+            scaling_connected = True
+            status_icon = "✅"
+            status_text = f"FULLY CONNECTED ({len(json_configs)}/80 mobs)"
+            color = Color.GREEN
+        elif has_scaling_system and len(json_configs) > 0:
             status_icon = "⚠️"
-            status_text = "PARTIAL (Mixins work, JSON not connected)"
+            status_text = "PARTIAL (system exists, integration incomplete)"
             color = Color.YELLOW
         else:
             status_icon = "❌"
             status_text = "NOT CONNECTED"
             color = Color.RED
+        
+        self.systems["scaling"]["connected"] = scaling_connected
             
         log(f"  {status_icon} SCALING SYSTEM: {status_text}", color)
-        log(f"     └─ Purpose: Mobs get stronger over time", Color.WHITE)
+        log(f"     └─ Purpose: Mobs get stronger over time (points → upgrades → effects)", Color.WHITE)
         log(f"     └─ Config: scalingEnabled", Color.WHITE)
-        log(f"     └─ Files: mixin/mob/*.java (standalone), mob_configs/*.json", Color.WHITE)
+        log(f"     └─ Files: system/ScalingSystem.java, mob_configs/*.json", Color.WHITE)
         for s in scaling_status:
             log(f"     └─ {s}", Color.WHITE)
         print()
@@ -327,38 +361,40 @@ class UniversalBuildSystem:
         log("═" * 80, Color.BLUE)
         print()
         
-        # Detailed status for each system
+        # Detailed status for each system - shows what's fully connected out of all 4
+        log("  Which sections are fully connected out of all 4:", Color.WHITE)
+        print()
+        
         system_details = [
-            ("TARGETING", self.systems["targeting"]["connected"], 
-             "Mobs fight each other", "Works independently, optional alliance/warlord integration"),
-            ("ALLIANCE", self.systems["alliance"]["connected"], 
-             "Mobs team up", "Works independently, used by targeting if enabled"),
-            ("SCALING", self.systems["scaling"]["connected"], 
-             "Mobs get stronger", "Standalone mixins work, JSON loading not implemented"),
-            ("WARLORD", self.systems["warlord"]["connected"], 
-             "Raid boss", "Works independently, protected minion targeting"),
+            ("TARGETING", self.systems["targeting"]["connected"], "Mobs fight each other intelligently"),
+            ("ALLIANCE", self.systems["alliance"]["connected"], "Mobs team up against common enemies"),
+            ("SCALING", self.systems["scaling"]["connected"], "Mobs get stronger over time (JSON-driven)"),
+            ("WARLORD", self.systems["warlord"]["connected"], "Raid boss spawns with minion army"),
         ]
         
-        for name, connected, purpose, notes in system_details:
-            icon = "✅" if connected else ("⚠️" if name == "SCALING" and mixins_with_progression > 0 else "❌")
-            status = "CONNECTED" if connected else ("PARTIAL" if name == "SCALING" and mixins_with_progression > 0 else "MISSING")
-            color = Color.GREEN if connected else (Color.YELLOW if name == "SCALING" and mixins_with_progression > 0 else Color.RED)
-            log(f"  {icon} {name:12} │ {status:10} │ {purpose}", color)
+        for name, connected, purpose in system_details:
+            icon = "✅" if connected else "❌"
+            status = "FULLY CONNECTED" if connected else "NOT CONNECTED"
+            color = Color.GREEN if connected else Color.RED
+            log(f"    {icon} {name:12} │ {status:16} │ {purpose}", color)
         
         print()
         log("─" * 80, Color.BLUE)
         log(f"  RESULT: {connected_count}/{total_systems} systems fully connected", 
             Color.GREEN if connected_count == total_systems else Color.YELLOW)
         
-        if mixins_with_progression > 0:
-            log(f"          + SCALING system is partially working ({mixins_with_progression} mob mixins)", Color.YELLOW)
+        # Show scaling mobs count
+        json_dir_check = self.root / "src/main/resources/mob_configs"
+        json_count = len(list(json_dir_check.glob("*.json"))) if json_dir_check.exists() else 0
+        if self.systems["scaling"]["connected"]:
+            log(f"          SCALING: {json_count}/80 mobs implemented (add more in mob_configs/)", Color.GREEN)
         
         log("═" * 80, Color.BLUE)
         
         # Log to file
         self.log_to_file(f"\nSystem Status: {connected_count}/{total_systems} fully connected")
         for name, data in self.systems.items():
-            status = "CONNECTED" if data["connected"] else ("PARTIAL" if name == "scaling" and mixins_with_progression > 0 else "NOT CONNECTED")
+            status = "CONNECTED" if data["connected"] else "NOT CONNECTED"
             self.log_to_file(f"  {name.upper()}: {status}")
     
     def validate_json_configs(self):
@@ -688,16 +724,8 @@ class UniversalBuildSystem:
         if mob_mixin_dir.exists():
             mixin_count += len(list(mob_mixin_dir.glob("*.java")))
         
-        # Count mixins with progression
-        mixins_with_progression = 0
-        if mob_mixin_dir.exists():
-            for mixin_file in mob_mixin_dir.glob("*.java"):
-                content = mixin_file.read_text(encoding='utf-8', errors='ignore')
-                has_points = "totalPoints" in content or "spentPoints" in content
-                has_spending = "spendPoints" in content
-                has_nbt = "writeCustomDataToNbt" in content
-                if has_points and has_spending and has_nbt:
-                    mixins_with_progression += 1
+        # Check if ScalingSystem exists
+        scaling_system_exists = (self.root / "src/main/java/mod/universalmobwar/system/ScalingSystem.java").exists()
         
         with open(self.log_file, 'w', encoding='utf-8') as f:
             f.write("=" * 80 + "\n")
@@ -707,7 +735,7 @@ class UniversalBuildSystem:
             f.write(f"Minecraft Version: 1.21.1\n")
             f.write(f"Mob Configs: {json_count}/80\n")
             f.write(f"Mixins: {mixin_count} total\n")
-            f.write(f"Mixins with progression: {mixins_with_progression}\n\n")
+            f.write(f"ScalingSystem: {'Present' if scaling_system_exists else 'Missing'}\n\n")
             
             # System status with details
             f.write("=" * 80 + "\n")
@@ -729,8 +757,8 @@ class UniversalBuildSystem:
                     "config": "allianceEnabled"
                 },
                 "scaling": {
-                    "purpose": "Mobs get stronger over time (progression)",
-                    "file": "mixin/mob/*.java + mob_configs/*.json",
+                    "purpose": "Mobs get stronger over time (JSON-driven progression)",
+                    "file": "system/ScalingSystem.java + mob_configs/*.json",
                     "config": "scalingEnabled"
                 },
                 "warlord": {
@@ -742,12 +770,7 @@ class UniversalBuildSystem:
             
             for name, data in self.systems.items():
                 info = system_info.get(name, {})
-                if data["connected"]:
-                    status = "✓ FULLY CONNECTED"
-                elif name == "scaling" and mixins_with_progression > 0:
-                    status = "⚠ PARTIAL (mixins work, JSON not connected)"
-                else:
-                    status = "✗ NOT CONNECTED"
+                status = "✓ FULLY CONNECTED" if data["connected"] else "✗ NOT CONNECTED"
                 
                 f.write(f"{name.upper()}: {status}\n")
                 f.write(f"  Purpose: {info.get('purpose', 'N/A')}\n")
@@ -761,18 +784,19 @@ class UniversalBuildSystem:
             f.write("✓ TARGETING: Mobs can fight each other (config: targetingEnabled)\n")
             f.write("✓ ALLIANCE: Mobs can team up (config: allianceEnabled)\n")
             f.write("✓ WARLORD: Raid boss can spawn (config: warlordEnabled)\n")
-            if mixins_with_progression > 0:
-                f.write(f"⚠ SCALING: {mixins_with_progression} mob mixins have hardcoded progression\n")
-                f.write("           Mobs get stronger but don't read from JSON configs yet\n")
+            if self.systems["scaling"]["connected"]:
+                f.write(f"✓ SCALING: {json_count} mobs have JSON configs - ScalingSystem reads them all\n")
+                f.write("           MobDataMixin calls ScalingSystem for every mob on tick\n")
             f.write("\n")
             
             # What needs work
             f.write("=" * 80 + "\n")
             f.write("WHAT NEEDS WORK\n")
             f.write("=" * 80 + "\n\n")
-            f.write("• Scaling system: Create JSON loader to connect mob_configs/*.json to mixins\n")
-            f.write("• Mob progress: 10/80 mob configs created (12%)\n")
-            f.write("• Integration: One central file to connect mixins <-> JSON (optional)\n")
+            f.write(f"• Mob progress: {json_count}/80 mob configs created ({json_count*100//80}%)\n")
+            f.write("• To add a new mob: Create mob_configs/[mobname].json (see existing configs)\n")
+            f.write("• Equipment system: Weapons/armor purchasing not yet implemented\n")
+            f.write("• Special abilities: Horde summon, piercing shot, etc. not yet implemented\n")
             f.write("\n")
         
         if not self.errors:
