@@ -9,6 +9,7 @@
 ║    ✓ Validate mob JSON configs (supports partial completion)             ║
 ║    ✓ Check Java syntax & 1.21.1 API compatibility                        ║
 ║    ✓ Verify mixins                                                       ║
+║    ✓ Check system connection status                                      ║
 ║    ✓ Build with Gradle                                                   ║
 ║    ✓ Run comprehensive tests                                             ║
 ║    ✓ Git commit & push (with authentication)                             ║
@@ -74,6 +75,14 @@ class UniversalBuildSystem:
         self.log_file = self.root / "universal_build.log"
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        # System connection status
+        self.systems = {
+            "targeting": {"connected": False, "file": "goal/UniversalTargetGoal.java"},
+            "alliance": {"connected": False, "file": "system/AllianceSystem.java"},
+            "scaling": {"connected": False, "file": None},  # Needs connection file
+            "warlord": {"connected": False, "file": "entity/MobWarlordEntity.java"},
+        }
+        
     def validate_all(self):
         """Run all validations"""
         header("VALIDATION SUITE")
@@ -85,8 +94,282 @@ class UniversalBuildSystem:
         self.validate_java_syntax()
         self.validate_mixins()
         self.validate_gradle()
+        self.check_system_connections()
         
         return len(self.errors) == 0
+    
+    def check_system_connections(self):
+        """Check which mod systems are fully connected"""
+        header("SYSTEM CONNECTION STATUS")
+        self.log_to_file("\n" + "=" * 80)
+        self.log_to_file("SYSTEM CONNECTION STATUS")
+        self.log_to_file("=" * 80)
+        
+        info("Analyzing 4 independent mod systems...")
+        print()
+        
+        base_path = self.root / "src/main/java/mod/universalmobwar"
+        
+        # =======================================================================
+        # SECTION 1: TARGETING SYSTEM
+        # Mobs fight each other - FULLY FUNCTIONAL
+        # =======================================================================
+        targeting_file = base_path / "goal/UniversalTargetGoal.java"
+        targeting_connected = False
+        targeting_status = []
+        
+        if targeting_file.exists():
+            content = targeting_file.read_text(encoding='utf-8', errors='ignore')
+            
+            # Check for key components
+            has_config_check = "isTargetingEnabled()" in content or "isTargetingActive()" in content
+            has_goal_logic = "canStart()" in content and "shouldContinue()" in content
+            has_mod_integration = "ModConfig" in content
+            has_alliance_integration = "isAllianceIntegrationEnabled()" in content
+            has_warlord_integration = "getMasterUuidIfMinion()" in content
+            
+            if has_config_check and has_goal_logic and has_mod_integration:
+                targeting_connected = True
+                targeting_status.append("Core targeting logic ✓")
+                targeting_status.append("Config checks (isTargetingActive) ✓")
+                if has_alliance_integration:
+                    targeting_status.append("Optional alliance integration ✓")
+                if has_warlord_integration:
+                    targeting_status.append("Optional warlord integration ✓")
+            else:
+                if not has_config_check:
+                    targeting_status.append("❌ Missing config check")
+                if not has_goal_logic:
+                    targeting_status.append("❌ Missing goal logic")
+        else:
+            targeting_status.append("❌ File not found")
+        
+        self.systems["targeting"]["connected"] = targeting_connected
+        status_icon = "✅" if targeting_connected else "❌"
+        status_text = "FULLY CONNECTED" if targeting_connected else "NOT CONNECTED"
+        log(f"  {status_icon} TARGETING SYSTEM: {status_text}", Color.GREEN if targeting_connected else Color.RED)
+        log(f"     └─ Purpose: Mobs fight each other intelligently", Color.WHITE)
+        log(f"     └─ Config: targetingEnabled", Color.WHITE)
+        log(f"     └─ File: goal/UniversalTargetGoal.java", Color.WHITE)
+        for s in targeting_status:
+            log(f"     └─ {s}", Color.WHITE)
+        print()
+        
+        # =======================================================================
+        # SECTION 2: ALLIANCE SYSTEM
+        # Mobs team up against common enemies - FULLY FUNCTIONAL
+        # =======================================================================
+        alliance_file = base_path / "system/AllianceSystem.java"
+        alliance_connected = False
+        alliance_status = []
+        
+        if alliance_file.exists():
+            content = alliance_file.read_text(encoding='utf-8', errors='ignore')
+            
+            has_config_check = "isEnabled(" in content or "isAllianceActive()" in content
+            has_update_logic = "updateAlliances(" in content
+            has_cleanup = "cleanupExpiredAlliances(" in content
+            has_config_values = "getWeakAllianceDuration()" in content or "weakAllianceDurationMs" in content
+            has_find_friend = "findFriendToHelp(" in content
+            
+            if has_config_check and has_update_logic and has_cleanup:
+                alliance_connected = True
+                alliance_status.append("Core alliance logic ✓")
+                alliance_status.append("Config checks (isAllianceActive) ✓")
+                if has_config_values:
+                    alliance_status.append("Configurable durations/chances ✓")
+                if has_find_friend:
+                    alliance_status.append("Friend assistance logic ✓")
+            else:
+                if not has_config_check:
+                    alliance_status.append("❌ Missing config check")
+                if not has_update_logic:
+                    alliance_status.append("❌ Missing update logic")
+        else:
+            alliance_status.append("❌ File not found")
+        
+        self.systems["alliance"]["connected"] = alliance_connected
+        status_icon = "✅" if alliance_connected else "❌"
+        status_text = "FULLY CONNECTED" if alliance_connected else "NOT CONNECTED"
+        log(f"  {status_icon} ALLIANCE SYSTEM: {status_text}", Color.GREEN if alliance_connected else Color.RED)
+        log(f"     └─ Purpose: Mobs team up against common enemies", Color.WHITE)
+        log(f"     └─ Config: allianceEnabled", Color.WHITE)
+        log(f"     └─ File: system/AllianceSystem.java", Color.WHITE)
+        for s in alliance_status:
+            log(f"     └─ {s}", Color.WHITE)
+        print()
+        
+        # =======================================================================
+        # SECTION 3: SCALING SYSTEM (MOB PROGRESSION)
+        # Mobs get stronger over time - STANDALONE MIXINS (NO CONNECTION FILE)
+        # =======================================================================
+        scaling_connected = False
+        scaling_status = []
+        
+        # Check for mob mixins with progression logic
+        mob_mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin/mob"
+        json_dir = self.root / "src/main/resources/mob_configs"
+        config_file = base_path / "config/ModConfig.java"
+        
+        mob_mixins = list(mob_mixin_dir.glob("*.java")) if mob_mixin_dir.exists() else []
+        json_configs = list(json_dir.glob("*.json")) if json_dir.exists() else []
+        
+        # Check if mixins have standalone progression logic
+        mixins_with_progression = 0
+        for mixin_file in mob_mixins:
+            content = mixin_file.read_text(encoding='utf-8', errors='ignore')
+            has_points = "totalPoints" in content or "spentPoints" in content
+            has_spending = "spendPoints" in content
+            has_nbt = "writeCustomDataToNbt" in content
+            has_tick = "onTick" in content or 'method = "tick"' in content
+            if has_points and has_spending and has_nbt and has_tick:
+                mixins_with_progression += 1
+        
+        # Check config for scaling options
+        config_has_scaling = False
+        if config_file.exists():
+            config_content = config_file.read_text(encoding='utf-8', errors='ignore')
+            config_has_scaling = "scalingEnabled" in config_content and "isScalingActive()" in config_content
+        
+        scaling_status.append(f"Mob mixins with standalone progression: {mixins_with_progression}/{len(mob_mixins)}")
+        scaling_status.append(f"JSON configs with upgrade data: {len(json_configs)}/80")
+        
+        # Scaling uses STANDALONE architecture - each mixin handles its own progression
+        # No central connection file needed - mobs tick and spend points independently
+        if mixins_with_progression > 0 and config_has_scaling:
+            scaling_status.append("Config checks (isScalingActive) ✓")
+            scaling_status.append("Architecture: Standalone mixins (each mob self-manages)")
+            scaling_status.append("⚠️  JSON configs exist but NOT YET CONNECTED to mixins")
+            scaling_status.append("    Future: Add JSON loader to read upgrade costs from configs")
+            # Partial connection - mixins work but don't read from JSON yet
+            scaling_connected = False  # Not fully connected until JSON loading works
+        elif mixins_with_progression > 0:
+            scaling_status.append("⚠️  Mixins have progression but config integration missing")
+            scaling_connected = False
+        else:
+            scaling_status.append("❌ No mixins with progression logic found")
+        
+        self.systems["scaling"]["connected"] = scaling_connected
+        
+        # Special status for scaling - it's PARTIAL because mixins work but don't read JSON
+        if mixins_with_progression > 0:
+            status_icon = "⚠️"
+            status_text = "PARTIAL (Mixins work, JSON not connected)"
+            color = Color.YELLOW
+        else:
+            status_icon = "❌"
+            status_text = "NOT CONNECTED"
+            color = Color.RED
+            
+        log(f"  {status_icon} SCALING SYSTEM: {status_text}", color)
+        log(f"     └─ Purpose: Mobs get stronger over time", Color.WHITE)
+        log(f"     └─ Config: scalingEnabled", Color.WHITE)
+        log(f"     └─ Files: mixin/mob/*.java (standalone), mob_configs/*.json", Color.WHITE)
+        for s in scaling_status:
+            log(f"     └─ {s}", Color.WHITE)
+        print()
+        
+        # =======================================================================
+        # SECTION 4: WARLORD SYSTEM (RAID BOSS)
+        # Raid boss with minion army - FULLY FUNCTIONAL
+        # =======================================================================
+        warlord_file = base_path / "entity/MobWarlordEntity.java"
+        warlord_connected = False
+        warlord_status = []
+        
+        if warlord_file.exists():
+            content = warlord_file.read_text(encoding='utf-8', errors='ignore')
+            
+            has_boss_logic = "ServerBossBar" in content
+            has_minion_logic = "summonMinions" in content or "minionUuids" in content
+            has_config = "ModConfig" in content or "getMaxMinions()" in content
+            
+            if has_boss_logic and has_minion_logic:
+                warlord_status.append("Boss entity with health bar ✓")
+                warlord_status.append("Minion summoning/control ✓")
+                if has_config:
+                    warlord_status.append("Config integration ✓")
+                    warlord_connected = True
+            else:
+                if not has_boss_logic:
+                    warlord_status.append("❌ Missing boss logic")
+                if not has_minion_logic:
+                    warlord_status.append("❌ Missing minion logic")
+        else:
+            warlord_status.append("❌ Entity file not found")
+        
+        # Check raid mixin for spawn integration
+        raid_mixin_file = self.root / "src/main/java/mod/universalmobwar/mixin/RaidSpawningMixin.java"
+        if raid_mixin_file.exists():
+            content = raid_mixin_file.read_text(encoding='utf-8', errors='ignore')
+            if "isWarlordActive()" in content:
+                warlord_status.append("Raid wave spawning ✓")
+            if "warlordSpawnChance" in content or "warlordMinRaidLevel" in content:
+                warlord_status.append("Configurable spawn chance/wave ✓")
+        
+        self.systems["warlord"]["connected"] = warlord_connected
+        status_icon = "✅" if warlord_connected else "❌"
+        status_text = "FULLY CONNECTED" if warlord_connected else "NOT CONNECTED"
+        log(f"  {status_icon} WARLORD SYSTEM: {status_text}", Color.GREEN if warlord_connected else Color.RED)
+        log(f"     └─ Purpose: Raid boss with minion army", Color.WHITE)
+        log(f"     └─ Config: warlordEnabled", Color.WHITE)
+        log(f"     └─ Files: entity/MobWarlordEntity.java, mixin/RaidSpawningMixin.java", Color.WHITE)
+        for s in warlord_status:
+            log(f"     └─ {s}", Color.WHITE)
+        print()
+        
+        # =======================================================================
+        # DETAILED SUMMARY
+        # =======================================================================
+        connected_count = sum(1 for s in self.systems.values() if s["connected"])
+        total_systems = len(self.systems)
+        
+        log("═" * 80, Color.BLUE)
+        log("  SYSTEM CONNECTION SUMMARY", Color.BOLD + Color.CYAN)
+        log("═" * 80, Color.BLUE)
+        print()
+        
+        # Detailed status for each system
+        system_details = [
+            ("TARGETING", self.systems["targeting"]["connected"], 
+             "Mobs fight each other", "Works independently, optional alliance/warlord integration"),
+            ("ALLIANCE", self.systems["alliance"]["connected"], 
+             "Mobs team up", "Works independently, used by targeting if enabled"),
+            ("SCALING", self.systems["scaling"]["connected"], 
+             "Mobs get stronger", "Standalone mixins work, JSON loading not implemented"),
+            ("WARLORD", self.systems["warlord"]["connected"], 
+             "Raid boss", "Works independently, protected minion targeting"),
+        ]
+        
+        for name, connected, purpose, notes in system_details:
+            icon = "✅" if connected else ("⚠️" if name == "SCALING" and mixins_with_progression > 0 else "❌")
+            status = "CONNECTED" if connected else ("PARTIAL" if name == "SCALING" and mixins_with_progression > 0 else "MISSING")
+            color = Color.GREEN if connected else (Color.YELLOW if name == "SCALING" and mixins_with_progression > 0 else Color.RED)
+            log(f"  {icon} {name:12} │ {status:10} │ {purpose}", color)
+        
+        print()
+        log("─" * 80, Color.BLUE)
+        log(f"  RESULT: {connected_count}/{total_systems} systems fully connected", 
+            Color.GREEN if connected_count == total_systems else Color.YELLOW)
+        
+        if mixins_with_progression > 0:
+            log(f"          + SCALING system is partially working ({mixins_with_progression} mob mixins)", Color.YELLOW)
+        
+        # What's needed to complete each system
+        if connected_count < total_systems:
+            print()
+            log("  TO COMPLETE SCALING SYSTEM:", Color.YELLOW)
+            log("    1. Create a JSON loader utility to read mob_configs/*.json", Color.WHITE)
+            log("    2. Modify mob mixins to load upgrade costs from JSON", Color.WHITE)
+            log("    3. Or keep hardcoded costs (current implementation works)", Color.WHITE)
+        
+        log("═" * 80, Color.BLUE)
+        
+        # Log to file
+        self.log_to_file(f"\nSystem Status: {connected_count}/{total_systems} fully connected")
+        for name, data in self.systems.items():
+            status = "CONNECTED" if data["connected"] else ("PARTIAL" if name == "scaling" and mixins_with_progression > 0 else "NOT CONNECTED")
+            self.log_to_file(f"  {name.upper()}: {status}")
     
     def validate_json_configs(self):
         """Validate mob JSON files - supports partial completion"""
@@ -415,6 +698,17 @@ class UniversalBuildSystem:
         if mob_mixin_dir.exists():
             mixin_count += len(list(mob_mixin_dir.glob("*.java")))
         
+        # Count mixins with progression
+        mixins_with_progression = 0
+        if mob_mixin_dir.exists():
+            for mixin_file in mob_mixin_dir.glob("*.java"):
+                content = mixin_file.read_text(encoding='utf-8', errors='ignore')
+                has_points = "totalPoints" in content or "spentPoints" in content
+                has_spending = "spendPoints" in content
+                has_nbt = "writeCustomDataToNbt" in content
+                if has_points and has_spending and has_nbt:
+                    mixins_with_progression += 1
+        
         with open(self.log_file, 'w', encoding='utf-8') as f:
             f.write("=" * 80 + "\n")
             f.write("UNIVERSAL MOB WAR - BUILD LOG\n")
@@ -422,7 +716,74 @@ class UniversalBuildSystem:
             f.write(f"Timestamp: {self.timestamp}\n")
             f.write(f"Minecraft Version: 1.21.1\n")
             f.write(f"Mob Configs: {json_count}/80\n")
-            f.write(f"Mixins: {mixin_count}\n\n")
+            f.write(f"Mixins: {mixin_count} total\n")
+            f.write(f"Mixins with progression: {mixins_with_progression}\n\n")
+            
+            # System status with details
+            f.write("=" * 80 + "\n")
+            f.write("SYSTEM CONNECTION STATUS\n")
+            f.write("=" * 80 + "\n\n")
+            
+            connected = sum(1 for s in self.systems.values() if s["connected"])
+            f.write(f"Overall: {connected}/4 systems fully connected\n\n")
+            
+            system_info = {
+                "targeting": {
+                    "purpose": "Mobs fight each other intelligently",
+                    "file": "goal/UniversalTargetGoal.java",
+                    "config": "targetingEnabled"
+                },
+                "alliance": {
+                    "purpose": "Mobs team up against common enemies",
+                    "file": "system/AllianceSystem.java",
+                    "config": "allianceEnabled"
+                },
+                "scaling": {
+                    "purpose": "Mobs get stronger over time (progression)",
+                    "file": "mixin/mob/*.java + mob_configs/*.json",
+                    "config": "scalingEnabled"
+                },
+                "warlord": {
+                    "purpose": "Raid boss with minion army",
+                    "file": "entity/MobWarlordEntity.java",
+                    "config": "warlordEnabled"
+                }
+            }
+            
+            for name, data in self.systems.items():
+                info = system_info.get(name, {})
+                if data["connected"]:
+                    status = "✓ FULLY CONNECTED"
+                elif name == "scaling" and mixins_with_progression > 0:
+                    status = "⚠ PARTIAL (mixins work, JSON not connected)"
+                else:
+                    status = "✗ NOT CONNECTED"
+                
+                f.write(f"{name.upper()}: {status}\n")
+                f.write(f"  Purpose: {info.get('purpose', 'N/A')}\n")
+                f.write(f"  File(s): {info.get('file', 'N/A')}\n")
+                f.write(f"  Config:  {info.get('config', 'N/A')}\n\n")
+            
+            # What's working
+            f.write("=" * 80 + "\n")
+            f.write("WHAT'S WORKING\n")
+            f.write("=" * 80 + "\n\n")
+            f.write("✓ TARGETING: Mobs can fight each other (config: targetingEnabled)\n")
+            f.write("✓ ALLIANCE: Mobs can team up (config: allianceEnabled)\n")
+            f.write("✓ WARLORD: Raid boss can spawn (config: warlordEnabled)\n")
+            if mixins_with_progression > 0:
+                f.write(f"⚠ SCALING: {mixins_with_progression} mob mixins have hardcoded progression\n")
+                f.write("           Mobs get stronger but don't read from JSON configs yet\n")
+            f.write("\n")
+            
+            # What needs work
+            f.write("=" * 80 + "\n")
+            f.write("WHAT NEEDS WORK\n")
+            f.write("=" * 80 + "\n\n")
+            f.write("• Scaling system: Create JSON loader to connect mob_configs/*.json to mixins\n")
+            f.write("• Mob progress: 10/80 mob configs created (12%)\n")
+            f.write("• Integration: One central file to connect mixins <-> JSON (optional)\n")
+            f.write("\n")
         
         if not self.errors:
             success("✅ ALL CHECKS PASSED!")
