@@ -16,17 +16,7 @@
 		"UniversalSummonerTrackingMixin",
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin",
-		"NaturalMobSpawnBlockerMixin",
-		"mob.AllayMixin",
-		"mob.ArmadilloMixin",
-		"mob.AxolotlMixin",
-		"mob.BatMixin",
-		"mob.BeeMixin",
-		"mob.BlazeMixin",
-		"mob.BoggedMixin",
-		"mob.BreezeMixin",
-		"mob.CamelMixin",
-		"mob.CatMixin"
+		"NaturalMobSpawnBlockerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

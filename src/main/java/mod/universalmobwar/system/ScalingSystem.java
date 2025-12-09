@@ -7,9 +7,19 @@ import com.google.gson.JsonObject;
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ItemEnchantmentsComponent;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 
 import java.io.InputStream;
@@ -32,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * ║                                                                           ║
  * ║  To add a new mob:                                                        ║
  * ║    1. Create mob_configs/[mobname].json with upgrade tree                 ║
- * ║    2. That's it! This system handles everything else.                     ║
+ * ║    2. That's it! MobDataMixin calls processMobTick for ALL mobs.          ║
  * ║                                                                           ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
@@ -46,16 +56,20 @@ public class ScalingSystem {
     // Entity class name -> mob config name mapping
     private static final Map<String, String> ENTITY_TO_CONFIG = new ConcurrentHashMap<>();
     
-    // Track which mobs have been initialized this session
-    private static final Set<UUID> INITIALIZED_MOBS = ConcurrentHashMap.newKeySet();
+    // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
+    private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
     
-    // List of all available mob config files (the 10 implemented ones)
+    // List of all available mob config files
     private static final String[] IMPLEMENTED_MOBS = {
         "allay", "armadillo", "axolotl", "bat", "bee",
         "blaze", "bogged", "breeze", "camel", "cat"
     };
     
     private static boolean configsLoaded = false;
+    
+    // ==========================================================================
+    //                           INITIALIZATION
+    // ==========================================================================
     
     /**
      * Initialize the scaling system - load all JSON configs
@@ -142,6 +156,10 @@ public class ScalingSystem {
         return getConfigForMob(mob) != null;
     }
     
+    // ==========================================================================
+    //                           MAIN ENTRY POINT
+    // ==========================================================================
+    
     /**
      * MAIN ENTRY POINT - Called from MobDataMixin on every mob tick
      * This single method handles ALL scaling logic for ALL mobs
@@ -173,32 +191,40 @@ public class ScalingSystem {
         int spentPoints = (int) data.getSpentPoints();
         int budget = totalPoints - spentPoints;
         
-        // Only process upgrades if we have budget and it's time
+        // Only process upgrades every 100 ticks (5 seconds)
         long currentTick = world.getTime();
         long lastUpdate = data.getSkillData().contains("lastUpdateTick") ? 
             data.getSkillData().getLong("lastUpdateTick") : 0;
         
-        // Process every 100 ticks (5 seconds) or on first load
-        if (currentTick - lastUpdate < 100 && lastUpdate > 0) {
-            // Just apply existing effects
-            applyEffects(mob, data, config, mobType);
-            return;
+        boolean shouldProcessUpgrades = (currentTick - lastUpdate >= 100) || lastUpdate == 0;
+        
+        if (shouldProcessUpgrades) {
+            // Update timestamp
+            data.getSkillData().putLong("lastUpdateTick", currentTick);
+            
+            // Spend points on upgrades
+            if (budget > 0) {
+                spendPoints(mob, data, config, mobType, budget);
+            }
+            
+            // Apply equipment (only when processing upgrades to avoid constant re-equipping)
+            if (world instanceof ServerWorld serverWorld) {
+                applyEquipment(mob, data, config, serverWorld);
+            }
         }
         
-        // Update timestamp
-        data.getSkillData().putLong("lastUpdateTick", currentTick);
+        // Apply effects every tick (potion effects need refreshing)
+        applyEffects(mob, data, config, mobType, currentTick);
         
-        // Spend points on upgrades
-        if (budget > 0) {
-            spendPoints(mob, data, config, mobType, budget);
+        // Save data periodically
+        if (shouldProcessUpgrades) {
+            MobWarData.save(mob, data);
         }
-        
-        // Apply all effects based on current upgrade levels
-        applyEffects(mob, data, config, mobType);
-        
-        // Save data
-        MobWarData.save(mob, data);
     }
+    
+    // ==========================================================================
+    //                           POINT CALCULATION
+    // ==========================================================================
     
     /**
      * Calculate points from world age based on JSON daily_scaling config
@@ -252,11 +278,15 @@ public class ScalingSystem {
         return (int) totalPoints;
     }
     
+    // ==========================================================================
+    //                           POINT SPENDING
+    // ==========================================================================
+    
     /**
      * Spend points on upgrades using 80/20 buy/save logic from JSON
      */
     private static void spendPoints(MobEntity mob, MobWarData data, JsonObject config, String mobType, int budget) {
-        Random random = new Random();
+        Random random = new Random(mob.getUuid().hashCode() + data.getSkillData().getLong("lastUpdateTick"));
         
         // Get buy/save chances from config
         double buyChance = 0.80;
@@ -269,10 +299,13 @@ public class ScalingSystem {
         }
         
         // Get current upgrade levels from skill data
-        var skillData = data.getSkillData();
+        NbtCompound skillData = data.getSkillData();
         
         // Spending loop
-        while (budget > 0) {
+        int iterations = 0;
+        while (budget > 0 && iterations < 50) { // Cap iterations to prevent infinite loop
+            iterations++;
+            
             List<UpgradeOption> affordable = getAffordableUpgrades(config, mobType, skillData, budget);
             
             if (affordable.isEmpty()) break;
@@ -296,7 +329,7 @@ public class ScalingSystem {
      * Get list of affordable upgrades from the mob's JSON config
      */
     private static List<UpgradeOption> getAffordableUpgrades(JsonObject config, String mobType, 
-            net.minecraft.nbt.NbtCompound skillData, int budget) {
+            NbtCompound skillData, int budget) {
         
         List<UpgradeOption> affordable = new ArrayList<>();
         
@@ -308,51 +341,153 @@ public class ScalingSystem {
         
         if (tree.has(effectsKey)) {
             JsonObject effects = tree.getAsJsonObject(effectsKey);
-            
-            for (String effectName : effects.keySet()) {
-                JsonArray levels = effects.getAsJsonArray(effectName);
-                int currentLevel = skillData.getInt(effectName);
-                
-                if (currentLevel < levels.size()) {
-                    JsonObject nextLevel = levels.get(currentLevel).getAsJsonObject();
-                    int cost = nextLevel.get("cost").getAsInt();
-                    
-                    if (cost <= budget) {
-                        affordable.add(new UpgradeOption(effectName, currentLevel + 1, cost));
-                    }
-                }
-            }
+            addUpgradesFromSection(effects, skillData, budget, affordable, "effect_");
         }
         
         // Check special abilities
         if (tree.has("special_abilities")) {
             JsonObject abilities = tree.getAsJsonObject("special_abilities");
+            addUpgradesFromSection(abilities, skillData, budget, affordable, "ability_");
+        }
+        
+        // Check weapon upgrades
+        if (tree.has("weapon")) {
+            JsonObject weapon = tree.getAsJsonObject("weapon");
             
-            for (String abilityName : abilities.keySet()) {
-                JsonArray levels = abilities.getAsJsonArray(abilityName);
-                int currentLevel = skillData.getInt(abilityName);
-                
-                if (currentLevel < levels.size()) {
-                    JsonObject nextLevel = levels.get(currentLevel).getAsJsonObject();
-                    int cost = nextLevel.get("cost").getAsInt();
-                    
+            // Weapon enchants
+            if (weapon.has("enchants")) {
+                JsonObject enchants = weapon.getAsJsonObject("enchants");
+                addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
+            }
+            
+            // Weapon tiers
+            if (weapon.has("tiers")) {
+                JsonArray tiers = weapon.getAsJsonArray("tiers");
+                int currentTier = skillData.getInt("weapon_tier");
+                if (currentTier < tiers.size()) {
+                    JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
+                    int cost = nextTier.get("cost").getAsInt();
                     if (cost <= budget) {
-                        affordable.add(new UpgradeOption(abilityName, currentLevel + 1, cost));
+                        affordable.add(new UpgradeOption("weapon_tier", currentTier + 1, cost));
                     }
                 }
             }
+            
+            // Drop mastery
+            addMasteryUpgrades(weapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
+            addMasteryUpgrades(weapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
         }
         
-        // TODO: Add equipment upgrades (weapon, armor, shield) when implemented
+        // Check shield upgrades
+        if (tree.has("shield")) {
+            JsonObject shield = tree.getAsJsonObject("shield");
+            
+            // Base shield cost
+            int hasShield = skillData.getInt("has_shield");
+            if (hasShield == 0 && shield.has("base_cost")) {
+                int cost = shield.get("base_cost").getAsInt();
+                if (cost <= budget) {
+                    affordable.add(new UpgradeOption("has_shield", 1, cost));
+                }
+            }
+            
+            // Shield enchants (only if has shield)
+            if (hasShield > 0 && shield.has("enchants")) {
+                JsonObject enchants = shield.getAsJsonObject("enchants");
+                addUpgradesFromSection(enchants, skillData, budget, affordable, "shield_enchant_");
+            }
+            
+            addMasteryUpgrades(shield, "drop_mastery", skillData, budget, affordable, "shield_drop_mastery");
+            addMasteryUpgrades(shield, "durability_mastery", skillData, budget, affordable, "shield_durability_mastery");
+        }
+        
+        // Check armor upgrades
+        for (String slot : new String[]{"helmet", "chestplate", "leggings", "boots"}) {
+            if (tree.has(slot)) {
+                JsonObject armor = tree.getAsJsonObject(slot);
+                
+                // Armor tiers
+                if (armor.has("tiers")) {
+                    JsonArray tiers = armor.getAsJsonArray("tiers");
+                    int currentTier = skillData.getInt(slot + "_tier");
+                    if (currentTier < tiers.size()) {
+                        JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
+                        int cost = nextTier.get("cost").getAsInt();
+                        if (cost <= budget) {
+                            affordable.add(new UpgradeOption(slot + "_tier", currentTier + 1, cost));
+                        }
+                    }
+                }
+                
+                // Armor enchants
+                if (armor.has("enchants")) {
+                    JsonObject enchants = armor.getAsJsonObject("enchants");
+                    addUpgradesFromSection(enchants, skillData, budget, affordable, slot + "_enchant_");
+                }
+                
+                addMasteryUpgrades(armor, "drop_mastery", skillData, budget, affordable, slot + "_drop_mastery");
+                addMasteryUpgrades(armor, "durability_mastery", skillData, budget, affordable, slot + "_durability_mastery");
+            }
+        }
         
         return affordable;
     }
     
     /**
+     * Helper to add upgrades from a section with levels
+     */
+    private static void addUpgradesFromSection(JsonObject section, NbtCompound skillData, 
+            int budget, List<UpgradeOption> affordable, String prefix) {
+        
+        for (String key : section.keySet()) {
+            JsonElement element = section.get(key);
+            if (!element.isJsonArray()) continue;
+            
+            JsonArray levels = element.getAsJsonArray();
+            String fullKey = prefix + key;
+            int currentLevel = skillData.getInt(fullKey);
+            
+            if (currentLevel < levels.size()) {
+                JsonObject nextLevel = levels.get(currentLevel).getAsJsonObject();
+                int cost = nextLevel.get("cost").getAsInt();
+                
+                if (cost <= budget) {
+                    affordable.add(new UpgradeOption(fullKey, currentLevel + 1, cost));
+                }
+            }
+        }
+    }
+    
+    /**
+     * Helper to add mastery upgrades (drop_mastery, durability_mastery)
+     */
+    private static void addMasteryUpgrades(JsonObject parent, String masteryKey, NbtCompound skillData,
+            int budget, List<UpgradeOption> affordable, String saveKey) {
+        
+        if (!parent.has(masteryKey)) return;
+        
+        JsonArray levels = parent.getAsJsonArray(masteryKey);
+        int currentLevel = skillData.getInt(saveKey);
+        
+        if (currentLevel < levels.size()) {
+            JsonObject nextLevel = levels.get(currentLevel).getAsJsonObject();
+            int cost = nextLevel.get("cost").getAsInt();
+            
+            if (cost <= budget) {
+                affordable.add(new UpgradeOption(saveKey, currentLevel + 1, cost));
+            }
+        }
+    }
+    
+    // ==========================================================================
+    //                           EFFECT APPLICATION
+    // ==========================================================================
+    
+    /**
      * Apply all effects based on current upgrade levels
      */
-    private static void applyEffects(MobEntity mob, MobWarData data, JsonObject config, String mobType) {
-        var skillData = data.getSkillData();
+    private static void applyEffects(MobEntity mob, MobWarData data, JsonObject config, String mobType, long currentTick) {
+        NbtCompound skillData = data.getSkillData();
         
         if (!config.has("tree")) return;
         JsonObject tree = config.getAsJsonObject("tree");
@@ -364,60 +499,409 @@ public class ScalingSystem {
             JsonObject effects = tree.getAsJsonObject(effectsKey);
             
             // Apply healing/regeneration
-            int healingLevel = skillData.getInt("healing");
-            if (healingLevel > 0) {
-                int regenLevel = Math.min(healingLevel - 1, 1); // Cap at Regen II for permanent
-                mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.REGENERATION, 220, regenLevel, false, false, true));
-            }
+            applyPotionEffect(mob, skillData, effects, "healing", StatusEffects.REGENERATION, "effect_healing", "regen_level");
             
             // Apply health boost
-            int healthBoostLevel = skillData.getInt("health_boost");
-            if (healthBoostLevel > 0) {
-                mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.HEALTH_BOOST, 220, healthBoostLevel - 1, false, false, true));
-            }
+            applyPotionEffect(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
             
             // Apply resistance
-            int resistanceLevel = skillData.getInt("resistance");
+            int resistanceLevel = skillData.getInt("effect_resistance");
             if (resistanceLevel > 0) {
                 mob.addStatusEffect(new StatusEffectInstance(
                     StatusEffects.RESISTANCE, 220, Math.min(resistanceLevel - 1, 1), false, false, true));
                 
-                // Level 3 adds fire resistance
-                if (resistanceLevel >= 3) {
-                    mob.addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.FIRE_RESISTANCE, 220, 0, false, false, true));
+                // Check for fire resistance at level 3
+                if (effects.has("resistance")) {
+                    JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
+                    if (resistanceLevel <= resistanceLevels.size()) {
+                        JsonObject levelData = resistanceLevels.get(resistanceLevel - 1).getAsJsonObject();
+                        if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
+                            mob.addStatusEffect(new StatusEffectInstance(
+                                StatusEffects.FIRE_RESISTANCE, 220, 0, false, false, true));
+                        }
+                    }
                 }
             }
             
             // Apply strength
-            int strengthLevel = skillData.getInt("strength");
-            if (strengthLevel > 0) {
-                mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.STRENGTH, 220, strengthLevel - 1, false, false, true));
-            }
+            applyPotionEffect(mob, skillData, effects, "strength", StatusEffects.STRENGTH, "effect_strength", "strength_level");
             
             // Apply speed
-            int speedLevel = skillData.getInt("speed");
-            if (speedLevel > 0) {
-                mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.SPEED, 220, speedLevel - 1, false, false, true));
-            }
+            applyPotionEffect(mob, skillData, effects, "speed", StatusEffects.SPEED, "effect_speed", "speed_level");
             
             // Passive-only: regeneration (different from healing)
             if (mobType.equals("passive")) {
-                int regenLevel = skillData.getInt("regeneration");
-                if (regenLevel > 0) {
-                    mob.addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.REGENERATION, 220, regenLevel - 1, false, false, true));
+                applyPotionEffect(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", null);
+            }
+        }
+    }
+    
+    /**
+     * Helper to apply a potion effect based on JSON level data
+     */
+    private static void applyPotionEffect(MobEntity mob, NbtCompound skillData, JsonObject effects,
+            String effectName, net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> effect,
+            String skillKey, String levelKey) {
+        
+        int level = skillData.getInt(skillKey);
+        if (level <= 0) return;
+        
+        int amplifier = level - 1; // Default: level 1 = amplifier 0
+        
+        // Try to get specific amplifier from JSON
+        if (effects.has(effectName) && levelKey != null) {
+            JsonArray levels = effects.getAsJsonArray(effectName);
+            if (level <= levels.size()) {
+                JsonObject levelData = levels.get(level - 1).getAsJsonObject();
+                if (levelData.has(levelKey)) {
+                    amplifier = levelData.get(levelKey).getAsInt() - 1;
                 }
             }
         }
         
-        // TODO: Apply special abilities (piercing shot, multishot, horde summon, etc.)
-        // TODO: Apply equipment
+        mob.addStatusEffect(new StatusEffectInstance(effect, 220, Math.max(0, amplifier), false, false, true));
     }
+    
+    // ==========================================================================
+    //                           EQUIPMENT APPLICATION
+    // ==========================================================================
+    
+    /**
+     * Apply equipment based on upgrade levels
+     */
+    private static void applyEquipment(MobEntity mob, MobWarData data, JsonObject config, ServerWorld world) {
+        NbtCompound skillData = data.getSkillData();
+        
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        // Apply weapon
+        if (tree.has("weapon")) {
+            applyWeapon(mob, skillData, tree.getAsJsonObject("weapon"), world);
+        }
+        
+        // Apply shield
+        if (tree.has("shield")) {
+            applyShield(mob, skillData, tree.getAsJsonObject("shield"), world);
+        }
+        
+        // Apply armor
+        applyArmor(mob, skillData, tree, "helmet", EquipmentSlot.HEAD, world);
+        applyArmor(mob, skillData, tree, "chestplate", EquipmentSlot.CHEST, world);
+        applyArmor(mob, skillData, tree, "leggings", EquipmentSlot.LEGS, world);
+        applyArmor(mob, skillData, tree, "boots", EquipmentSlot.FEET, world);
+    }
+    
+    /**
+     * Apply weapon with enchants
+     */
+    private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig, ServerWorld world) {
+        String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
+        
+        // Determine weapon item based on type and tier
+        ItemStack weapon = null;
+        
+        if (weaponType.equals("bow")) {
+            // Bows don't have material tiers - check if mob has any bow enchants purchased
+            boolean hasAnyBowUpgrade = false;
+            if (weaponConfig.has("enchants")) {
+                JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
+                for (String enchantName : enchants.keySet()) {
+                    if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
+                        hasAnyBowUpgrade = true;
+                        break;
+                    }
+                }
+            }
+            if (hasAnyBowUpgrade) {
+                weapon = new ItemStack(Items.BOW);
+            }
+        } else {
+            // Sword tiers
+            int tier = skillData.getInt("weapon_tier");
+            if (tier > 0 && weaponConfig.has("tiers")) {
+                JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
+                if (tier <= tiers.size()) {
+                    JsonObject tierData = tiers.get(tier - 1).getAsJsonObject();
+                    String tierName = tierData.get("tier").getAsString();
+                    weapon = getWeaponByTier(tierName);
+                }
+            }
+        }
+        
+        if (weapon == null || weapon.isEmpty()) return;
+        
+        // Apply enchants
+        if (weaponConfig.has("enchants")) {
+            applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), "weapon_enchant_", world);
+        }
+        
+        // Equip it
+        mob.equipStack(EquipmentSlot.MAINHAND, weapon);
+    }
+    
+    /**
+     * Apply shield with enchants
+     */
+    private static void applyShield(MobEntity mob, NbtCompound skillData, JsonObject shieldConfig, ServerWorld world) {
+        int hasShield = skillData.getInt("has_shield");
+        if (hasShield <= 0) return;
+        
+        ItemStack shield = new ItemStack(Items.SHIELD);
+        
+        // Apply enchants
+        if (shieldConfig.has("enchants")) {
+            applyEnchantments(shield, skillData, shieldConfig.getAsJsonObject("enchants"), "shield_enchant_", world);
+        }
+        
+        // Equip it
+        mob.equipStack(EquipmentSlot.OFFHAND, shield);
+    }
+    
+    /**
+     * Apply armor piece with enchants
+     */
+    private static void applyArmor(MobEntity mob, NbtCompound skillData, JsonObject tree, 
+            String slotName, EquipmentSlot slot, ServerWorld world) {
+        
+        if (!tree.has(slotName)) return;
+        JsonObject armorConfig = tree.getAsJsonObject(slotName);
+        
+        int tier = skillData.getInt(slotName + "_tier");
+        if (tier <= 0) return;
+        
+        ItemStack armor = null;
+        
+        if (armorConfig.has("tiers")) {
+            JsonArray tiers = armorConfig.getAsJsonArray("tiers");
+            if (tier <= tiers.size()) {
+                JsonObject tierData = tiers.get(tier - 1).getAsJsonObject();
+                String tierName = tierData.get("tier").getAsString();
+                armor = getArmorByTierAndSlot(tierName, slot);
+            }
+        }
+        
+        if (armor == null || armor.isEmpty()) return;
+        
+        // Apply enchants
+        if (armorConfig.has("enchants")) {
+            applyEnchantments(armor, skillData, armorConfig.getAsJsonObject("enchants"), slotName + "_enchant_", world);
+        }
+        
+        // Equip it
+        mob.equipStack(slot, armor);
+    }
+    
+    /**
+     * Apply enchantments from JSON config to an item
+     */
+    private static void applyEnchantments(ItemStack item, NbtCompound skillData, JsonObject enchantsConfig, 
+            String prefix, ServerWorld world) {
+        
+        var enchantRegistry = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(
+            item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT));
+        
+        for (String enchantName : enchantsConfig.keySet()) {
+            int level = skillData.getInt(prefix + enchantName);
+            if (level <= 0) continue;
+            
+            // Map JSON enchant name to Minecraft enchantment
+            RegistryEntry<Enchantment> enchant = getEnchantmentByName(enchantName, enchantRegistry);
+            if (enchant != null) {
+                builder.add(enchant, level);
+            }
+        }
+        
+        item.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+    }
+    
+    /**
+     * Get weapon ItemStack by tier name
+     */
+    private static ItemStack getWeaponByTier(String tier) {
+        return switch (tier.toLowerCase()) {
+            case "wooden", "wood" -> new ItemStack(Items.WOODEN_SWORD);
+            case "stone" -> new ItemStack(Items.STONE_SWORD);
+            case "iron" -> new ItemStack(Items.IRON_SWORD);
+            case "golden", "gold" -> new ItemStack(Items.GOLDEN_SWORD);
+            case "diamond" -> new ItemStack(Items.DIAMOND_SWORD);
+            case "netherite" -> new ItemStack(Items.NETHERITE_SWORD);
+            default -> ItemStack.EMPTY;
+        };
+    }
+    
+    /**
+     * Get armor ItemStack by tier and slot
+     */
+    private static ItemStack getArmorByTierAndSlot(String tier, EquipmentSlot slot) {
+        return switch (tier.toLowerCase()) {
+            case "leather" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.LEATHER_HELMET);
+                case CHEST -> new ItemStack(Items.LEATHER_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.LEATHER_LEGGINGS);
+                case FEET -> new ItemStack(Items.LEATHER_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            case "chainmail", "chain" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.CHAINMAIL_HELMET);
+                case CHEST -> new ItemStack(Items.CHAINMAIL_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.CHAINMAIL_LEGGINGS);
+                case FEET -> new ItemStack(Items.CHAINMAIL_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            case "iron" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.IRON_HELMET);
+                case CHEST -> new ItemStack(Items.IRON_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.IRON_LEGGINGS);
+                case FEET -> new ItemStack(Items.IRON_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            case "golden", "gold" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.GOLDEN_HELMET);
+                case CHEST -> new ItemStack(Items.GOLDEN_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.GOLDEN_LEGGINGS);
+                case FEET -> new ItemStack(Items.GOLDEN_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            case "diamond" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.DIAMOND_HELMET);
+                case CHEST -> new ItemStack(Items.DIAMOND_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.DIAMOND_LEGGINGS);
+                case FEET -> new ItemStack(Items.DIAMOND_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            case "netherite" -> switch (slot) {
+                case HEAD -> new ItemStack(Items.NETHERITE_HELMET);
+                case CHEST -> new ItemStack(Items.NETHERITE_CHESTPLATE);
+                case LEGS -> new ItemStack(Items.NETHERITE_LEGGINGS);
+                case FEET -> new ItemStack(Items.NETHERITE_BOOTS);
+                default -> ItemStack.EMPTY;
+            };
+            default -> ItemStack.EMPTY;
+        };
+    }
+    
+    /**
+     * Get enchantment registry entry by name
+     */
+    private static RegistryEntry<Enchantment> getEnchantmentByName(String name, 
+            net.minecraft.registry.Registry<Enchantment> registry) {
+        
+        // Common enchantment name mappings
+        String key = switch (name.toLowerCase()) {
+            case "power" -> "power";
+            case "punch" -> "punch";
+            case "flame" -> "flame";
+            case "infinity" -> "infinity";
+            case "unbreaking" -> "unbreaking";
+            case "mending" -> "mending";
+            case "sharpness" -> "sharpness";
+            case "smite" -> "smite";
+            case "bane_of_arthropods", "bane" -> "bane_of_arthropods";
+            case "knockback" -> "knockback";
+            case "fire_aspect" -> "fire_aspect";
+            case "looting" -> "looting";
+            case "sweeping", "sweeping_edge" -> "sweeping_edge";
+            case "protection" -> "protection";
+            case "fire_protection" -> "fire_protection";
+            case "blast_protection" -> "blast_protection";
+            case "projectile_protection" -> "projectile_protection";
+            case "thorns" -> "thorns";
+            case "respiration" -> "respiration";
+            case "aqua_affinity" -> "aqua_affinity";
+            case "depth_strider" -> "depth_strider";
+            case "frost_walker" -> "frost_walker";
+            case "soul_speed" -> "soul_speed";
+            case "feather_falling" -> "feather_falling";
+            default -> name.toLowerCase();
+        };
+        
+        var id = net.minecraft.util.Identifier.of("minecraft", key);
+        return registry.getEntry(id).orElse(null);
+    }
+    
+    // ==========================================================================
+    //                           SPECIAL ABILITIES
+    // ==========================================================================
+    
+    /**
+     * Handle on-damage abilities like invisibility_on_hit
+     * Call this from a damage event handler
+     */
+    public static void handleDamageAbilities(MobEntity mob, MobWarData data, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
+        String effectsKey = mobType.equals("passive") ? "passive_potion_effects" : "hostile_neutral_potion_effects";
+        
+        if (!tree.has(effectsKey)) return;
+        JsonObject effects = tree.getAsJsonObject(effectsKey);
+        
+        // Check invisibility_on_hit
+        int invisLevel = skillData.getInt("effect_invisibility_on_hit");
+        if (invisLevel > 0 && effects.has("invisibility_on_hit")) {
+            JsonArray levels = effects.getAsJsonArray("invisibility_on_hit");
+            if (invisLevel <= levels.size()) {
+                JsonObject levelData = levels.get(invisLevel - 1).getAsJsonObject();
+                
+                double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.1;
+                int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 5;
+                int cooldown = levelData.has("cooldown") ? levelData.get("cooldown").getAsInt() : 60;
+                
+                // Check cooldown
+                UUID mobUuid = mob.getUuid();
+                Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+                long lastUse = cooldowns.getOrDefault("invisibility_on_hit", 0L);
+                
+                if (currentTick - lastUse >= cooldown * 20L) { // cooldown is in seconds
+                    // Roll chance
+                    if (mob.getRandom().nextDouble() < chance) {
+                        mob.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.INVISIBILITY, duration * 20, 0, false, false, true));
+                        cooldowns.put("invisibility_on_hit", currentTick);
+                    }
+                }
+            }
+        }
+        
+        // Check on_damage_regen (from healing ability)
+        int healingLevel = skillData.getInt("effect_healing");
+        if (healingLevel >= 3 && effects.has("healing")) {
+            JsonArray levels = effects.getAsJsonArray("healing");
+            if (healingLevel <= levels.size()) {
+                JsonObject levelData = levels.get(healingLevel - 1).getAsJsonObject();
+                
+                if (levelData.has("on_damage_regen_level")) {
+                    int regenLevel = levelData.get("on_damage_regen_level").getAsInt();
+                    int duration = levelData.has("on_damage_duration") ? levelData.get("on_damage_duration").getAsInt() : 10;
+                    int cooldown = levelData.has("on_damage_cooldown") ? levelData.get("on_damage_cooldown").getAsInt() : 60;
+                    
+                    UUID mobUuid = mob.getUuid();
+                    Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+                    long lastUse = cooldowns.getOrDefault("on_damage_regen", 0L);
+                    
+                    if (currentTick - lastUse >= cooldown * 20L) {
+                        mob.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.REGENERATION, duration * 20, regenLevel - 1, false, false, true));
+                        cooldowns.put("on_damage_regen", currentTick);
+                    }
+                }
+            }
+        }
+    }
+    
+    // ==========================================================================
+    //                           UTILITY METHODS
+    // ==========================================================================
     
     /**
      * Get the number of loaded/implemented mob configs
