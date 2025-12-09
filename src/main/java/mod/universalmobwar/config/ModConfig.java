@@ -63,6 +63,34 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowModdedScaling = true;
     
+    // ========== MOB WARLORD (RAID BOSS) ==========
+    @ConfigEntry.Category("warlord")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean enableMobWarlord = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public boolean alwaysSpawnWarlordOnFinalWave = false;
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int warlordSpawnChance = 25;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 20)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int warlordMinRaidLevel = 3;
+    
+    @ConfigEntry.BoundedDiscrete(min = 5, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int warlordMinionCount = 20;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public double warlordHealthMultiplier = 3.0;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public double warlordDamageMultiplier = 2.0;
+    
     // ========== VISUALS ==========
     @ConfigEntry.Category("visuals")
     @ConfigEntry.Gui.Tooltip(count = 1)
