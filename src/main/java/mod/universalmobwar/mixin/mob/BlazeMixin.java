@@ -73,12 +73,16 @@ public abstract class BlazeMixin {
     private long lastDamageRegenTrigger = 0;
     @Unique
     private long lastInvisibilityTrigger = 0;
+    
+    // Performance tracking - last tick when upgrade was attempted
+    @Unique
+    private long lastUpdateTick = 0;
 
     // ========== Point System ==========
     
     @Unique
     private int calculateWorldAgePoints(World world) {
-        long worldTime = world.getTimeOfDay();
+        long worldTime = world.getTime();
         int worldDays = (int) (worldTime / 24000L);
         
         double points = 0.0;
@@ -345,6 +349,7 @@ public abstract class BlazeMixin {
         modData.putInt("multishotLevel", multishotLevel);
         modData.putLong("lastDamageRegenTrigger", lastDamageRegenTrigger);
         modData.putLong("lastInvisibilityTrigger", lastInvisibilityTrigger);
+        modData.putLong("lastUpdateTick", lastUpdateTick);
         nbt.put(NBT_KEY, modData);
     }
     
@@ -365,6 +370,7 @@ public abstract class BlazeMixin {
             multishotLevel = modData.getInt("multishotLevel");
             lastDamageRegenTrigger = modData.getLong("lastDamageRegenTrigger");
             lastInvisibilityTrigger = modData.getLong("lastInvisibilityTrigger");
+            lastUpdateTick = modData.getLong("lastUpdateTick");
             
             applyEffects((BlazeEntity) (Object) this);
         }
@@ -381,13 +387,20 @@ public abstract class BlazeMixin {
             return;
         }
         
+        long currentTick = world.getTime();
         int newTotalPoints = calculateWorldAgePoints(world);
+        
+        // Trigger spending: on new points, or if >1 day (24000 ticks) since last attempt
+        boolean shouldAttemptSpend = (newTotalPoints > totalPoints) || 
+                                      (currentTick - lastUpdateTick > 24000L);
         
         if (newTotalPoints > totalPoints) {
             totalPoints = newTotalPoints;
-            if (getBudget() > 0) {
-                spendPoints(self);
-            }
+        }
+        
+        if (shouldAttemptSpend && getBudget() > 0) {
+            lastUpdateTick = currentTick;
+            spendPoints(self);
         }
     }
     

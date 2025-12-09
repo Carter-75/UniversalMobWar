@@ -53,6 +53,10 @@ public abstract class BatMixin {
     
     @Unique
     private int healthBoostLevel = 0;   // 0-3
+    
+    // Tracking for triggers
+    @Unique
+    private long lastUpdateTick = 0;
 
     // ========== Point System ==========
     
@@ -68,7 +72,7 @@ public abstract class BatMixin {
      */
     @Unique
     private int calculateWorldAgePoints(World world) {
-        long worldTime = world.getTimeOfDay();
+        long worldTime = world.getTime();
         int worldDays = (int) (worldTime / 24000L);
         
         double points = 0.0;
@@ -236,6 +240,7 @@ public abstract class BatMixin {
         modData.putInt("regenerationLevel", regenerationLevel);
         modData.putInt("resistanceLevel", resistanceLevel);
         modData.putInt("healthBoostLevel", healthBoostLevel);
+        modData.putLong("lastUpdateTick", lastUpdateTick);
         nbt.put(NBT_KEY, modData);
     }
     
@@ -248,6 +253,7 @@ public abstract class BatMixin {
             regenerationLevel = modData.getInt("regenerationLevel");
             resistanceLevel = modData.getInt("resistanceLevel");
             healthBoostLevel = modData.getInt("healthBoostLevel");
+            lastUpdateTick = modData.getLong("lastUpdateTick");
             
             // Re-apply effects after loading
             applyEffects((BatEntity) (Object) this);
@@ -265,17 +271,24 @@ public abstract class BatMixin {
             return;
         }
         
-        // Calculate current world age points
+        long currentTick = world.getTime();
         int newTotalPoints = calculateWorldAgePoints(world);
         
-        // If points increased, update and potentially spend
+        // Spending triggers:
+        // 1. Points increased (new day)
+        // 2. More than 1 day (24000 ticks) since last update attempt
+        boolean shouldSpend = false;
+        
         if (newTotalPoints > totalPoints) {
             totalPoints = newTotalPoints;
-            
-            // Trigger spending on point increase (daily check equivalent)
-            if (getBudget() > 0) {
-                spendPoints(self);
-            }
+            shouldSpend = true;
+        } else if (currentTick - lastUpdateTick > 24000L) {
+            shouldSpend = true;
+        }
+        
+        if (shouldSpend && getBudget() > 0) {
+            lastUpdateTick = currentTick;
+            spendPoints(self);
         }
     }
 }
