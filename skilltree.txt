@@ -131,7 +131,10 @@
       "stone_sword":  { "start": "stone",    "upgrade_costs": [null,null,5,6,7], "tiers": ["stone","iron","diamond","netherite"] },
       "gold_sword":   { "start": "gold",     "upgrade_costs": [null,null,null,null,10], "tiers": ["gold","netherite"] },
       "iron_axe":     { "start": "iron_axe", "upgrade_costs": [5,7],         "tiers": ["iron","diamond","netherite"] },
-      "gold_axe":     { "start": "gold_axe", "upgrade_costs": [10],          "tiers": ["gold","netherite"] }
+      "gold_axe":     { "start": "gold_axe", "upgrade_costs": [10],          "tiers": ["gold","netherite"] },
+      "bow":          { "note": "Single type weapon - NO material tiers. Mobs spawn with bow directly. Progression is enchantments only.", "initial_cost": 0, "tiers": "none" },
+      "crossbow":     { "note": "Single type weapon - NO material tiers. Mobs spawn with crossbow directly. Progression is enchantments only.", "initial_cost": 0, "tiers": "none" },
+      "trident":      { "note": "MOBS DO NOT SPAWN WITH TRIDENTS. This weapon is player-only. Enchants listed for reference only.", "spawnable": false }
     },
 
     "armor_progression": {
@@ -260,7 +263,7 @@
       "Creeper": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["creeper"] },
       "Dolphin": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Donkey": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
-      "Drowned": { "type": "hostile", "weapon": "trident", "armor": "full_normal", "shield": true, "trees": ["z","r"] },
+      "Drowned": { "type": "hostile", "weapon": "none", "armor": "full_normal", "shield": true, "trees": ["z"], "note": "Drowned do NOT spawn with tridents - they must purchase equipment" },
       "Elder_Guardian": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Ender_Dragon": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Enderman": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
