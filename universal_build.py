@@ -339,9 +339,32 @@ class UniversalBuildSystem:
             else:
                 error("Build failed!")
                 self.log_to_file("❌ Build failed!")
-                self.log_to_file("\nBuild errors:\n" + result.stderr)
-                print(result.stdout[-1000:])  # Print last 1000 chars
-                print(result.stderr[-1000:])
+                
+                # Extract actual compilation errors
+                full_output = result.stdout + "\n" + result.stderr
+                self.log_to_file("\n=== FULL BUILD OUTPUT ===\n" + full_output)
+                
+                # Find and display Java compilation errors
+                lines = full_output.split('\n')
+                error_lines = []
+                capture = False
+                for line in lines:
+                    if 'error:' in line.lower() or '.java:' in line:
+                        capture = True
+                    if capture:
+                        error_lines.append(line)
+                        if len(error_lines) > 50:  # Limit output
+                            break
+                
+                if error_lines:
+                    print("\n" + "=" * 80)
+                    print("COMPILATION ERRORS:")
+                    print("=" * 80)
+                    print('\n'.join(error_lines[:50]))
+                else:
+                    print(result.stdout[-2000:])  # Print last 2000 chars if no specific errors found
+                    print(result.stderr[-2000:])
+                
                 return False
                 
         except Exception as e:
