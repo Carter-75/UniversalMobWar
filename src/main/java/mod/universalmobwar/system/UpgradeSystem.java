@@ -1,6 +1,8 @@
 package mod.universalmobwar.system;
 
 import mod.universalmobwar.config.ModConfig;
+import mod.universalmobwar.config.SkillTreeConfig;
+import mod.universalmobwar.config.MobDefinition;
 import mod.universalmobwar.data.MobWarData;
 import net.fabricmc.loader.api.FabricLoader;
 import java.nio.file.Files;
@@ -226,15 +228,28 @@ public class UpgradeSystem {
                 }
             }
             if (index == -1) index = affordable.get(affordable.size() - 1); // Fallback
+            
+            // 80%/20% BUY/SAVE LOGIC per skilltree specification
+            boolean shouldBuy = rand.nextDouble() < 0.80; // 80% chance to buy
+            
             if (debug) {
                 StringBuilder sb = new StringBuilder();
                 sb.append("[Mob: ").append(mob.getType().getTranslationKey()).append("] ");
                 sb.append("Points: ").append(state.spentPoints).append("/").append(totalPoints).append(" | ");
                 sb.append("Upgrade: ").append(collector.ids.get(index)).append(" (cat: ").append(collector.cats.get(index)).append(", group: ").append(collector.groups.get(index)).append(", cost: ").append(collector.costs.get(index)).append(")");
+                sb.append(" | Decision: ").append(shouldBuy ? "BUY" : "SAVE");
                 debugLog.add(sb.toString());
             }
-            collector.apply(index, state);
-            checkTierUpgrades(state, context);
+            
+            if (shouldBuy) {
+                // BUY: Apply upgrade and continue loop
+                collector.apply(index, state);
+                checkTierUpgrades(state, context);
+            } else {
+                // SAVE: Stop spending for this cycle (20% chance)
+                if (debug) debugLog.add("Saving points - stopping spending cycle");
+                break;
+            }
         }
         if (debug && mob.getWorld() instanceof ServerWorld sw) {
             MinecraftServer server = sw.getServer();
@@ -329,10 +344,17 @@ public class UpgradeSystem {
             
             if (index == -1) index = affordable.get(affordable.size() - 1); // Fallback
             
-            collector.apply(index, state);
+            // 80%/20% BUY/SAVE LOGIC per skilltree specification
+            boolean shouldBuy = rand.nextDouble() < 0.80; // 80% chance to buy
             
-            // Check for Tier Upgrades
-            checkTierUpgrades(state, context);
+            if (shouldBuy) {
+                // BUY: Apply upgrade and continue loop
+                collector.apply(index, state);
+                checkTierUpgrades(state, context);
+            } else {
+                // SAVE: Stop spending for this cycle (20% chance)
+                break;
+            }
         }
         
         return state;
@@ -356,7 +378,7 @@ public class UpgradeSystem {
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch && !isPiglinBrute;
         boolean useAxe = isAxe || isPiglinBrute;
 
-        if (isG) addGeneralUpgrades(state, collector);
+        if (isG) addGeneralUpgrades(state, collector, context);
         if (isGP) addGeneralPassiveUpgrades(state, collector);
         if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
         if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
@@ -503,55 +525,70 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addGeneralUpgrades(SimState state, UpgradeCollector options) {
-        // Each skill has its own specific cost per the spec
-        // HEALING: 1/2/3/4/5 pts progressive
+    private static void addGeneralUpgrades(SimState state, UpgradeCollector options, SimulationContext context) {
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // HEALING: Load from JSON
         int healingLvl = state.getLevel("healing");
-        if (healingLvl < 5) {
-            int healingCost = healingLvl + 1; // Level 0->1 = 1pt, 1->2 = 2pts, etc
-            addOpt(options, state, "healing", "g", "general", healingCost);
+        List<SkillTreeConfig.UpgradeCost> healingCosts = config.getUniversalUpgrade("healing");
+        if (healingLvl < healingCosts.size()) {
+            int cost = healingCosts.get(healingLvl).cost;
+            addOpt(options, state, "healing", "g", "general", cost);
         }
         
-        // HEALTH BOOST: 2/3/4/5/6/7/8/9/10/11 pts progressive (10 levels)
+        // HEALTH BOOST: Load from JSON
         int healthBoostLvl = state.getLevel("health_boost");
-        if (healthBoostLvl < 10) {
-            int healthBoostCost = 2 + healthBoostLvl; // L1=2, L2=3, L3=4... L10=11
-            addOpt(options, state, "health_boost", "g", "general", healthBoostCost);
+        List<SkillTreeConfig.UpgradeCost> healthCosts = config.getUniversalUpgrade("health_boost");
+        if (healthBoostLvl < healthCosts.size()) {
+            int cost = healthCosts.get(healthBoostLvl).cost;
+            addOpt(options, state, "health_boost", "g", "general", cost);
         }
         
-        // RESISTANCE: 4/6/8 pts progressive (3 levels)
+        // RESISTANCE: Load from JSON
         int resistLvl = state.getLevel("resistance");
-        if (resistLvl < 3) {
-            int resistCost = 4 + (resistLvl * 2); // L1=4, L2=6, L3=8
-            addOpt(options, state, "resistance", "g", "general", resistCost);
+        List<SkillTreeConfig.UpgradeCost> resistCosts = config.getUniversalUpgrade("resistance");
+        if (resistLvl < resistCosts.size()) {
+            int cost = resistCosts.get(resistLvl).cost;
+            addOpt(options, state, "resistance", "g", "general", cost);
         }
         
-        // INVISIBILITY MASTERY: 5/7/9/11/13 pts progressive (5 levels)
+        // INVISIBILITY ON HIT: Load from JSON (mapped to "invisibility_on_hit")
         int invisLvl = state.getLevel("invis_mastery");
-        if (invisLvl < 5) {
-            int invisCost = 5 + (invisLvl * 2); // L1=5, L2=7, L3=9, L4=11, L5=13
-            addOpt(options, state, "invis_mastery", "g", "general", invisCost);
+        List<SkillTreeConfig.UpgradeCost> invisCosts = config.getUniversalUpgrade("invisibility_on_hit");
+        if (invisLvl < invisCosts.size()) {
+            int cost = invisCosts.get(invisLvl).cost;
+            addOpt(options, state, "invis_mastery", "g", "general", cost);
         }
         
-        // STRENGTH: 3/5/7/9 pts progressive (4 levels)
+        // STRENGTH: Load from JSON
         int strengthLvl = state.getLevel("strength");
-        if (strengthLvl < 4) {
-            int strengthCost = 3 + (strengthLvl * 2); // L1=3, L2=5, L3=7, L4=9
-            addOpt(options, state, "strength", "g", "general", strengthCost);
+        List<SkillTreeConfig.UpgradeCost> strengthCosts = config.getUniversalUpgrade("strength");
+        if (strengthLvl < strengthCosts.size()) {
+            int cost = strengthCosts.get(strengthLvl).cost;
+            addOpt(options, state, "strength", "g", "general", cost);
         }
         
-        // SPEED: 6/9/12 pts progressive (3 levels)
+        // SPEED: Load from JSON
         int speedLvl = state.getLevel("speed");
-        if (speedLvl < 3) {
-            int speedCost = 6 + (speedLvl * 3); // L1=6, L2=9, L3=12
-            addOpt(options, state, "speed", "g", "general", speedCost);
+        List<SkillTreeConfig.UpgradeCost> speedCosts = config.getUniversalUpgrade("speed");
+        if (speedLvl < speedCosts.size()) {
+            int cost = speedCosts.get(speedLvl).cost;
+            addOpt(options, state, "speed", "g", "general", cost);
         }
         
-        // SHIELD CHANCE: 8/11/14/17/20 pts progressive (5 levels)
+        // SHIELD CHANCE: Fixed cost of 10 pts from skilltree
+        // CRITICAL: Check if mob can actually have shield (from MobDefinition)
         int shieldLvl = state.getLevel("shield_chance");
-        if (shieldLvl < 5) {
-            int shieldCost = 8 + (shieldLvl * 3); // L1=8, L2=11, L3=14, L4=17, L5=20
-            addOpt(options, state, "shield_chance", "g", "offhand", shieldCost);
+        if (shieldLvl == 0) { // Only level 1 available per skilltree
+            // Get mob definition to verify shield availability
+            String mobName = context.translationKey.replace("entity.minecraft.", "")
+                .replace("entity.", "")
+                .replaceAll("\\.", "_");
+            
+            MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
+            if (mobDef != null && mobDef.shield) {
+                addOpt(options, state, "shield_chance", "g", "offhand", 10);
+            }
         }
     }
 
@@ -575,90 +612,106 @@ public class UpgradeSystem {
     }
 
     private static void addZombieUpgrades(SimState state, UpgradeCollector options, int[] costs, SimulationContext context) {
-        // Hunger Attack: 6/10/14 pts progressive
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // HUNGER ATTACK: Load from zombie_z tree (6/10/14)
         int hungerLvl = state.getLevel("hunger_attack");
-        if (hungerLvl < 3) {
-            int hungerCost = (hungerLvl == 0) ? 6 : (hungerLvl == 1) ? 10 : 14;
-            addOpt(options, state, "hunger_attack", "z", "skill", hungerCost);
+        List<SkillTreeConfig.UpgradeCost> hungerCosts = config.getSharedTreeUpgrade("zombie_z", "Hunger_Attack");
+        if (hungerLvl < hungerCosts.size()) {
+            int cost = hungerCosts.get(hungerLvl).cost;
+            addOpt(options, state, "hunger_attack", "z", "skill", cost);
         }
         
-        // Infectious Bite: 8/12/16 pts progressive
-        int infectLvl = state.getLevel("infectious_bite");
-        if (infectLvl < 3) {
-            int infectCost = (infectLvl == 0) ? 8 : (infectLvl == 1) ? 12 : 16;
-            addOpt(options, state, "infectious_bite", "z", "skill", infectCost);
-        }
+        // INFECTIOUS BITE: Not in new skilltree (removed)
+        // Keeping code structure for future implementation if needed
         
-        // Horde Summon: 10/15/20/25/30 pts progressive
+        // HORDE SUMMON: Load from zombie_z tree (10/15/20/25/30)
         boolean isReinforcement = context.tags.contains("umw_horde_reinforcement");
         int hordeLvl = state.getLevel("horde_summon");
-        if (!isReinforcement && hordeLvl < 5) {
-            int hordeCost = 10 + (hordeLvl * 5); // 10, 15, 20, 25, 30
-            addOpt(options, state, "horde_summon", "z", "skill", hordeCost);
+        List<SkillTreeConfig.UpgradeCost> hordeCosts = config.getSharedTreeUpgrade("zombie_z", "Horde_Summon");
+        if (!isReinforcement && hordeLvl < hordeCosts.size()) {
+            int cost = hordeCosts.get(hordeLvl).cost;
+            addOpt(options, state, "horde_summon", "z", "skill", cost);
         }
     }
 
     private static void addProjectileUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Piercing Shot: 8/12/16/20 pts progressive (4 levels, not 5)
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // PIERCING SHOT: Load from ranged_r tree (8/12/16/20)
         int pierceLvl = state.getLevel("piercing_shot");
-        if (pierceLvl < 4) {
-            int pierceCost = 8 + (pierceLvl * 4); // 8, 12, 16, 20
-            addOpt(options, state, "piercing_shot", "pro", "skill", pierceCost);
+        List<SkillTreeConfig.UpgradeCost> pierceCosts = config.getSharedTreeUpgrade("ranged_r", "Piercing_Shot");
+        if (pierceLvl < pierceCosts.size()) {
+            int cost = pierceCosts.get(pierceLvl).cost;
+            addOpt(options, state, "piercing_shot", "pro", "skill", cost);
         }
         
-        // Multishot: 15/25/35 pts progressive
+        // MULTISHOT: Load from ranged_r tree (15/25/35)
         int multiLvl = state.getLevel("multishot_skill");
-        if (multiLvl < 3) {
-            int multiCost = (multiLvl == 0) ? 15 : (multiLvl == 1) ? 25 : 35;
-            addOpt(options, state, "multishot_skill", "pro", "skill", multiCost);
+        List<SkillTreeConfig.UpgradeCost> multiCosts = config.getSharedTreeUpgrade("ranged_r", "Multishot");
+        if (multiLvl < multiCosts.size()) {
+            int cost = multiCosts.get(multiLvl).cost;
+            addOpt(options, state, "multishot_skill", "pro", "skill", cost);
         }
         
-        // Bow Potion Mastery: 10/15/20/25/30 pts progressive
+        // BOW POTION MASTERY: Load from ranged_r tree (10/15/20/25/30)
         int bowPotLvl = state.getLevel("bow_potion_mastery");
-        if (bowPotLvl < 5) {
-            int bowPotCost = 10 + (bowPotLvl * 5); // 10, 15, 20, 25, 30
-            addOpt(options, state, "bow_potion_mastery", "pro", "skill", bowPotCost);
+        List<SkillTreeConfig.UpgradeCost> bowPotCosts = config.getSharedTreeUpgrade("ranged_r", "Bow_Potion_Mastery");
+        if (bowPotLvl < bowPotCosts.size()) {
+            int cost = bowPotCosts.get(bowPotLvl).cost;
+            addOpt(options, state, "bow_potion_mastery", "pro", "skill", cost);
         }
     }
     
     private static void addCreeperUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Creeper Power: 10/15/20/25/30 pts progressive
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // CREEPER POWER: Load from creeper tree (10/15/20/25/30)
         int powerLvl = state.getLevel("creeper_power");
-        if (powerLvl < 5) {
-            int powerCost = 10 + (powerLvl * 5); // 10, 15, 20, 25, 30
-            addOpt(options, state, "creeper_power", "creeper", "skill", powerCost);
+        List<SkillTreeConfig.UpgradeCost> powerCosts = config.getSpecificTreeUpgrade("creeper", "Creeper_Power");
+        if (powerLvl < powerCosts.size()) {
+            int cost = powerCosts.get(powerLvl).cost;
+            addOpt(options, state, "creeper_power", "creeper", "skill", cost);
         }
         
-        // Creeper Potion: 12/18/24 pts progressive
+        // CREEPER POTION CLOUD: Load from creeper tree (12/18/24/30)
         int potLvl = state.getLevel("creeper_potion_mastery");
-        if (potLvl < 3) {
-            int potCost = 12 + (potLvl * 6); // 12, 18, 24
-            addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", potCost);
+        List<SkillTreeConfig.UpgradeCost> potCosts = config.getSpecificTreeUpgrade("creeper", "Creeper_Potion_Cloud");
+        if (potLvl < potCosts.size()) {
+            int cost = potCosts.get(potLvl).cost;
+            addOpt(options, state, "creeper_potion_mastery", "creeper", "skill", cost);
         }
     }
 
     private static void addWitchUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Potion Throw Speed: 10/15/20/25/30 pts progressive
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // POTION THROW SPEED: Load from witch tree (10/15/20/25/30)
         int throwLvl = state.getLevel("witch_potion_mastery");
-        if (throwLvl < 5) {
-            int throwCost = 10 + (throwLvl * 5); // 10, 15, 20, 25, 30
-            addOpt(options, state, "witch_potion_mastery", "witch", "skill", throwCost);
+        List<SkillTreeConfig.UpgradeCost> throwCosts = config.getSpecificTreeUpgrade("witch", "Potion_Throw_Speed");
+        if (throwLvl < throwCosts.size()) {
+            int cost = throwCosts.get(throwLvl).cost;
+            addOpt(options, state, "witch_potion_mastery", "witch", "skill", cost);
         }
         
-        // Harming Upgrade: 12/18/24 pts progressive
+        // EXTRA POTION BAG: Load from witch tree (12/18/24)
         int harmLvl = state.getLevel("witch_harming_upgrade");
-        if (harmLvl < 3) {
-            int harmCost = 12 + (harmLvl * 6); // 12, 18, 24
-            addOpt(options, state, "witch_harming_upgrade", "witch", "skill", harmCost);
+        List<SkillTreeConfig.UpgradeCost> harmCosts = config.getSpecificTreeUpgrade("witch", "Extra_Potion_Bag");
+        if (harmLvl < harmCosts.size()) {
+            int cost = harmCosts.get(harmLvl).cost;
+            addOpt(options, state, "witch_harming_upgrade", "witch", "skill", cost);
         }
     }
 
     private static void addCaveSpiderUpgrades(SimState state, UpgradeCollector options, int[] costs) {
-        // Poison Mastery: 8/12/16/20/24 pts progressive
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // POISON MASTERY: Load from cave_spider tree (0/8/12/16/20/24 - Level 1 is FREE)
         int poisonLvl = state.getLevel("poison_attack");
-        if (poisonLvl < 5) {
-            int poisonCost = 8 + (poisonLvl * 4); // 8, 12, 16, 20, 24
-            addOpt(options, state, "poison_attack", "cave_spider", "skill", poisonCost);
+        List<SkillTreeConfig.UpgradeCost> poisonCosts = config.getSpecificTreeUpgrade("cave_spider", "Poison_Mastery");
+        if (poisonLvl < poisonCosts.size()) {
+            int cost = poisonCosts.get(poisonLvl).cost;
+            addOpt(options, state, "poison_attack", "cave_spider", "skill", cost);
         }
     }
 
@@ -680,66 +733,67 @@ public class UpgradeSystem {
     }
     
     private static int getEnchantCost(String enchant, int currentLevel) {
-        // Progressive costs for all weapon/armor enchants
-        // Base cost starts at different values, increases by 1 per level
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
         
-        switch (enchant) {
-            // Weapon enchants
-            case "sharpness": return 3 + currentLevel; // 3/4/5/6/7
-            case "smite": return 3 + currentLevel; // 3/4/5/6/7
-            case "bane_of_arthropods": return 3 + currentLevel; // 3/4/5/6/7
-            case "fire_aspect": return 4 + currentLevel; // 4/5
-            case "knockback": return 3 + currentLevel; // 3/4
-            case "looting": return 5 + (currentLevel * 2); // 5/7/9
-            case "unbreaking": return 3 + currentLevel; // 3/4/5
-            case "mending": return 10; // Flat 10
+        // Determine category and enchant name
+        String category = null;
+        String enchantName = enchant;
+        
+        // Map internal names to JSON category and enchant names
+        if (enchant.startsWith("protection_") || enchant.startsWith("fire_protection_") || 
+            enchant.startsWith("blast_protection_") || enchant.startsWith("projectile_protection_") ||
+            enchant.startsWith("thorns_") || enchant.startsWith("armor_")) {
+            // Armor enchants
+            String[] parts = enchant.split("_");
+            String slot = parts[parts.length - 1]; // head, chest, legs, feet
+            category = slot.equals("head") ? "helmet" : slot.equals("chest") ? "chestplate" : 
+                      slot.equals("legs") ? "leggings" : "boots";
             
-            // Bow enchants
-            case "power": return 2 + currentLevel; // 2/3/4/5/6
-            case "punch": return 4 + currentLevel; // 4/5
-            case "flame": return 8; // Flat 8
-            case "infinity": return 12; // Flat 12
+            // Map internal name to JSON name
+            if (enchant.startsWith("armor_unbreaking")) enchantName = "Unbreaking";
+            else if (enchant.startsWith("armor_mending")) enchantName = "Mending";
+            else if (enchant.startsWith("protection_")) enchantName = "Protection";
+            else if (enchant.startsWith("fire_protection_")) enchantName = "Fire_Protection";
+            else if (enchant.startsWith("blast_protection_")) enchantName = "Blast_Protection";
+            else if (enchant.startsWith("projectile_protection_")) enchantName = "Projectile_Protection";
+            else if (enchant.startsWith("thorns_")) enchantName = "Thorns";
+        } else {
+            // Weapon enchants - determine category
+            switch (enchant) {
+                case "sharpness", "fire_aspect", "knockback", "looting", "unbreaking", "mending", "smite", "bane_of_arthropods" ->
+                    category = "sword"; // Also used for axe
+                case "power", "punch", "flame", "infinity" ->
+                    category = "bow"; // Also used for crossbow
+                case "loyalty", "impaling", "riptide", "channeling" ->
+                    category = "trident";
+                case "aqua_affinity", "respiration" ->
+                    category = "helmet";
+                case "swift_sneak" ->
+                    category = "leggings";
+                case "feather_falling", "depth_strider", "soul_speed", "frost_walker" ->
+                    category = "boots";
+                case "efficiency" ->
+                    category = "axe";
+            }
             
-            // Trident enchants
-            case "loyalty": return 4 + currentLevel; // 4/5/6
-            case "impaling": return 3 + currentLevel; // 3/4/5/6/7
-            case "riptide": return 5 + currentLevel; // 5/6/7
-            case "channeling": return 8; // Flat 8
-            
-            // Armor enchants (per slot)
-            case "protection_head": case "protection_chest": case "protection_legs": case "protection_feet":
-            case "fire_protection_head": case "fire_protection_chest": case "fire_protection_legs": case "fire_protection_feet":
-            case "blast_protection_head": case "blast_protection_chest": case "blast_protection_legs": case "blast_protection_feet":
-            case "projectile_protection_head": case "projectile_protection_chest": case "projectile_protection_legs": case "projectile_protection_feet":
-                return 3 + currentLevel; // 3/4/5/6
-            
-            case "thorns_head": case "thorns_chest": case "thorns_legs": case "thorns_feet":
-                return 4 + currentLevel; // 4/5/6
-            
-            case "armor_unbreaking_head": case "armor_unbreaking_chest": case "armor_unbreaking_legs": case "armor_unbreaking_feet":
-                return 3 + currentLevel; // 3/4/5
-            
-            case "armor_mending_head": case "armor_mending_chest": case "armor_mending_legs": case "armor_mending_feet":
-                return 10; // Flat 10
-            
-            // Helmet special
-            case "aqua_affinity": return 6; // Flat 6
-            case "respiration": return 4 + currentLevel; // 4/5/6
-            
-            // Leggings special
-            case "swift_sneak": return 6 + (currentLevel * 2); // 6/8/10
-            
-            // Boots special
-            case "feather_falling": return 3 + currentLevel; // 3/4/5/6
-            case "depth_strider": return 4 + currentLevel; // 4/5/6
-            case "soul_speed": return 5 + currentLevel; // 5/6/7
-            case "frost_walker": return 6 + currentLevel; // 6/7
-            
-            // Axe special
-            case "efficiency": return 3 + currentLevel; // 3/4/5/6/7
-            
-            default: return 3 + currentLevel; // Default progressive
+            // Capitalize first letter for JSON lookup
+            enchantName = enchant.substring(0, 1).toUpperCase() + enchant.substring(1);
+            // Handle special cases
+            if (enchantName.equals("Bane_of_arthropods")) enchantName = "Bane_of_Arthropods";
+            if (enchantName.equals("Fire_aspect")) enchantName = "Fire_Aspect";
         }
+        
+        // Try to get cost from JSON
+        if (category != null) {
+            SkillTreeConfig.EnchantCosts costs = config.getEnchantCosts(category);
+            if (costs != null) {
+                int cost = costs.getCost(enchantName, currentLevel);
+                if (cost > 0) return cost;
+            }
+        }
+        
+        // Fallback to hardcoded costs if JSON lookup fails
+        return 3 + currentLevel; // Default progressive
     }
 
     private static void addArmorUpgrades(SimState state, UpgradeCollector options) {
@@ -824,19 +878,23 @@ public class UpgradeSystem {
     }
 
     private static void addStatUpgrades(SimState state, UpgradeCollector options, String slot, int cost) {
-        // Durability (0-10) - 10/12/14/16/18/20/22/24/26/28 pts progressive
+        SkillTreeConfig config = SkillTreeConfig.getInstance();
+        
+        // DURABILITY MASTERY: Load from JSON (10/12/14/16/18/20/22/24/26/28)
         int durLvl = state.getLevel("durability_" + slot);
-        if (durLvl < 10) {
-            int durCost = 10 + (durLvl * 2); // L1=10, L2=12, L3=14... L10=28
+        List<SkillTreeConfig.UpgradeCost> durCosts = config.getUniversalUpgrade("durability_mastery");
+        if (durLvl < durCosts.size()) {
+            int durCost = durCosts.get(durLvl).cost;
             // Weighting: Lower durability = Higher chance
-            // Level 0: 10 entries. Level 9: 1 entry.
             int weight = 10 - durLvl;
             addOpt(options, state, "durability_" + slot, "stats", slot, durCost, weight);
         }
-        // Drop Chance (0-10) - 10/12/14/16/18/20/22/24/26/28 pts progressive
+        
+        // DROP MASTERY: Load from JSON (5/7/9/11/13/15/17/19/21/23)
         int dropLvl = state.getLevel("drop_chance_" + slot);
-        if (dropLvl < 10) {
-            int dropCost = 10 + (dropLvl * 2); // L1=10, L2=12, L3=14... L10=28
+        List<SkillTreeConfig.UpgradeCost> dropCosts = config.getUniversalUpgrade("drop_mastery");
+        if (dropLvl < dropCosts.size()) {
+            int dropCost = dropCosts.get(dropLvl).cost;
             addOpt(options, state, "drop_chance_" + slot, "stats", slot, dropCost);
         }
     }
@@ -927,11 +985,17 @@ public class UpgradeSystem {
                 net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE, 999999, 0));
         }
         
-        // Equipment
+        // Equipment - Use MobDefinition to determine starting equipment
+        String mobName = mob.getType().getTranslationKey()
+            .replace("entity.minecraft.", "")
+            .replace("entity.", "")
+            .replaceAll("\\.", "_");
+        MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
         boolean isPiglin = mob.getType().getTranslationKey().contains("piglin");
         
-        // Sword - ONLY equip if upgrades purchased (melee mobs start with nothing)
-        boolean hasSword = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        // Sword - Melee mobs start NAKED, only equip if upgrades purchased
+        boolean hasSwordUpgrades = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        boolean hasSword = hasSwordUpgrades; // Swords must be earned
         if (hasSword && state.getItemTier("sword") >= 0) {
             boolean isWitherSkeleton = mob.getType().getTranslationKey().contains("wither_skeleton");
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
@@ -965,8 +1029,9 @@ public class UpgradeSystem {
             }
         }
 
-        // Axe - ONLY equip if upgrades purchased (melee mobs start with nothing)
-        boolean hasAxe = state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        // Axe - Melee mobs start NAKED, only equip if upgrades purchased
+        boolean hasAxeUpgrades = state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        boolean hasAxe = hasAxeUpgrades; // Axes must be earned
         if (hasAxe && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
             int tierIndex = state.getItemTier("axe");
@@ -992,8 +1057,10 @@ public class UpgradeSystem {
             }
         }
 
-        // Trident - Drowned START with trident (ranged weapon)
-        boolean hasTrident = (profile.categories != null && profile.categories.contains("trident")) || state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
+        // Trident - Drowned START with trident (ranged weapon per MobDefinition)
+        boolean hasTridentUpgrades = state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
+        boolean mobStartsWithTrident = (mobDef != null && mobDef.weaponType == MobDefinition.WeaponType.TRIDENT);
+        boolean hasTrident = mobStartsWithTrident || hasTridentUpgrades;
         if (hasTrident && state.getItemTier("trident") >= 0) {
             int tierIndex = state.getItemTier("trident");
             // Only one trident tier in vanilla, but support for future expansion
@@ -1020,9 +1087,12 @@ public class UpgradeSystem {
             }
         }
 
-        // Bow/Crossbow - Ranged weapon users START with their weapon
-        // Pillagers, Piglins (ranged), Illusioners use crossbow; others use bow
-        boolean hasBow = (profile.categories != null && profile.categories.contains("bow")) || state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
+        // Bow/Crossbow - Ranged weapon users START with their weapon per MobDefinition
+        // Pillagers, Piglins (ranged), Illusioners use crossbow; Skeletons use bow
+        boolean hasBowUpgrades = state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
+        boolean mobStartsWithBow = (mobDef != null && 
+            (mobDef.weaponType == MobDefinition.WeaponType.BOW || mobDef.weaponType == MobDefinition.WeaponType.CROSSBOW));
+        boolean hasBow = mobStartsWithBow || hasBowUpgrades;
         if (hasBow && state.getItemTier("bow") >= 0) {
             // Determine if this mob uses crossbow or bow
             String translationKey = mob.getType().getTranslationKey();
@@ -1047,8 +1117,14 @@ public class UpgradeSystem {
             }
         }
         
-        // Armor - ONLY equip if upgrades purchased (all mobs start naked)
-        if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
+        // Armor - ONLY equip if upgrades purchased (all mobs start naked per skilltree)
+        // CRITICAL: Also verify mob CAN have armor from MobDefinition
+        boolean hasArmorUpgrades = state.getCategoryCount("armor") > 0 || 
+            state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || 
+            state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0;
+        boolean mobCanHaveArmor = (mobDef != null && mobDef.armorType != MobDefinition.ArmorType.NONE);
+        
+        if (hasArmorUpgrades && mobCanHaveArmor) {
             if (state.getItemTier("head") >= 0) {
                 int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
                 String itemId = HELMET_TIERS.get(headTier);
@@ -1134,18 +1210,29 @@ public class UpgradeSystem {
         
         // Shield Chance: 0% -> 100% (Normal curve)
         // Now handled via points (shield_chance level)
+        // CRITICAL: Verify mob can have shield from MobDefinition
         int shieldLvl = state.getLevel("shield_chance");
         if (shieldLvl > 0) {
-             // Level 1-5. 
-             // Level 1: 20%, Level 5: 100%
-             double p = shieldLvl * 0.20;
-             if (mob.getRandom().nextDouble() < p) {
-                 ItemStack shield = new ItemStack(Items.SHIELD);
-                 // Apply defensive enchants (Unbreaking/Mending) from Armor tree (using Chest stats as proxy for shield)
-                 applyEnchant(mob, shield, "unbreaking", state.getLevel("armor_unbreaking_chest"));
-                 applyEnchant(mob, shield, "mending", state.getLevel("armor_mending_chest"));
-                 mob.equipStack(EquipmentSlot.OFFHAND, shield);
-             }
+            String mobName = mob.getType().getTranslationKey()
+                .replace("entity.minecraft.", "")
+                .replace("entity.", "")
+                .replaceAll("\\.", "_");
+            
+            MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
+            boolean canHaveShield = (mobDef != null && mobDef.shield);
+            
+            if (canHaveShield) {
+                // Level 1-5. 
+                // Level 1: 20%, Level 5: 100%
+                double p = shieldLvl * 0.20;
+                if (mob.getRandom().nextDouble() < p) {
+                    ItemStack shield = new ItemStack(Items.SHIELD);
+                    // Apply defensive enchants (Unbreaking/Mending) from Armor tree (using Chest stats as proxy for shield)
+                    applyEnchant(mob, shield, "unbreaking", state.getLevel("armor_unbreaking_chest"));
+                    applyEnchant(mob, shield, "mending", state.getLevel("armor_mending_chest"));
+                    mob.equipStack(EquipmentSlot.OFFHAND, shield);
+                }
+            }
         }
 
         // NOTE: Removed automatic 'maxed' forcing of durability/drop chance.
