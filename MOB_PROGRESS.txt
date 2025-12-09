@@ -726,12 +726,34 @@ Mixin config: src/main/resources/universalmobwar.mixins.json
                            CREATION STEPS
 ================================================================================
 
+IMPORTANT: Before creating any new mob files, you MUST:
+  - Read existing completed mixin files to understand the structure
+  - Read existing completed JSON files to understand the data format
+  - All files MUST be completely STANDALONE (no external dependencies)
+  - Connection/integration code will be done separately later
+
+REFERENCE FILES (read these first):
+  - Passive mob example:  AllayMixin.java + allay.json
+  - Neutral mob example:  BeeMixin.java + bee.json  
+  - Hostile mob example:  BoggedMixin.java + bogged.json (has equipment + trees)
+  - Ranged mob example:   BlazeMixin.java + blaze.json (has ranged tree)
+
+STEPS:
 1. Find next uncompleted mob in list above
 2. Look up its definition in MOB DEFINITIONS section
-3. Look up Minecraft 1.21.1 Yarn entity class name
-4. Create JSON file with ALL applicable data from this file
-5. Create Mixin file with ALL logic embedded
-6. Update universalmobwar.mixins.json
-7. Mark mob as [X] completed in this file
+3. Read similar EXISTING mixin/JSON files as templates (see REFERENCE FILES above)
+4. Look up Minecraft 1.21.1 Yarn entity class name
+5. Create JSON file with ALL applicable data (copy structure from similar mob)
+6. Create Mixin file with ALL logic embedded (copy structure from similar mob)
+7. Update universalmobwar.mixins.json
+8. Mark mob as [X] completed in this file
+
+CRITICAL REQUIREMENTS FOR ALL FILES:
+  - Each mixin file MUST contain ALL its own logic (no shared base classes)
+  - Each mixin file MUST have: NBT persistence, tick handling, spending logic
+  - Each mixin file MUST have: lastUpdateTick tracking for 1-day inactivity trigger
+  - Each mixin file MUST use: world.getTime() (NOT world.getTimeOfDay())
+  - Each JSON file MUST contain actual numeric data values (no explanations)
+  - Each JSON file MUST have all applicable upgrades with costs and effects
 
 ================================================================================
