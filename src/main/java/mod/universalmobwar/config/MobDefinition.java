@@ -9,7 +9,7 @@ public class MobDefinition {
     public final String name;
     public final String type; // "hostile", "neutral", "passive"
     public final String weapon; // "none", "normal_sword", "bow", "trident", etc.
-    public final String armor; // "none", "full_normal", "full_gold"
+    public final String armor; // "none", "normal", "gold"
     public final boolean shield;
     public final List<String> trees; // List of tree IDs: "z", "r", "creeper", etc.
     

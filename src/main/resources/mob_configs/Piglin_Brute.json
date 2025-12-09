@@ -1,0 +1,663 @@
+{
+  "mob_name": "Piglin_Brute",
+  "mob_type": "hostile",
+  "weapon": "gold_axe",
+  "armor": "gold",
+  "shield": true,
+  "assigned_trees": [],
+  "point_system": {
+    "earning": {
+      "sources": [
+        "World age in days (global)",
+        "Player kills of that mob type"
+      ],
+      "total_points": "All points ever earned",
+      "spent_points": "All points ever spent",
+      "budget": "total_points - spent_points"
+    },
+    "daily_scaling": [
+      {
+        "days": "0-10",
+        "points_per_day": 0.1
+      },
+      {
+        "days": "11-15",
+        "points_per_day": 0.5
+      },
+      {
+        "days": "16-20",
+        "points_per_day": 1.0
+      },
+      {
+        "days": "21-25",
+        "points_per_day": 1.5
+      },
+      {
+        "days": "26-30",
+        "points_per_day": 3.0
+      },
+      {
+        "days": "31+",
+        "points_per_day": 5.0
+      }
+    ],
+    "kill_scaling": "1 point per player kill",
+    "spending_logic": {
+      "trigger": [
+        "On natural spawn",
+        "Every new world day (only for mobs currently in simulation distance)",
+        "Whenever a mob has not attempted an upgrade in more than 1 full day"
+      ],
+      "behavior": "While the mob has any points left to spend:\n- First, list every currently affordable upgrade (equal weighting)\n- Pick ONE random upgrade from that list\n- 80% chance to BUY it immediately\n- 20% chance to SAVE the points and stop spending for this cycle\nThis repeats until either the 20% save roll succeeds or nothing affordable remains.\nAll purchased upgrades are accumulated. ONLY when the spending loop ends (save roll succeeded or nothing left to buy) does the system calculate and apply the final equipment/effects to the mob in one single batch.",
+      "performance": "All upgrade calculations for every mob in simulation distance are expected to complete within configurable target time (default 5 seconds) using multithreading. The system spreads work to stay close to this target."
+    }
+  },
+  "universal_upgrades": {
+    "all_mobs_item_masteries": {
+      "note": "These two masteries apply to EVERY equipped item (weapon, shield, armor pieces) on ALL mobs that have items.",
+      "drop_mastery": [
+        {
+          "level": 1,
+          "cost": 5,
+          "drop_chance": "100% to 90%"
+        },
+        {
+          "level": 2,
+          "cost": 7,
+          "drop_chance": "90% to 80%"
+        },
+        {
+          "level": 3,
+          "cost": 9,
+          "drop_chance": "80% to 70%"
+        },
+        {
+          "level": 4,
+          "cost": 11,
+          "drop_chance": "70% to 60%"
+        },
+        {
+          "level": 5,
+          "cost": 13,
+          "drop_chance": "60% to 50%"
+        },
+        {
+          "level": 6,
+          "cost": 15,
+          "drop_chance": "50% to 40%"
+        },
+        {
+          "level": 7,
+          "cost": 17,
+          "drop_chance": "40% to 30%"
+        },
+        {
+          "level": 8,
+          "cost": 19,
+          "drop_chance": "30% to 20%"
+        },
+        {
+          "level": 9,
+          "cost": 21,
+          "drop_chance": "20% to 10%"
+        },
+        {
+          "level": 10,
+          "cost": 23,
+          "drop_chance": "10% to 1%"
+        }
+      ],
+      "durability_mastery": [
+        {
+          "level": 1,
+          "cost": 10,
+          "durability": "1% to 10%"
+        },
+        {
+          "level": 2,
+          "cost": 12,
+          "durability": "to 20%"
+        },
+        {
+          "level": 3,
+          "cost": 14,
+          "durability": "to 30%"
+        },
+        {
+          "level": 4,
+          "cost": 16,
+          "durability": "to 40%"
+        },
+        {
+          "level": 5,
+          "cost": 18,
+          "durability": "to 50%"
+        },
+        {
+          "level": 6,
+          "cost": 20,
+          "durability": "to 60%"
+        },
+        {
+          "level": 7,
+          "cost": 22,
+          "durability": "to 70%"
+        },
+        {
+          "level": 8,
+          "cost": 24,
+          "durability": "to 80%"
+        },
+        {
+          "level": 9,
+          "cost": 26,
+          "durability": "to 90%"
+        },
+        {
+          "level": 10,
+          "cost": 28,
+          "durability": "to 100%"
+        }
+      ]
+    },
+    "hostile_and_neutral_potion_effects": {
+      "healing": [
+        {
+          "level": 1,
+          "cost": 1,
+          "effect": "Permanent Regeneration I"
+        },
+        {
+          "level": 2,
+          "cost": 2,
+          "effect": "Permanent Regeneration II"
+        },
+        {
+          "level": 3,
+          "cost": 3,
+          "effect": "Permanent Regen II + on damage to Regen III 10s (60s cd)"
+        },
+        {
+          "level": 4,
+          "cost": 4,
+          "effect": "Permanent Regen II + on damage to Regen IV 10s (60s cd)"
+        },
+        {
+          "level": 5,
+          "cost": 5,
+          "effect": "Permanent Regen II + on damage to Regen V 20s (60s cd)"
+        }
+      ],
+      "health_boost": [
+        {
+          "level": 1,
+          "cost": 2,
+          "hp": "+2",
+          "total": "+2"
+        },
+        {
+          "level": 2,
+          "cost": 3,
+          "hp": "+2",
+          "total": "+4"
+        },
+        {
+          "level": 3,
+          "cost": 4,
+          "hp": "+2",
+          "total": "+6"
+        },
+        {
+          "level": 4,
+          "cost": 5,
+          "hp": "+2",
+          "total": "+8"
+        },
+        {
+          "level": 5,
+          "cost": 6,
+          "hp": "+2",
+          "total": "+10"
+        },
+        {
+          "level": 6,
+          "cost": 7,
+          "hp": "+2",
+          "total": "+12"
+        },
+        {
+          "level": 7,
+          "cost": 8,
+          "hp": "+2",
+          "total": "+14"
+        },
+        {
+          "level": 8,
+          "cost": 9,
+          "hp": "+2",
+          "total": "+16"
+        },
+        {
+          "level": 9,
+          "cost": 10,
+          "hp": "+2",
+          "total": "+18"
+        },
+        {
+          "level": 10,
+          "cost": 11,
+          "hp": "+2",
+          "total": "+20"
+        }
+      ],
+      "resistance": [
+        {
+          "level": 1,
+          "cost": 4,
+          "effect": "Permanent Resistance I"
+        },
+        {
+          "level": 2,
+          "cost": 6,
+          "effect": "Permanent Resistance II"
+        },
+        {
+          "level": 3,
+          "cost": 8,
+          "effect": "Permanent Resistance II + Permanent Fire Resistance I"
+        }
+      ],
+      "strength": [
+        {
+          "level": 1,
+          "cost": 3,
+          "effect": "Strength I"
+        },
+        {
+          "level": 2,
+          "cost": 5,
+          "effect": "Strength II"
+        },
+        {
+          "level": 3,
+          "cost": 7,
+          "effect": "Strength III"
+        },
+        {
+          "level": 4,
+          "cost": 9,
+          "effect": "Strength IV"
+        }
+      ],
+      "speed": [
+        {
+          "level": 1,
+          "cost": 6,
+          "effect": "Speed I"
+        },
+        {
+          "level": 2,
+          "cost": 9,
+          "effect": "Speed II"
+        },
+        {
+          "level": 3,
+          "cost": 12,
+          "effect": "Speed III"
+        }
+      ],
+      "invisibility_on_hit": [
+        {
+          "level": 1,
+          "cost": 8,
+          "chance": "5%",
+          "duration": "5s",
+          "cooldown": "60s"
+        },
+        {
+          "level": 2,
+          "cost": 12,
+          "chance": "20%",
+          "duration": "8s",
+          "cooldown": "60s"
+        },
+        {
+          "level": 3,
+          "cost": 16,
+          "chance": "40%",
+          "duration": "12s",
+          "cooldown": "60s"
+        },
+        {
+          "level": 4,
+          "cost": 20,
+          "chance": "60%",
+          "duration": "16s",
+          "cooldown": "60s"
+        },
+        {
+          "level": 5,
+          "cost": 25,
+          "chance": "80%",
+          "duration": "20s",
+          "cooldown": "60s"
+        }
+      ]
+    }
+  },
+  "equipment_rules": {
+    "general": "Mod disables all natural equipment spawning. Every single item (weapon, shield, armor piece) is purchased individually and upgraded independently.",
+    "item_break_behavior": "When any item reaches 0 durability to downgrades one material tier, all enchants wiped, Drop Mastery and Durability Mastery reset to 0 for that item. If already lowest tier to item removed.",
+    "tier_upgrade_requirement": "To unlock the OPTION to purchase the next material tier for a specific item, the mob must have: Drop Mastery lvl 10 + Durability Mastery lvl 10 + ALL possible enchantments at maximum level on the current item.",
+    "shield": {
+      "cost": 10,
+      "available_to": "Any mob that can hold a main-hand weapon"
+    }
+  },
+  "enchant_costs": {
+    "sword": {
+      "Sharpness": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6",
+        "V:7"
+      ],
+      "Fire_Aspect": [
+        "I:4",
+        "II:5"
+      ],
+      "Knockback": [
+        "I:3",
+        "II:4"
+      ],
+      "Looting": [
+        "I:5",
+        "II:7",
+        "III:9"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    },
+    "axe": {
+      "Sharpness": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6",
+        "V:7"
+      ],
+      "Fire_Aspect": [
+        "I:4",
+        "II:5"
+      ],
+      "Knockback": [
+        "I:3",
+        "II:4"
+      ],
+      "Looting": [
+        "I:5",
+        "II:7",
+        "III:9"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    },
+    "helmet": {
+      "Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Fire_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Blast_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Projectile_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Thorns": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10",
+      "Aqua_Affinity": "6",
+      "Respiration": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ]
+    },
+    "chestplate": {
+      "Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Fire_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Blast_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Projectile_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Thorns": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    },
+    "leggings": {
+      "Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Fire_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Blast_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Projectile_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Thorns": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10",
+      "Swift_Sneak": [
+        "I:6",
+        "II:8",
+        "III:10"
+      ]
+    },
+    "boots": {
+      "Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Fire_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Blast_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Projectile_Protection": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Thorns": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10",
+      "Feather_Falling": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6"
+      ],
+      "Depth_Strider": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Soul_Speed": [
+        "I:5",
+        "II:6",
+        "III:7"
+      ],
+      "Frost_Walker": [
+        "I:6",
+        "II:7"
+      ]
+    },
+    "bow": {
+      "Power": [
+        "I:2",
+        "II:3",
+        "III:4",
+        "IV:5",
+        "V:6"
+      ],
+      "Punch": [
+        "I:4",
+        "II:5"
+      ],
+      "Flame": "8",
+      "Infinity": "12",
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    },
+    "crossbow": {
+      "Quick_Charge": [
+        "1:3",
+        "2:4",
+        "3:5"
+      ],
+      "Piercing": [
+        "1:3",
+        "2:4",
+        "3:5",
+        "4:6"
+      ],
+      "Multishot": "5",
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    },
+    "trident": {
+      "initial_cost": 5,
+      "Loyalty": [
+        "I:4",
+        "II:5",
+        "III:6"
+      ],
+      "Impaling": [
+        "I:3",
+        "II:4",
+        "III:5",
+        "IV:6",
+        "V:7"
+      ],
+      "Riptide": [
+        "I:5",
+        "II:6",
+        "III:7"
+      ],
+      "Channeling": "8",
+      "Unbreaking": [
+        "I:3",
+        "II:4",
+        "III:5"
+      ],
+      "Mending": "10"
+    }
+  },
+  "skill_trees": {}
+}
