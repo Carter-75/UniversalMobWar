@@ -1,134 +1,101 @@
 package mod.universalmobwar.system;
 
-import mod.universalmobwar.config.MobDefinition;
-import mod.universalmobwar.config.SkillTreeConfig;
+import mod.universalmobwar.config.MobConfig;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.attribute.EntityAttributes;
 import java.util.Set;
 import java.util.HashSet;
 
 /**
- * ArchetypeClassifier: Determines mob categories and trees from skilltree.json.
- * All mob configurations are loaded from the JSON file - data-driven approach.
+ * ArchetypeClassifier: Uses individual mob JSON configs from mob_configs/
+ * NO MORE shared skilltree parsing - each mob has its own complete config!
  */
 public class ArchetypeClassifier {
     
+    /**
+     * Get standardized mob name from entity (e.g., "zombie" -> "Zombie")
+     */
     private static String extractMobName(MobEntity mob) {
-        // Extract short name from translation key
+        String key = mob.getType().getTranslationKey();
         // "entity.minecraft.zombie" -> "zombie"
-        // "entity.modid.custom_mob" -> "custom_mob"
-        String raw = mob.getType().getTranslationKey();
-        if (raw == null) raw = "";
-        raw = raw.replace(':', '.');
-        String name = raw.replaceAll("^entity\\.|^minecraft\\.", "").toLowerCase();
-        if (name.contains(".")) {
-            String[] parts = name.split("\\.");
-            name = parts[parts.length - 1];
+        String name = key.replace("entity.minecraft.", "").replace("entity.", "");
+        // Capitalize: "zombie" -> "Zombie", "wither_skeleton" -> "Wither_Skeleton"
+        return capitalize(name);
+    }
+    
+    private static String capitalize(String str) {
+        if (str == null || str.isEmpty()) return str;
+        StringBuilder result = new StringBuilder();
+        boolean capitalizeNext = true;
+        for (char c : str.toCharArray()) {
+            if (c == '_') {
+                result.append('_');
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                result.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                result.append(c);
+            }
         }
-        return name;
+        return result.toString();
     }
 
+    /**
+     * Get mob categories from its individual JSON config
+     * 
+     * @deprecated This method is for backward compatibility only.
+     *             New code should use MobConfig.load(mobName) directly!
+     */
+    @Deprecated
     public static Set<String> getMobCategories(MobEntity mob) {
         String mobName = extractMobName(mob);
         Set<String> categories = new HashSet<>();
         
-        // Try to load from skilltree.json
-        MobDefinition def = SkillTreeConfig.getInstance().getMobDefinition(mobName);
+        MobConfig config = MobConfig.load(mobName);
+        if (config == null) {
+            // Mob not found, return empty set
+            return categories;
+        }
         
-        if (def != null) {
-            // Mob is defined in skilltree.json
-            
-            // Add base category based on type
-            if (def.isHostile() || def.isNeutral()) {
-                categories.add("g"); // General hostile tree
-            } else if (def.isPassive()) {
-                categories.add("gp"); // General passive tree
-            }
-            
-            // Add weapon categories
-            switch (def.weaponType) {
-                case BOW, CROSSBOW -> categories.add("bow");
-                case TRIDENT -> categories.add("trident");
-                case NORMAL_SWORD, STONE_SWORD, GOLD_SWORD -> categories.add("sword");
-                case IRON_AXE, GOLD_AXE -> categories.add("axe");
-                case NONE -> categories.add("nw"); // No weapon
-            }
-            
-            // Add special tree tags from skilltree
-            for (String tree : def.trees) {
-                switch (tree) {
-                    case "z" -> categories.add("z"); // Zombie tree
-                    case "r" -> categories.add("pro"); // Ranged/projectile tree
-                    case "creeper" -> categories.add("creeper");
-                    case "witch" -> categories.add("witch");
-                    case "cave_spider" -> categories.add("cave_spider");
-                    case "r_if_crossbow" -> {
-                        // Piglin special case
-                        if (mobName.equals("piglin") && mob.getUuid().hashCode() % 2 == 1) {
-                            categories.add("pro");
-                        }
-                    }
-                }
-            }
-            
-            // Piglin special weapon assignment (50/50 sword or crossbow)
-            if (mobName.equals("piglin")) {
-                if (mob.getUuid().hashCode() % 2 == 0) {
-                    categories.add("sword");
-                    categories.remove("bow"); // Don't give bow category if melee
-                } else {
-                    categories.add("bow"); // Crossbow uses bow enchants
-                    categories.remove("sword");
-                }
-            }
-            
+        // Add base category based on type
+        if (config.isHostile() || config.isNeutral()) {
+            categories.add("g"); // General hostile/neutral
         } else {
-            // Fallback for unknown/modded mobs (not in skilltree.json)
-            double attack = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE) != null ?
-                mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE).getBaseValue() : 0.0;
-            
-            if (attack > 0) {
-                categories.add("g");
-            } else {
-                categories.add("gp");
-            }
-            
-            // Check for held items
-            if (!categories.contains("bow") && !categories.contains("trident") && !categories.contains("axe")) {
-                if (mob.getMainHandStack().isEmpty()) {
-                    categories.add("nw");
-                }
-            }
+            categories.add("gp"); // General passive
         }
-
-        // Debug logging
-        if (mod.universalmobwar.config.ModConfig.getInstance().debugLogging) {
-            String archetype = detectArchetypeFromCategories(categories);
-            mod.universalmobwar.UniversalMobWarMod.LOGGER.info("Mob {} (def: {}) classified as archetype: {}, categories: {}", 
-                mobName, def != null ? "found" : "fallback", archetype, categories);
+        
+        // Add tree IDs from assigned_trees
+        categories.addAll(config.assignedTrees);
+        
+        // Add weapon category
+        if (config.weapon.contains("bow")) {
+            categories.add("bow");
+        } else if (config.weapon.contains("crossbow")) {
+            categories.add("crossbow");
+        } else if (config.weapon.contains("trident")) {
+            categories.add("trident");
+        } else if (config.weapon.contains("sword")) {
+            categories.add("sword");
+        } else if (config.weapon.contains("axe")) {
+            categories.add("axe");
         }
-
+        
         return categories;
     }
     
-    public static MobDefinition getMobDefinition(MobEntity mob) {
+    /**
+     * Load mob configuration directly
+     * THIS IS THE NEW WAY - use this instead of getMobCategories!
+     */
+    public static MobConfig getMobConfig(MobEntity mob) {
         String mobName = extractMobName(mob);
-        return SkillTreeConfig.getInstance().getMobDefinition(mobName);
+        return MobConfig.load(mobName);
     }
-
-    public static String detectArchetype(MobEntity mob) {
-        Set<String> cats = getMobCategories(mob);
-        return detectArchetypeFromCategories(cats);
-    }
-
-    private static String detectArchetypeFromCategories(Set<String> cats) {
-        if (cats.contains("z")) return "zombie";
-        if (cats.contains("bow")) return "skeleton";
-        if (cats.contains("g")) return "universal";
-        return "universal";
-    }
-
-    public static String detectPriorityPath(MobEntity mob) {
-        return detectArchetype(mob);
+    
+    /**
+     * Get mob name for JSON loading
+     */
+    public static String getMobName(MobEntity mob) {
+        return extractMobName(mob);
     }
 }
