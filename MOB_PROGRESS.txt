@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 8 / 80 mobs completed
+PROGRESS: 9 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -16,7 +16,7 @@ PROGRESS: 8 / 80 mobs completed
 6.  [X] Blaze              - DONE
 7.  [X] Bogged             - DONE
 8.  [X] Breeze             - DONE
-9.  [ ] Camel
+9.  [X] Camel              - DONE
 10. [ ] Cat
 11. [ ] Cave_Spider
 12. [ ] Chicken
