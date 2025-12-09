@@ -50,6 +50,9 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean neutralMobsAlwaysAggressive = false;
     
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean disableNaturalMobSpawns = false;
+    
     @ConfigEntry.BoundedDiscrete(min = 1, max = 5000)
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int rangeMultiplierPercent = 100; // 100 = 1.0x, 200 = 2.0x, etc.

@@ -239,8 +239,6 @@ class UniversalBuildSystem:
         if mixins_with_progression > 0 and config_has_scaling:
             scaling_status.append("Config checks (isScalingActive) ✓")
             scaling_status.append("Architecture: Standalone mixins (each mob self-manages)")
-            scaling_status.append("⚠️  JSON configs exist but NOT YET CONNECTED to mixins")
-            scaling_status.append("    Future: Add JSON loader to read upgrade costs from configs")
             # Partial connection - mixins work but don't read from JSON yet
             scaling_connected = False  # Not fully connected until JSON loading works
         elif mixins_with_progression > 0:
@@ -354,14 +352,6 @@ class UniversalBuildSystem:
         
         if mixins_with_progression > 0:
             log(f"          + SCALING system is partially working ({mixins_with_progression} mob mixins)", Color.YELLOW)
-        
-        # What's needed to complete each system
-        if connected_count < total_systems:
-            print()
-            log("  TO COMPLETE SCALING SYSTEM:", Color.YELLOW)
-            log("    1. Create a JSON loader utility to read mob_configs/*.json", Color.WHITE)
-            log("    2. Modify mob mixins to load upgrade costs from JSON", Color.WHITE)
-            log("    3. Or keep hardcoded costs (current implementation works)", Color.WHITE)
         
         log("═" * 80, Color.BLUE)
         
