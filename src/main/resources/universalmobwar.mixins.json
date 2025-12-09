@@ -21,7 +21,8 @@
 		"mob.ArmadilloMixin",
 		"mob.AxolotlMixin",
 		"mob.BatMixin",
-		"mob.BeeMixin"
+		"mob.BeeMixin",
+		"mob.BlazeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

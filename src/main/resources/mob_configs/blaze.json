@@ -1,0 +1,103 @@
+{
+  "mob_name": "Blaze",
+  "entity_class": "net.minecraft.entity.mob.BlazeEntity",
+  "mob_type": "hostile",
+  
+  "equipment": {
+    "weapon": "none",
+    "armor": "none",
+    "shield": false
+  },
+  
+  "skill_trees": ["ranged_r"],
+  
+  "point_system": {
+    "daily_scaling": [
+      { "days": "0-10",  "points_per_day": 0.1 },
+      { "days": "11-15", "points_per_day": 0.5 },
+      { "days": "16-20", "points_per_day": 1.0 },
+      { "days": "21-25", "points_per_day": 1.5 },
+      { "days": "26-30", "points_per_day": 3.0 },
+      { "days": "31+",   "points_per_day": 5.0 }
+    ],
+    "kill_scaling": "1 point per player kill",
+    "spending_logic": {
+      "buy_chance": 0.80,
+      "save_chance": 0.20
+    }
+  },
+  
+  "available_upgrades": {
+    "passive_potion_effects": {},
+    "hostile_and_neutral_potion_effects": {
+      "healing": [
+        { "level": 1, "cost": 1, "effect": "Permanent Regeneration I" },
+        { "level": 2, "cost": 2, "effect": "Permanent Regeneration II" },
+        { "level": 3, "cost": 3, "effect": "Permanent Regen II + on damage Regen III 10s (60s cd)" },
+        { "level": 4, "cost": 4, "effect": "Permanent Regen II + on damage Regen IV 10s (60s cd)" },
+        { "level": 5, "cost": 5, "effect": "Permanent Regen II + on damage Regen V 20s (60s cd)" }
+      ],
+      "health_boost": [
+        { "level": 1,  "cost": 2,  "hp": "+2",  "total": "+2" },
+        { "level": 2,  "cost": 3,  "hp": "+2",  "total": "+4" },
+        { "level": 3,  "cost": 4,  "hp": "+2",  "total": "+6" },
+        { "level": 4,  "cost": 5,  "hp": "+2",  "total": "+8" },
+        { "level": 5,  "cost": 6,  "hp": "+2",  "total": "+10" },
+        { "level": 6,  "cost": 7,  "hp": "+2",  "total": "+12" },
+        { "level": 7,  "cost": 8,  "hp": "+2",  "total": "+14" },
+        { "level": 8,  "cost": 9,  "hp": "+2",  "total": "+16" },
+        { "level": 9,  "cost": 10, "hp": "+2",  "total": "+18" },
+        { "level": 10, "cost": 11, "hp": "+2",  "total": "+20" }
+      ],
+      "resistance": [
+        { "level": 1, "cost": 4, "effect": "Permanent Resistance I" },
+        { "level": 2, "cost": 6, "effect": "Permanent Resistance II" },
+        { "level": 3, "cost": 8, "effect": "Permanent Resistance II + Fire Resistance I" }
+      ],
+      "strength": [
+        { "level": 1, "cost": 3, "effect": "Strength I" },
+        { "level": 2, "cost": 5, "effect": "Strength II" },
+        { "level": 3, "cost": 7, "effect": "Strength III" },
+        { "level": 4, "cost": 9, "effect": "Strength IV" }
+      ],
+      "speed": [
+        { "level": 1, "cost": 6,  "effect": "Speed I" },
+        { "level": 2, "cost": 9,  "effect": "Speed II" },
+        { "level": 3, "cost": 12, "effect": "Speed III" }
+      ],
+      "invisibility_on_hit": [
+        { "level": 1, "cost": 8,  "chance": "5%",  "duration": "5s",  "cooldown": "60s" },
+        { "level": 2, "cost": 12, "chance": "20%", "duration": "8s",  "cooldown": "60s" },
+        { "level": 3, "cost": 16, "chance": "40%", "duration": "12s", "cooldown": "60s" },
+        { "level": 4, "cost": 20, "chance": "60%", "duration": "16s", "cooldown": "60s" },
+        { "level": 5, "cost": 25, "chance": "80%", "duration": "20s", "cooldown": "60s" }
+      ]
+    },
+    "ranged_tree": {
+      "piercing_shot": [
+        { "level": 1, "cost": 8,  "pierce": 1 },
+        { "level": 2, "cost": 12, "pierce": 2 },
+        { "level": 3, "cost": 16, "pierce": 3 },
+        { "level": 4, "cost": 20, "pierce": 4 }
+      ],
+      "bow_potion_mastery": [
+        { "level": 1, "cost": 10, "chance": "20%", "effect": "Slowness I 10s" },
+        { "level": 2, "cost": 15, "chance": "40%", "effect": "Slowness II 15s or Weakness I 10s" },
+        { "level": 3, "cost": 20, "chance": "60%", "effect": "Poison I 10s or Weakness I 15s" },
+        { "level": 4, "cost": 25, "chance": "80%", "effect": "Poison II 15s or Instant Damage I" },
+        { "level": 5, "cost": 30, "chance": "100%", "effect": "Poison II 20s or Instant Damage II or Wither I 10s" }
+      ],
+      "multishot": [
+        { "level": 1, "cost": 15, "extra": "+1" },
+        { "level": 2, "cost": 25, "extra": "+2" },
+        { "level": 3, "cost": 35, "extra": "+3" }
+      ]
+    },
+    "item_masteries": {},
+    "weapon_progression": {},
+    "armor_progression": {},
+    "enchantments": {}
+  },
+  
+  "notes": "Blaze is a hostile ranged mob with no physical equipment but has the ranged skill tree for enhancing its fireball attacks."
+}
