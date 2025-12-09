@@ -7,7 +7,7 @@ import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
-import mod.universalmobwar.system.EvolutionSystem;
+// Evolution system handled by individual mob mixins
 import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
@@ -281,10 +281,8 @@ public class UniversalMobWarMod implements ModInitializer {
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
 			if (!(entity instanceof MobEntity mob)) return;
 
-			// Evolution System (Unified Scaling)
-			if (world instanceof ServerWorld serverWorld) {
-				EvolutionSystem.onMobSpawn(mob, serverWorld);
-			}
+			// Evolution System - handled by individual mob mixins
+			// Each mob's mixin contains its own progression logic
 
 			// Check if the mod is enabled
 			if (!world.getGameRules().getBoolean(MOD_ENABLED_RULE)) return;

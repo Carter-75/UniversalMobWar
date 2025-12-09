@@ -1,7 +1,7 @@
 package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.UniversalMobWarMod;
-import mod.universalmobwar.system.EvolutionSystem;
+import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
@@ -11,7 +11,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Tracks mob kills for the evolution system.
+ * Tracks mob deaths for the Universal Mob War system.
+ * Individual mob progression is handled by each mob's dedicated mixin.
+ * This mixin provides a hook point for future kill-based features.
  */
 @Mixin(LivingEntity.class)
 public abstract class MobDeathTrackerMixin {
@@ -23,21 +25,17 @@ public abstract class MobDeathTrackerMixin {
         if (victim.getWorld().isClient()) return;
         if (!(victim instanceof MobEntity)) return;
 
-        // Evolution system (legacy)
+        // Check if any progression system is enabled
         boolean evolutionEnabled = victim.getWorld().getGameRules().getBoolean(UniversalMobWarMod.EVOLUTION_SYSTEM_RULE);
-        // Global scaling system (new)
-        boolean scalingEnabled = mod.universalmobwar.config.ModConfig.getInstance().scalingEnabled;
+        boolean scalingEnabled = ModConfig.getInstance().scalingEnabled;
 
         if (!evolutionEnabled && !scalingEnabled) return;
 
-        // Find the killer - only count kills by mobs, not creative players
+        // Kill tracking hook - individual mob mixins handle their own progression
+        // This provides a central point for future kill-based features
         if (damageSource.getAttacker() instanceof MobEntity killer) {
-            if (evolutionEnabled) {
-                EvolutionSystem.onMobKill(killer, victim);
-            }
-            if (scalingEnabled) {
-                mod.universalmobwar.system.GlobalMobScalingSystem.onMobKill(killer, victim);
-            }
+            // Future: Could notify a central system here
+            // Currently each mob mixin handles its own point calculation based on world time
         }
     }
 }
