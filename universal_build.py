@@ -230,18 +230,11 @@ class UniversalBuildSystem:
             has_upgrade_spending = "spendPoints" in content and "getAffordableUpgrades" in content
             has_effect_application = "applyEffects" in content
         
-        # Check if mob mixins call ScalingSystem
+        # Check if MobDataMixin calls ScalingSystem (this is the central hook)
         mixin_calls_scaling = False
-        mixins_calling_scaling = 0
-        total_mob_mixins = 0
-        mob_mixin_dir = self.root / "src/main/java/mod/universalmobwar/mixin/mob"
-        if mob_mixin_dir.exists():
-            for mixin_file in mob_mixin_dir.glob("*.java"):
-                total_mob_mixins += 1
-                mixin_content = mixin_file.read_text(encoding='utf-8', errors='ignore')
-                if "ScalingSystem.processMobTick" in mixin_content:
-                    mixins_calling_scaling += 1
-        mixin_calls_scaling = mixins_calling_scaling > 0 and mixins_calling_scaling == total_mob_mixins
+        if mob_data_mixin.exists():
+            mixin_content = mob_data_mixin.read_text(encoding='utf-8', errors='ignore')
+            mixin_calls_scaling = "ScalingSystem.processMobTick" in mixin_content
         
         # Check config for scaling options
         config_has_scaling = False
@@ -264,9 +257,9 @@ class UniversalBuildSystem:
             scaling_status.append("❌ ScalingSystem.java not found")
         
         if mixin_calls_scaling:
-            scaling_status.append(f"Mob mixins call ScalingSystem ({mixins_calling_scaling}/{total_mob_mixins}) ✓")
+            scaling_status.append("MobDataMixin integration ✓")
         else:
-            scaling_status.append(f"⚠️ Mob mixins calling ScalingSystem: {mixins_calling_scaling}/{total_mob_mixins}")
+            scaling_status.append("⚠️ MobDataMixin not calling ScalingSystem")
         
         if config_has_scaling:
             scaling_status.append("Config checks (isScalingActive) ✓")
