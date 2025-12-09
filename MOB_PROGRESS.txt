@@ -718,42 +718,92 @@ Each mob JSON must be COMPLETELY STANDALONE. Structure:
                            FILE LOCATIONS
 ================================================================================
 
-Mixin files:  src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
-JSON configs: src/main/resources/mob_configs/[mobname].json (lowercase)
-Mixin config: src/main/resources/universalmobwar.mixins.json
+ScalingSystem: src/main/java/mod/universalmobwar/system/ScalingSystem.java
+Mixin files:   src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
+JSON configs:  src/main/resources/mob_configs/[mobname].json (lowercase)
+Mixin config:  src/main/resources/universalmobwar.mixins.json
+
+================================================================================
+                           ARCHITECTURE
+================================================================================
+
+The scaling system uses a CENTRALIZED architecture:
+
+  1. ScalingSystem.java (ONE file controls ALL upgrade logic)
+     - Loads ALL mob JSON configs on startup
+     - Calculates points from world age using JSON daily_scaling
+     - Spends points on upgrades (80% buy / 20% save from JSON)
+     - Applies effects (potion effects, equipment, special abilities)
+
+  2. Mob Mixins (simple - just call ScalingSystem)
+     - Each mixin just calls: ScalingSystem.processMobTick(mob, world, data)
+     - NO upgrade logic in mixins - all handled by ScalingSystem
+     - ScalingSystem reads upgrade costs from the mob's JSON config
+
+  3. JSON Configs (define ALL upgrade data)
+     - Each mob has its own JSON file with upgrade costs and effects
+     - ScalingSystem reads these to know what upgrades are available
 
 ================================================================================
                            CREATION STEPS
 ================================================================================
 
-IMPORTANT: Before creating any new mob files, you MUST:
-  - Read existing completed mixin files to understand the structure
-  - Read existing completed JSON files to understand the data format
-  - All files MUST be completely STANDALONE (no external dependencies)
-  - Connection/integration code will be done separately later
+To add a new mob, you need to:
 
-REFERENCE FILES (read these first):
-  - Passive mob example:  AllayMixin.java + allay.json
-  - Neutral mob example:  BeeMixin.java + bee.json  
-  - Hostile mob example:  BoggedMixin.java + bogged.json (has equipment + trees)
-  - Ranged mob example:   BlazeMixin.java + blaze.json (has ranged tree)
+STEP 1: Create JSON config file
+  Location: src/main/resources/mob_configs/[mobname].json
+  Template: Copy from existing mob (allay.json, bee.json, bogged.json, blaze.json)
+  Content: All upgrade costs and effects for this mob type
 
-STEPS:
-1. Find next uncompleted mob in list above
-2. Look up its definition in MOB DEFINITIONS section
-3. Read similar EXISTING mixin/JSON files as templates (see REFERENCE FILES above)
-4. Look up Minecraft 1.21.1 Yarn entity class name
-5. Create JSON file with ALL applicable data (copy structure from similar mob)
-6. Create Mixin file with ALL logic embedded (copy structure from similar mob)
-7. Update universalmobwar.mixins.json
-8. Mark mob as [X] completed in this file
+STEP 2: Create Mixin file
+  Location: src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
+  
+  TEMPLATE (copy this exactly, change class names):
+  ```java
+  package mod.universalmobwar.mixin.mob;
 
-CRITICAL REQUIREMENTS FOR ALL FILES:
-  - Each mixin file MUST contain ALL its own logic (no shared base classes)
-  - Each mixin file MUST have: NBT persistence, tick handling, spending logic
-  - Each mixin file MUST have: lastUpdateTick tracking for 1-day inactivity trigger
-  - Each mixin file MUST use: world.getTime() (NOT world.getTimeOfDay())
-  - Each JSON file MUST contain actual numeric data values (no explanations)
-  - Each JSON file MUST have all applicable upgrades with costs and effects
+  import mod.universalmobwar.data.MobWarData;
+  import mod.universalmobwar.system.ScalingSystem;
+  import net.minecraft.entity.mob.[MobName]Entity;
+  import net.minecraft.entity.mob.MobEntity;
+  import net.minecraft.world.World;
+  import org.spongepowered.asm.mixin.Mixin;
+  import org.spongepowered.asm.mixin.injection.At;
+  import org.spongepowered.asm.mixin.injection.Inject;
+  import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+  @Mixin([MobName]Entity.class)
+  public abstract class [MobName]Mixin {
+
+      @Inject(method = "mobTick", at = @At("HEAD"))
+      private void onMobTick(CallbackInfo ci) {
+          [MobName]Entity self = ([MobName]Entity) (Object) this;
+          World world = self.getWorld();
+          if (world.isClient()) return;
+          
+          MobWarData data = MobWarData.get((MobEntity) self);
+          ScalingSystem.processMobTick((MobEntity) self, world, data);
+      }
+  }
+  ```
+
+STEP 3: Register mixin
+  Add to src/main/resources/universalmobwar.mixins.json:
+  "mob.[MobName]Mixin"
+
+STEP 4: Add to ScalingSystem
+  Add mob name to IMPLEMENTED_MOBS array in ScalingSystem.java:
+  private static final String[] IMPLEMENTED_MOBS = {
+      "allay", "armadillo", ..., "[mobname]"
+  };
+
+STEP 5: Mark as complete
+  Update this file: change [ ] to [X] for the mob
+
+REFERENCE FILES:
+  - Passive mob:  AllayMixin.java + allay.json
+  - Neutral mob:  BeeMixin.java + bee.json  
+  - Hostile mob:  BoggedMixin.java + bogged.json (has equipment + trees)
+  - Ranged mob:   BlazeMixin.java + blaze.json (has ranged tree)
 
 ================================================================================
