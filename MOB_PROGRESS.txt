@@ -295,33 +295,47 @@ normal_sword (Zombie, Husk, Giant, Zombie_Villager):
   tier 4: diamond   - cost=6 to upgrade
   tier 5: netherite - cost=7 to upgrade
 
-stone_sword (Wither_Skeleton - SPAWNS WITH THIS):
-  tier 1: stone     - starts with this
+stone_sword (Wither_Skeleton):
+  base_cost=0 (spawns with it)
+  tier 1: stone     - base_cost=0
   tier 2: iron      - cost=5 to upgrade
   tier 3: diamond   - cost=6 to upgrade
   tier 4: netherite - cost=7 to upgrade
 
 gold_sword (Piglin 50% option):
-  tier 1: gold      - cost=3 to purchase
+  base_cost=0 (spawns with it if chosen)
+  tier 1: gold      - base_cost=0
   tier 2: netherite - cost=10 to upgrade
 
-iron_axe (Vindicator - SPAWNS WITH THIS):
-  tier 1: iron      - starts with this
+iron_axe (Vindicator):
+  base_cost=0 (spawns with it)
+  tier 1: iron      - base_cost=0
   tier 2: diamond   - cost=5 to upgrade
   tier 3: netherite - cost=7 to upgrade
 
-gold_axe (Piglin_Brute - SPAWNS WITH THIS):
-  tier 1: gold      - starts with this
+gold_axe (Piglin_Brute):
+  base_cost=0 (spawns with it)
+  tier 1: gold      - base_cost=0
   tier 2: netherite - cost=10 to upgrade
 
 bow (Skeleton, Stray, Bogged):
-  single type - cost=5 to purchase, no tier upgrades, enchants only
+  base_cost=0 (spawns with it), no tiers, enchants only
 
 crossbow (Pillager, Illusioner, Piglin 50%):
-  single type - cost=5 to purchase, no tier upgrades, enchants only
+  base_cost=0 (spawns with it), no tiers, enchants only
 
 trident (Drowned):
-  single type - cost=5 to purchase, no tier upgrades, enchants only
+  base_cost=0 (spawns with it), no tiers, enchants only
+
+SPENDING RULE FOR base_cost=0:
+  If base_cost=0, the mob ALWAYS buys it (never saves).
+  This ensures mobs that naturally spawn with a weapon will get it on spawn.
+
+PIGLIN SPECIAL CASE:
+  Piglin has TWO weapon paths: gold_sword and crossbow (both base_cost=0)
+  Random selection picks one, that one gets bought.
+  Once mainhand has a weapon, other weapon path is LOCKED.
+  If mainhand weapon is lost (broken), other path becomes available again.
 
 ================================================================================
                            WEAPON ENCHANTMENTS

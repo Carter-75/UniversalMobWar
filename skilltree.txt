@@ -127,14 +127,14 @@
     },
 
     "weapon_progression": {
-      "normal_sword": { "spawns_with": false, "start": "none", "upgrade_costs": [3,4,5,6,7], "tiers": ["wood","stone","iron","diamond","netherite"], "note": "Generic sword - must be PURCHASED" },
-      "stone_sword":  { "spawns_with": true, "start": "stone", "upgrade_costs": [null,null,5,6,7], "tiers": ["stone","iron","diamond","netherite"], "note": "Wither Skeleton SPAWNS with this" },
-      "gold_sword":   { "spawns_with": false, "start": "gold", "upgrade_costs": [null,null,null,null,10], "tiers": ["gold","netherite"], "note": "Piglin sword option - must be PURCHASED" },
-      "iron_axe":     { "spawns_with": true, "start": "iron", "upgrade_costs": [5,7], "tiers": ["iron","diamond","netherite"], "note": "Vindicator SPAWNS with this" },
-      "gold_axe":     { "spawns_with": true, "start": "gold", "upgrade_costs": [10], "tiers": ["gold","netherite"], "note": "Piglin Brute SPAWNS with this" },
-      "bow":          { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Must be PURCHASED. Enchants only." },
-      "crossbow":     { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Must be PURCHASED. Enchants only." },
-      "trident":      { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Drowned's weapon. Must be PURCHASED. Enchants only." }
+      "normal_sword": { "base_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["wood","stone","iron","diamond","netherite"] },
+      "stone_sword":  { "base_cost": 0, "upgrade_costs": [5,6,7], "tiers": ["stone","iron","diamond","netherite"] },
+      "gold_sword":   { "base_cost": 0, "upgrade_costs": [10], "tiers": ["gold","netherite"] },
+      "iron_axe":     { "base_cost": 0, "upgrade_costs": [5,7], "tiers": ["iron","diamond","netherite"] },
+      "gold_axe":     { "base_cost": 0, "upgrade_costs": [10], "tiers": ["gold","netherite"] },
+      "bow":          { "base_cost": 0, "tiers": [] },
+      "crossbow":     { "base_cost": 0, "tiers": [] },
+      "trident":      { "base_cost": 0, "tiers": [] }
     },
 
     "armor_progression": {
