@@ -127,14 +127,14 @@
     },
 
     "weapon_progression": {
-      "normal_sword": { "start": "none",     "upgrade_costs": [3,4,5,6,7],   "tiers": ["wood","stone","iron","diamond","netherite"] },
-      "stone_sword":  { "start": "stone",    "upgrade_costs": [null,null,5,6,7], "tiers": ["stone","iron","diamond","netherite"] },
-      "gold_sword":   { "start": "gold",     "upgrade_costs": [null,null,null,null,10], "tiers": ["gold","netherite"] },
-      "iron_axe":     { "start": "iron_axe", "upgrade_costs": [5,7],         "tiers": ["iron","diamond","netherite"] },
-      "gold_axe":     { "start": "gold_axe", "upgrade_costs": [10],          "tiers": ["gold","netherite"] },
-      "bow":          { "note": "Single type weapon - NO material tiers. Must be PURCHASED (not spawned with). Progression is enchantments only.", "initial_cost": 5, "tiers": "none" },
-      "crossbow":     { "note": "Single type weapon - NO material tiers. Must be PURCHASED (not spawned with). Progression is enchantments only.", "initial_cost": 5, "tiers": "none" },
-      "trident":      { "note": "Single type weapon - NO material tiers. Must be PURCHASED (not spawned with). Drowned's designated weapon. Progression is enchantments only.", "initial_cost": 5, "tiers": "none" }
+      "normal_sword": { "spawns_with": false, "start": "none", "upgrade_costs": [3,4,5,6,7], "tiers": ["wood","stone","iron","diamond","netherite"], "note": "Generic sword - must be PURCHASED" },
+      "stone_sword":  { "spawns_with": true, "start": "stone", "upgrade_costs": [null,null,5,6,7], "tiers": ["stone","iron","diamond","netherite"], "note": "Wither Skeleton SPAWNS with this" },
+      "gold_sword":   { "spawns_with": false, "start": "gold", "upgrade_costs": [null,null,null,null,10], "tiers": ["gold","netherite"], "note": "Piglin sword option - must be PURCHASED" },
+      "iron_axe":     { "spawns_with": true, "start": "iron", "upgrade_costs": [5,7], "tiers": ["iron","diamond","netherite"], "note": "Vindicator SPAWNS with this" },
+      "gold_axe":     { "spawns_with": true, "start": "gold", "upgrade_costs": [10], "tiers": ["gold","netherite"], "note": "Piglin Brute SPAWNS with this" },
+      "bow":          { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Must be PURCHASED. Enchants only." },
+      "crossbow":     { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Must be PURCHASED. Enchants only." },
+      "trident":      { "spawns_with": false, "initial_cost": 5, "tiers": "none", "note": "Single type - NO tiers. Drowned's weapon. Must be PURCHASED. Enchants only." }
     },
 
     "armor_progression": {
