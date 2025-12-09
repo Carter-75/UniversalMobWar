@@ -102,8 +102,9 @@ public class UpgradeSystem {
     
     /**
      * Apply stats and equipment to mob based on purchased upgrades
+     * Public so BatchedUpgradeProcessor can use it
      */
-    private static void applyToMob(MobEntity mob, PowerProfile profile, MobConfig config) {
+    public static void applyToMob(MobEntity mob, PowerProfile profile, MobConfig config) {
         Map<String, Integer> levels = profile.specialSkills;
         
         // Apply stat boosts

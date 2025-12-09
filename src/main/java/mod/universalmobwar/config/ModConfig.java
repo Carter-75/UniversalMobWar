@@ -95,6 +95,10 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean enableAsyncTasks = true;
     
+    @ConfigEntry.BoundedDiscrete(min = 1000, max = 30000)
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public int upgradeProcessingTimeMs = 5000;
+    
     @ConfigEntry.BoundedDiscrete(min = 100, max = 5000)
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int targetingCacheMs = 1500;

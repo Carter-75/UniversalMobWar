@@ -69,12 +69,15 @@ public class EvolutionSystem {
         profile.lastUpdateTick = world.getTime();
         data.setSkillPoints(totalPoints);
         
-        // Apply upgrades (UpgradeSystem handles 80%/20% logic)
-        UpgradeSystem.applyUpgrades(mob, profile);
-        
-        // Save
-        data.setSkillData(profile.writeNbt());
-        MobWarData.save(mob, data);
+        // Queue for batched upgrade processing (uses multithreading, completes in 5 seconds)
+        if (ModConfig.getInstance().enableBatching && ModConfig.getInstance().enableAsyncTasks) {
+            BatchedUpgradeProcessor.queueMobForUpgrade(mob, world, data, profile);
+        } else {
+            // Fallback: immediate processing (old behavior)
+            UpgradeSystem.applyUpgrades(mob, profile);
+            data.setSkillData(profile.writeNbt());
+            MobWarData.save(mob, data);
+        }
     }
 
     /**
