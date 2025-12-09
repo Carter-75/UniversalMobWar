@@ -233,6 +233,39 @@ UPGRADE PATH LOGIC:
     - Only one "tier" exists
     - Progression is through enchants and masteries only
 
+ITEM BREAK LOGIC:
+  When any item reaches 0 durability:
+
+  For TIERED items (swords, axes, armor):
+    - If NOT lowest tier: Downgrade one tier, wipe all enchants, reset drop_mastery to 0, reset durability_mastery to 0
+    - If AT lowest tier: Item is REMOVED from slot, slot becomes empty and unlocked
+
+  For NON-TIERED items (bow, crossbow, trident, shield):
+    - Item is REMOVED from slot (no downgrade possible)
+    - Slot becomes empty and unlocked
+    - All enchants lost, all masteries reset
+
+  After item removed:
+    - Slot is now empty
+    - All base items for that slot become available in affordable list again
+    - Mob can buy same item again OR different item (e.g. Piglin loses crossbow, can now buy gold_sword or crossbow)
+
+  Example - Bogged bow breaks:
+    1. Bow reaches 0 durability
+    2. Bow has no tiers, so it's REMOVED
+    3. Weapon slot now empty
+    4. Bow (base_cost=0) is back in affordable list
+    5. Next spending cycle, mob buys bow again
+
+  Example - Zombie iron sword breaks:
+    1. Iron sword reaches 0 durability
+    2. Iron sword downgrades to stone sword
+    3. All enchants wiped, drop_mastery=0, durability_mastery=0
+    4. Mob now has stone sword
+    5. Stone sword breaks later, downgrades to wood sword
+    6. Wood sword breaks, item REMOVED (lowest tier)
+    7. Weapon slot empty, wood sword (base_cost=3) back in affordable list
+
 ================================================================================
                          POTION EFFECTS - PASSIVE MOBS
 ================================================================================
