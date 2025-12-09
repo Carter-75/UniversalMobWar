@@ -2,6 +2,7 @@ package mod.universalmobwar.entity;
 
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.system.WarlordSystem;
 import mod.universalmobwar.util.SummonerTracker;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
@@ -38,16 +39,18 @@ import java.util.ArrayList;
 import java.util.*;
 
 /**
- * WARLORD SYSTEM - Independent Module
+ * WARLORD ENTITY - Part of the Warlord System
  * 
  * The Mob Warlord - A giant boss that summons and commands armies of mobs.
  * All spawned minions are loyal to the warlord and never attack it or each other.
  * Uses HostileEntity for maximum compatibility with Iris Shaders and rendering mods.
  * 
- * This system works independently and can be enabled/disabled via:
+ * Minion tracking is handled by WarlordSystem.java for centralized management.
+ * 
+ * This entity works with the Warlord System which can be enabled/disabled via:
  * - Config: warlordEnabled
  * 
- * Configurable options:
+ * Configurable options (via WarlordSystem):
  * - warlordSpawnChance (default 25%)
  * - warlordMinRaidLevel (default 3)
  * - warlordMinionCount (default 20)
@@ -61,14 +64,10 @@ public class MobWarlordEntity extends HostileEntity {
     private static final TrackedData<Integer> MINION_COUNT = DataTracker.registerData(MobWarlordEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Boolean> IS_RAID_BOSS = DataTracker.registerData(MobWarlordEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     
-    // Static map to track which mobs are minions of which warlord (thread-safe)
-    private static final Map<UUID, UUID> MINION_TO_WARLORD = new java.util.concurrent.ConcurrentHashMap<>();
-    
-    // Track betrayers - minions that attacked other minions
-    private final Set<UUID> betrayers = new HashSet<>();
+    // Local tracking of this warlord's minions (for quick access, syncs with WarlordSystem)
+    private final Set<UUID> minionUuids = new HashSet<>();
     
     private final ServerBossBar bossBar;
-    private final Set<UUID> minionUuids = new HashSet<>();
     private int attackCooldown = 0;
     
     // OPTIMIZATION: UUID-based tick offsets for staggering operations across multiple Warlords
@@ -77,9 +76,9 @@ public class MobWarlordEntity extends HostileEntity {
     private final int validationOffset; // 0-60 tick offset for validation
     private final int summonOffset; // 0-40 tick offset for summoning checks
     
-    // Get max minions from config (default 20)
+    // Get max minions from config via WarlordSystem
     private static int getMaxMinions() {
-        return ModConfig.getInstance().warlordMinionCount;
+        return WarlordSystem.getMaxMinions();
     }
     private static final int SUMMON_COOLDOWN = 40; // 2 seconds - FASTER ally spawning!
     private static final int ATTACK_COOLDOWN = 40; // 2 seconds
@@ -209,20 +208,22 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Marks a minion as a betrayer (attacked other minions).
+     * Uses WarlordSystem for centralized tracking.
      */
     public void markBetrayer(UUID minionUuid) {
         if (minionUuids.contains(minionUuid)) {
-            betrayers.add(minionUuid);
-            // Remove from minion list so they can be targeted
-            MINION_TO_WARLORD.remove(minionUuid);
+            minionUuids.remove(minionUuid);
+            // Use WarlordSystem for centralized betrayer tracking
+            WarlordSystem.markBetrayer(minionUuid, this.getUuid());
         }
     }
     
     /**
      * Checks if a minion is a betrayer.
+     * Uses WarlordSystem for centralized tracking.
      */
     public boolean isBetrayer(UUID minionUuid) {
-        return betrayers.contains(minionUuid);
+        return WarlordSystem.isBetrayer(minionUuid, this.getUuid());
     }
     
     @Override
@@ -366,6 +367,7 @@ public class MobWarlordEntity extends HostileEntity {
      * Validates minion targets and clears invalid ones.
      * OPTIMIZED: Only checks 3 random minions per cycle to spread load.
      * Also detects betrayal (minions attacking other minions).
+     * Uses WarlordSystem for centralized minion tracking.
      */
     private void validateMinionTargets() {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
@@ -391,9 +393,9 @@ public class MobWarlordEntity extends HostileEntity {
                         }
                         
                         // Check if targeting another minion (BETRAYAL DETECTION)
+                        // Uses WarlordSystem for centralized tracking
                         if (target instanceof MobEntity targetMob) {
-                            UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
-                            if (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid())) {
+                            if (WarlordSystem.isMinionOf(targetMob.getUuid(), this.getUuid())) {
                                 // BETRAYAL! Mark this minion as traitor
                                 markBetrayer(minionUuid);
                                 invalidTarget = false; // Allow targeting - they're now an enemy
@@ -402,7 +404,7 @@ public class MobWarlordEntity extends HostileEntity {
                                 serverWorld.getPlayers().forEach(player -> {
                                     if (player.squaredDistanceTo(minion) <= 1024) // 32 block range
                                         player.sendMessage(
-                                            Text.literal("⚔ A minion has betrayed the Warlord! ⚔")
+                                            Text.literal("A minion has betrayed the Warlord!")
                                                 .styled(style -> style.withColor(Formatting.RED).withBold(true)),
                                             true // Action bar
                                         );
@@ -426,9 +428,10 @@ public class MobWarlordEntity extends HostileEntity {
      * Draws particle connections from the warlord to all minions.
      * OPTIMIZED: Reduced particle density for better performance.
      * Shows purple/dark purple lines so players can see who is allied.
+     * Uses WarlordSystem for particle and betrayer settings.
      */
     private void drawParticleConnections() {
-        if (ModConfig.getInstance().disableParticles) return; // Performance optimization
+        if (WarlordSystem.areParticlesDisabled()) return; // Performance optimization
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (this.age < 60) return; // Wait for full initialization
         
@@ -451,8 +454,8 @@ public class MobWarlordEntity extends HostileEntity {
                         double distance = minionPos.distanceTo(bossPos);
                         if (distance < 3.0) continue; // Don't draw particles for minions within 3 blocks
                         
-                        // Check if betrayer - different color
-                        boolean isBetrayer = betrayers.contains(minionUuid);
+                        // Check if betrayer - different color (uses WarlordSystem)
+                        boolean isBetrayerMinion = isBetrayer(minionUuid);
                         
                         // Draw particle line from boss to minion
                         Vec3d direction = minionPos.subtract(bossPos);
@@ -465,7 +468,7 @@ public class MobWarlordEntity extends HostileEntity {
                             Vec3d particlePos = bossPos.add(step.multiply(i));
                             
                             // Choose particle type based on status
-                            if (isBetrayer) {
+                            if (isBetrayerMinion) {
                                 // RED particles for betrayers
                                 serverWorld.spawnParticles(
                                     ParticleTypes.ANGRY_VILLAGER,
@@ -495,6 +498,7 @@ public class MobWarlordEntity extends HostileEntity {
      * Converts a killed mob into a minion instead of letting it die.
      * Called when the boss deals a killing blow to a mob.
      * 50% chance to convert the mob into a loyal minion.
+     * Uses WarlordSystem for centralized minion tracking.
      */
     public void tryConvertKilledMob(MobEntity killedMob) {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
@@ -504,8 +508,9 @@ public class MobWarlordEntity extends HostileEntity {
         // CRITICAL: Never convert other Mob Warlords (prevents infinite loops and conflicts)
         if (killedMob instanceof MobWarlordEntity) return;
         
-        // CRITICAL: Never convert another warlord's minions (prevents ownership conflicts and goal duplication)
-        UUID existingMaster = MINION_TO_WARLORD.get(killedMob.getUuid());
+        // CRITICAL: Never convert another warlord's minions (prevents ownership conflicts)
+        // Uses WarlordSystem for centralized tracking
+        UUID existingMaster = WarlordSystem.getMasterUuid(killedMob.getUuid());
         if (existingMaster != null && !existingMaster.equals(this.getUuid())) {
             // This mob belongs to another warlord - can't steal them!
             return;
@@ -517,8 +522,8 @@ public class MobWarlordEntity extends HostileEntity {
         // Heal the mob instead of letting it die
         killedMob.setHealth(killedMob.getMaxHealth());
         
-        // Add to minion tracking
-        MINION_TO_WARLORD.put(killedMob.getUuid(), this.getUuid());
+        // Add to minion tracking via WarlordSystem
+        WarlordSystem.registerMinion(killedMob.getUuid(), this.getUuid());
         minionUuids.add(killedMob.getUuid());
         
         // Register with universal summoner tracker
@@ -544,14 +549,14 @@ public class MobWarlordEntity extends HostileEntity {
         
         LivingEntity warlordTarget = this.getTarget();
         if (warlordTarget != null && warlordTarget.isAlive() && warlordTarget != killedMob) {
-            // Validate target isn't another minion
-            boolean targetIsMinion = false;
+            // Validate target isn't another minion - use WarlordSystem
             if (warlordTarget instanceof MobEntity targetMob) {
-                UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
-                targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
-            }
-            
-            if (!targetIsMinion) {
+                if (WarlordSystem.isMinionOf(targetMob.getUuid(), this.getUuid())) {
+                    // Skip - don't set fellow minion as target
+                } else {
+                    killedMob.setTarget(warlordTarget);
+                }
+            } else {
                 killedMob.setTarget(warlordTarget);
             }
         }
@@ -586,6 +591,7 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Summons random hostile/neutral mobs to fight for the warlord.
+     * Uses WarlordSystem for centralized minion tracking.
      */
     private void summonMinions(int count) {
         if (!(this.getWorld() instanceof ServerWorld serverWorld)) return;
@@ -616,8 +622,8 @@ public class MobWarlordEntity extends HostileEntity {
                 boolean spawned = serverWorld.spawnEntity(minion);
                 
                 if (spawned) {
-                    // AFTER spawning, register as minion in static map
-                    MINION_TO_WARLORD.put(minion.getUuid(), this.getUuid());
+                    // AFTER spawning, register as minion via WarlordSystem
+                    WarlordSystem.registerMinion(minion.getUuid(), this.getUuid());
                     minionUuids.add(minion.getUuid());
                     
                     // ALSO register with universal summoner tracker
@@ -635,11 +641,10 @@ public class MobWarlordEntity extends HostileEntity {
                     // Set target to warlord's target (validate it's not another minion or the warlord)
                     LivingEntity warlordTarget = this.getTarget();
                     if (warlordTarget != null && warlordTarget.isAlive()) {
-                        // Don't target other minions
+                        // Don't target other minions - use WarlordSystem
                         boolean targetIsMinion = false;
                         if (warlordTarget instanceof MobEntity targetMob) {
-                            UUID targetMasterUuid = MINION_TO_WARLORD.get(targetMob.getUuid());
-                            targetIsMinion = (targetMasterUuid != null && targetMasterUuid.equals(this.getUuid()));
+                            targetIsMinion = WarlordSystem.isMinionOf(targetMob.getUuid(), this.getUuid());
                         }
                         
                         // Only set valid targets
@@ -732,6 +737,11 @@ public class MobWarlordEntity extends HostileEntity {
      * Cleans up dead or despawned minions.
      * Only runs every 5 seconds to avoid performance issues with large modpacks.
      */
+    /**
+     * Cleans up dead or despawned minions.
+     * Only runs every 5 seconds to avoid performance issues with large modpacks.
+     * Uses WarlordSystem for centralized minion tracking.
+     */
     private void cleanupDeadMinions() {
         if (this.getWorld() == null || !(this.getWorld() instanceof ServerWorld serverWorld)) return;
         if (this.age < 60) return; // Skip during initialization (3 seconds)
@@ -758,15 +768,17 @@ public class MobWarlordEntity extends HostileEntity {
                     
                     if (isDead) {
                         toRemove.add(uuid);
-                        MINION_TO_WARLORD.remove(uuid);
+                        // Use WarlordSystem to unregister
+                        WarlordSystem.unregisterMinion(uuid);
                     }
                 } catch (Exception e) {
                     // Skip problematic UUIDs
                     toRemove.add(uuid); // Remove problematic minions to prevent future errors
+                    WarlordSystem.unregisterMinion(uuid);
                 }
             }
             
-            // Remove all dead minions
+            // Remove all dead minions from local list
             minionUuids.removeAll(toRemove);
             
             // Update data tracker safely
@@ -780,24 +792,26 @@ public class MobWarlordEntity extends HostileEntity {
     
     /**
      * Checks if a mob is a minion of this warlord.
+     * Uses WarlordSystem for centralized tracking.
      */
     public boolean isMinionOf(MobEntity mob) {
-        UUID masterUuid = MINION_TO_WARLORD.get(mob.getUuid());
-        return masterUuid != null && masterUuid.equals(this.getUuid());
+        return WarlordSystem.isMinionOf(mob.getUuid(), this.getUuid());
     }
     
     /**
      * Static helper to check if a mob is a minion of any warlord.
+     * Uses WarlordSystem for centralized tracking.
      */
     public static boolean isMinion(UUID mobUuid) {
-        return MINION_TO_WARLORD.containsKey(mobUuid);
+        return WarlordSystem.isMinion(mobUuid);
     }
     
     /**
      * Static helper to get the warlord UUID for a minion.
+     * Uses WarlordSystem for centralized tracking.
      */
     public static UUID getMasterUuid(UUID minionUuid) {
-        return MINION_TO_WARLORD.get(minionUuid);
+        return WarlordSystem.getMasterUuid(minionUuid);
     }
     
     /**
@@ -1216,14 +1230,7 @@ public class MobWarlordEntity extends HostileEntity {
         }
         nbt.putLongArray("Minions", minionArray);
         
-        // Save betrayers
-        long[] betrayerArray = new long[betrayers.size() * 2];
-        int j = 0;
-        for (UUID uuid : betrayers) {
-            betrayerArray[j++] = uuid.getMostSignificantBits();
-            betrayerArray[j++] = uuid.getLeastSignificantBits();
-        }
-        nbt.putLongArray("Betrayers", betrayerArray);
+        // Betrayers are tracked in WarlordSystem, no local save needed
         
         // Save raid status
         nbt.putBoolean("IsRaidBoss", this.isRaidBoss());
@@ -1242,15 +1249,7 @@ public class MobWarlordEntity extends HostileEntity {
             }
         }
         
-        // Load betrayers
-        if (nbt.contains("Betrayers")) {
-            long[] betrayerArray = nbt.getLongArray("Betrayers");
-            betrayers.clear();
-            for (int i = 0; i < betrayerArray.length; i += 2) {
-                UUID uuid = new UUID(betrayerArray[i], betrayerArray[i + 1]);
-                betrayers.add(uuid);
-            }
-        }
+        // Betrayers are tracked in WarlordSystem, no local load needed
         
         // Load raid status
         if (nbt.contains("IsRaidBoss")) {
@@ -1348,8 +1347,8 @@ public class MobWarlordEntity extends HostileEntity {
             }
         }
         
-        // Clean up from static map
-        MINION_TO_WARLORD.remove(minionUuid);
+        // Clean up from WarlordSystem
+        WarlordSystem.unregisterMinion(minionUuid);
     }
     
     /**

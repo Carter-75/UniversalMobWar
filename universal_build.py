@@ -75,12 +75,12 @@ class UniversalBuildSystem:
         self.log_file = self.root / "universal_build.log"
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # System connection status
+        # System connection status - all 4 systems now have main files in system/ folder
         self.systems = {
-            "targeting": {"connected": False, "file": "goal/UniversalTargetGoal.java"},
+            "targeting": {"connected": False, "file": "system/TargetingSystem.java"},
             "alliance": {"connected": False, "file": "system/AllianceSystem.java"},
-            "scaling": {"connected": False, "file": None},  # Needs connection file
-            "warlord": {"connected": False, "file": "entity/MobWarlordEntity.java"},
+            "scaling": {"connected": False, "file": "system/ScalingSystem.java"},
+            "warlord": {"connected": False, "file": "system/WarlordSystem.java"},
         }
         
     def validate_all(self):
@@ -105,61 +105,73 @@ class UniversalBuildSystem:
         self.log_to_file("SYSTEM CONNECTION STATUS")
         self.log_to_file("=" * 80)
         
-        info("Analyzing 4 independent mod systems...")
+        info("Analyzing 4 independent mod systems (all in system/ folder)...")
         print()
         
         base_path = self.root / "src/main/java/mod/universalmobwar"
+        system_path = base_path / "system"
         
         # =======================================================================
         # SECTION 1: TARGETING SYSTEM
         # Mobs fight each other - FULLY FUNCTIONAL
+        # Main file: system/TargetingSystem.java
+        # Goal file: goal/UniversalTargetGoal.java
         # =======================================================================
-        targeting_file = base_path / "goal/UniversalTargetGoal.java"
+        targeting_system_file = system_path / "TargetingSystem.java"
+        targeting_goal_file = base_path / "goal/UniversalTargetGoal.java"
         targeting_connected = False
         targeting_status = []
         
-        if targeting_file.exists():
-            content = targeting_file.read_text(encoding='utf-8', errors='ignore')
+        # Check for central TargetingSystem.java
+        has_targeting_system = False
+        if targeting_system_file.exists():
+            content = targeting_system_file.read_text(encoding='utf-8', errors='ignore')
+            has_targeting_system = True
+            has_enabled_check = "isEnabled(" in content
+            has_find_target = "findTarget(" in content
+            has_valid_target = "isValidTarget(" in content
             
-            # Check for key components
-            has_config_check = "isTargetingEnabled()" in content or "isTargetingActive()" in content
-            has_goal_logic = "canStart()" in content and "shouldContinue()" in content
-            has_mod_integration = "ModConfig" in content
-            has_alliance_integration = "isAllianceIntegrationEnabled()" in content
-            has_warlord_integration = "getMasterUuidIfMinion()" in content
-            
-            if has_config_check and has_goal_logic and has_mod_integration:
-                targeting_connected = True
-                targeting_status.append("Core targeting logic ✓")
-                targeting_status.append("Config checks (isTargetingActive) ✓")
-                if has_alliance_integration:
-                    targeting_status.append("Optional alliance integration ✓")
-                if has_warlord_integration:
-                    targeting_status.append("Optional warlord integration ✓")
-            else:
-                if not has_config_check:
-                    targeting_status.append("❌ Missing config check")
-                if not has_goal_logic:
-                    targeting_status.append("❌ Missing goal logic")
+            targeting_status.append("TargetingSystem.java present")
+            if has_enabled_check:
+                targeting_status.append("Enable/disable check")
+            if has_find_target:
+                targeting_status.append("Target finding logic")
+            if has_valid_target:
+                targeting_status.append("Target validation")
         else:
-            targeting_status.append("❌ File not found")
+            targeting_status.append("TargetingSystem.java not found")
+        
+        # Check goal file uses the system
+        if targeting_goal_file.exists():
+            goal_content = targeting_goal_file.read_text(encoding='utf-8', errors='ignore')
+            uses_system = "TargetingSystem" in goal_content
+            has_goal_logic = "canStart()" in goal_content and "shouldContinue()" in goal_content
+            
+            if uses_system:
+                targeting_status.append("UniversalTargetGoal uses TargetingSystem")
+            if has_goal_logic:
+                targeting_status.append("Goal AI logic")
+            
+            if has_targeting_system and has_goal_logic:
+                targeting_connected = True
         
         self.systems["targeting"]["connected"] = targeting_connected
-        status_icon = "✅" if targeting_connected else "❌"
+        status_icon = "" if targeting_connected else ""
         status_text = "FULLY CONNECTED" if targeting_connected else "NOT CONNECTED"
         log(f"  {status_icon} TARGETING SYSTEM: {status_text}", Color.GREEN if targeting_connected else Color.RED)
-        log(f"     └─ Purpose: Mobs fight each other intelligently", Color.WHITE)
-        log(f"     └─ Config: targetingEnabled", Color.WHITE)
-        log(f"     └─ File: goal/UniversalTargetGoal.java", Color.WHITE)
+        log(f"     Purpose: Mobs fight each other intelligently", Color.WHITE)
+        log(f"     Config: targetingEnabled", Color.WHITE)
+        log(f"     Files: system/TargetingSystem.java, goal/UniversalTargetGoal.java", Color.WHITE)
         for s in targeting_status:
-            log(f"     └─ {s}", Color.WHITE)
+            log(f"     {s}", Color.WHITE)
         print()
         
         # =======================================================================
         # SECTION 2: ALLIANCE SYSTEM
         # Mobs team up against common enemies - FULLY FUNCTIONAL
+        # Main file: system/AllianceSystem.java
         # =======================================================================
-        alliance_file = base_path / "system/AllianceSystem.java"
+        alliance_file = system_path / "AllianceSystem.java"
         alliance_connected = False
         alliance_status = []
         
@@ -174,41 +186,42 @@ class UniversalBuildSystem:
             
             if has_config_check and has_update_logic and has_cleanup:
                 alliance_connected = True
-                alliance_status.append("Core alliance logic ✓")
-                alliance_status.append("Config checks (isAllianceActive) ✓")
+                alliance_status.append("AllianceSystem.java present")
+                alliance_status.append("Config checks (isAllianceActive)")
                 if has_config_values:
-                    alliance_status.append("Configurable durations/chances ✓")
+                    alliance_status.append("Configurable durations/chances")
                 if has_find_friend:
-                    alliance_status.append("Friend assistance logic ✓")
+                    alliance_status.append("Friend assistance logic")
             else:
                 if not has_config_check:
-                    alliance_status.append("❌ Missing config check")
+                    alliance_status.append("Missing config check")
                 if not has_update_logic:
-                    alliance_status.append("❌ Missing update logic")
+                    alliance_status.append("Missing update logic")
         else:
-            alliance_status.append("❌ File not found")
+            alliance_status.append("File not found")
         
         self.systems["alliance"]["connected"] = alliance_connected
-        status_icon = "✅" if alliance_connected else "❌"
+        status_icon = "" if alliance_connected else ""
         status_text = "FULLY CONNECTED" if alliance_connected else "NOT CONNECTED"
         log(f"  {status_icon} ALLIANCE SYSTEM: {status_text}", Color.GREEN if alliance_connected else Color.RED)
-        log(f"     └─ Purpose: Mobs team up against common enemies", Color.WHITE)
-        log(f"     └─ Config: allianceEnabled", Color.WHITE)
-        log(f"     └─ File: system/AllianceSystem.java", Color.WHITE)
+        log(f"     Purpose: Mobs team up against common enemies", Color.WHITE)
+        log(f"     Config: allianceEnabled", Color.WHITE)
+        log(f"     File: system/AllianceSystem.java", Color.WHITE)
         for s in alliance_status:
-            log(f"     └─ {s}", Color.WHITE)
+            log(f"     {s}", Color.WHITE)
         print()
         
         # =======================================================================
         # SECTION 3: SCALING SYSTEM (MOB PROGRESSION)
         # Mobs get stronger over time - CENTRALIZED SYSTEM
+        # Main file: system/ScalingSystem.java
         # ScalingSystem.java reads ALL JSON configs and handles ALL upgrades
         # =======================================================================
         scaling_connected = False
         scaling_status = []
         
         # Check for central ScalingSystem.java
-        scaling_system_file = base_path / "system/ScalingSystem.java"
+        scaling_system_file = system_path / "ScalingSystem.java"
         json_dir = self.root / "src/main/resources/mob_configs"
         config_file = base_path / "config/ModConfig.java"
         mob_data_mixin = self.root / "src/main/java/mod/universalmobwar/mixin/MobDataMixin.java"
@@ -244,25 +257,25 @@ class UniversalBuildSystem:
         
         # Build status report
         if has_scaling_system:
-            scaling_status.append("ScalingSystem.java present ✓")
+            scaling_status.append("ScalingSystem.java present")
             if has_json_loading:
-                scaling_status.append("JSON config loading ✓")
+                scaling_status.append("JSON config loading")
             if has_point_calculation:
-                scaling_status.append("Point calculation from world age ✓")
+                scaling_status.append("Point calculation from world age")
             if has_upgrade_spending:
-                scaling_status.append("Upgrade spending logic (80/20) ✓")
+                scaling_status.append("Upgrade spending logic (80/20)")
             if has_effect_application:
-                scaling_status.append("Effect application ✓")
+                scaling_status.append("Effect application")
         else:
-            scaling_status.append("❌ ScalingSystem.java not found")
+            scaling_status.append("ScalingSystem.java not found")
         
         if mixin_calls_scaling:
-            scaling_status.append("MobDataMixin integration ✓")
+            scaling_status.append("MobDataMixin integration")
         else:
-            scaling_status.append("⚠️ MobDataMixin not calling ScalingSystem")
+            scaling_status.append("MobDataMixin not calling ScalingSystem")
         
         if config_has_scaling:
-            scaling_status.append("Config checks (isScalingActive) ✓")
+            scaling_status.append("Config checks (isScalingActive)")
         
         scaling_status.append(f"JSON configs: {len(json_configs)}/80 mobs implemented")
         
@@ -272,75 +285,96 @@ class UniversalBuildSystem:
             has_upgrade_spending and has_effect_application and mixin_calls_scaling and 
             config_has_scaling and len(json_configs) > 0):
             scaling_connected = True
-            status_icon = "✅"
+            status_icon = ""
             status_text = f"FULLY CONNECTED ({len(json_configs)}/80 mobs)"
             color = Color.GREEN
         elif has_scaling_system and len(json_configs) > 0:
-            status_icon = "⚠️"
+            status_icon = ""
             status_text = "PARTIAL (system exists, integration incomplete)"
             color = Color.YELLOW
         else:
-            status_icon = "❌"
+            status_icon = ""
             status_text = "NOT CONNECTED"
             color = Color.RED
         
         self.systems["scaling"]["connected"] = scaling_connected
             
         log(f"  {status_icon} SCALING SYSTEM: {status_text}", color)
-        log(f"     └─ Purpose: Mobs get stronger over time (points → upgrades → effects)", Color.WHITE)
-        log(f"     └─ Config: scalingEnabled", Color.WHITE)
-        log(f"     └─ Files: system/ScalingSystem.java, mob_configs/*.json", Color.WHITE)
+        log(f"     Purpose: Mobs get stronger over time (points -> upgrades -> effects)", Color.WHITE)
+        log(f"     Config: scalingEnabled", Color.WHITE)
+        log(f"     File: system/ScalingSystem.java, mob_configs/*.json", Color.WHITE)
         for s in scaling_status:
-            log(f"     └─ {s}", Color.WHITE)
+            log(f"     {s}", Color.WHITE)
         print()
         
         # =======================================================================
         # SECTION 4: WARLORD SYSTEM (RAID BOSS)
         # Raid boss with minion army - FULLY FUNCTIONAL
+        # Main file: system/WarlordSystem.java
+        # Entity file: entity/MobWarlordEntity.java
         # =======================================================================
-        warlord_file = base_path / "entity/MobWarlordEntity.java"
+        warlord_system_file = system_path / "WarlordSystem.java"
+        warlord_entity_file = base_path / "entity/MobWarlordEntity.java"
         warlord_connected = False
         warlord_status = []
         
-        if warlord_file.exists():
-            content = warlord_file.read_text(encoding='utf-8', errors='ignore')
+        # Check for central WarlordSystem.java
+        has_warlord_system = False
+        if warlord_system_file.exists():
+            content = warlord_system_file.read_text(encoding='utf-8', errors='ignore')
+            has_warlord_system = True
+            has_enabled_check = "isEnabled(" in content
+            has_minion_tracking = "registerMinion(" in content and "getMasterUuid(" in content
+            has_config_getters = "getMaxMinions(" in content and "getSpawnChance(" in content
             
-            has_boss_logic = "ServerBossBar" in content
-            has_minion_logic = "summonMinions" in content or "minionUuids" in content
-            has_config = "ModConfig" in content or "getMaxMinions()" in content
-            
-            if has_boss_logic and has_minion_logic:
-                warlord_status.append("Boss entity with health bar ✓")
-                warlord_status.append("Minion summoning/control ✓")
-                if has_config:
-                    warlord_status.append("Config integration ✓")
-                    warlord_connected = True
-            else:
-                if not has_boss_logic:
-                    warlord_status.append("❌ Missing boss logic")
-                if not has_minion_logic:
-                    warlord_status.append("❌ Missing minion logic")
+            warlord_status.append("WarlordSystem.java present")
+            if has_enabled_check:
+                warlord_status.append("Enable/disable check")
+            if has_minion_tracking:
+                warlord_status.append("Minion tracking logic")
+            if has_config_getters:
+                warlord_status.append("Config getters")
         else:
-            warlord_status.append("❌ Entity file not found")
+            warlord_status.append("WarlordSystem.java not found")
+        
+        # Check entity file uses the system
+        if warlord_entity_file.exists():
+            entity_content = warlord_entity_file.read_text(encoding='utf-8', errors='ignore')
+            
+            uses_system = "WarlordSystem" in entity_content
+            has_boss_logic = "ServerBossBar" in entity_content
+            has_minion_logic = "summonMinions" in entity_content or "minionUuids" in entity_content
+            
+            if uses_system:
+                warlord_status.append("MobWarlordEntity uses WarlordSystem")
+            if has_boss_logic:
+                warlord_status.append("Boss entity with health bar")
+            if has_minion_logic:
+                warlord_status.append("Minion summoning/control")
+            
+            if has_warlord_system and has_boss_logic and has_minion_logic:
+                warlord_connected = True
+        else:
+            warlord_status.append("Entity file not found")
         
         # Check raid mixin for spawn integration
         raid_mixin_file = self.root / "src/main/java/mod/universalmobwar/mixin/RaidSpawningMixin.java"
         if raid_mixin_file.exists():
             content = raid_mixin_file.read_text(encoding='utf-8', errors='ignore')
             if "isWarlordActive()" in content:
-                warlord_status.append("Raid wave spawning ✓")
+                warlord_status.append("Raid wave spawning")
             if "warlordSpawnChance" in content or "warlordMinRaidLevel" in content:
-                warlord_status.append("Configurable spawn chance/wave ✓")
+                warlord_status.append("Configurable spawn chance/wave")
         
         self.systems["warlord"]["connected"] = warlord_connected
-        status_icon = "✅" if warlord_connected else "❌"
+        status_icon = "" if warlord_connected else ""
         status_text = "FULLY CONNECTED" if warlord_connected else "NOT CONNECTED"
         log(f"  {status_icon} WARLORD SYSTEM: {status_text}", Color.GREEN if warlord_connected else Color.RED)
-        log(f"     └─ Purpose: Raid boss with minion army", Color.WHITE)
-        log(f"     └─ Config: warlordEnabled", Color.WHITE)
-        log(f"     └─ Files: entity/MobWarlordEntity.java, mixin/RaidSpawningMixin.java", Color.WHITE)
+        log(f"     Purpose: Raid boss with minion army", Color.WHITE)
+        log(f"     Config: warlordEnabled", Color.WHITE)
+        log(f"     Files: system/WarlordSystem.java, entity/MobWarlordEntity.java", Color.WHITE)
         for s in warlord_status:
-            log(f"     └─ {s}", Color.WHITE)
+            log(f"     {s}", Color.WHITE)
         print()
         
         # =======================================================================
@@ -349,13 +383,21 @@ class UniversalBuildSystem:
         connected_count = sum(1 for s in self.systems.values() if s["connected"])
         total_systems = len(self.systems)
         
-        log("═" * 80, Color.BLUE)
+        log("=" * 80, Color.BLUE)
         log("  SYSTEM CONNECTION SUMMARY", Color.BOLD + Color.CYAN)
-        log("═" * 80, Color.BLUE)
+        log("=" * 80, Color.BLUE)
+        print()
+        
+        # Show all 4 system files in system/ folder
+        log("  All 4 systems now have main files in system/ folder:", Color.WHITE)
+        log("    - system/TargetingSystem.java  (+ goal/UniversalTargetGoal.java)", Color.WHITE)
+        log("    - system/AllianceSystem.java", Color.WHITE)
+        log("    - system/ScalingSystem.java    (+ mob_configs/*.json)", Color.WHITE)
+        log("    - system/WarlordSystem.java    (+ entity/MobWarlordEntity.java)", Color.WHITE)
         print()
         
         # Detailed status for each system - shows what's fully connected out of all 4
-        log("  Which sections are fully connected out of all 4:", Color.WHITE)
+        log("  Connection status:", Color.WHITE)
         print()
         
         system_details = [
@@ -366,13 +408,13 @@ class UniversalBuildSystem:
         ]
         
         for name, connected, purpose in system_details:
-            icon = "✅" if connected else "❌"
-            status = "FULLY CONNECTED" if connected else "NOT CONNECTED"
+            icon = "[OK]" if connected else "[--]"
+            status = "CONNECTED" if connected else "NOT CONNECTED"
             color = Color.GREEN if connected else Color.RED
-            log(f"    {icon} {name:12} │ {status:16} │ {purpose}", color)
+            log(f"    {icon} {name:12} | {status:16} | {purpose}", color)
         
         print()
-        log("─" * 80, Color.BLUE)
+        log("-" * 80, Color.BLUE)
         log(f"  RESULT: {connected_count}/{total_systems} systems fully connected", 
             Color.GREEN if connected_count == total_systems else Color.YELLOW)
         
@@ -382,7 +424,7 @@ class UniversalBuildSystem:
         if self.systems["scaling"]["connected"]:
             log(f"          SCALING: {json_count}/80 mobs implemented (add more in mob_configs/)", Color.GREEN)
         
-        log("═" * 80, Color.BLUE)
+        log("=" * 80, Color.BLUE)
         
         # Log to file
         self.log_to_file(f"\nSystem Status: {connected_count}/{total_systems} fully connected")

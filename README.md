@@ -319,7 +319,30 @@ A legendary boss that spawns during raids:
 
 ---
 
-## 🏗️ Technical Architecture
+## Technical Architecture
+
+### 4 Independent Systems (system/ folder)
+
+All 4 core systems now have their main files in `src/main/java/mod/universalmobwar/system/`:
+
+```
+system/
+├── TargetingSystem.java   - Mobs fight each other intelligently
+├── AllianceSystem.java    - Mobs team up against common enemies
+├── ScalingSystem.java     - Mobs get stronger over time (JSON-driven)
+└── WarlordSystem.java     - Raid boss with minion army
+```
+
+**Each system is independent** and can be enabled/disabled via config:
+- `targetingEnabled` - Toggle mob-vs-mob combat
+- `allianceEnabled` - Toggle alliance formation
+- `scalingEnabled` - Toggle mob progression/upgrades
+- `warlordEnabled` - Toggle raid boss spawning
+
+**Supporting files**:
+- `goal/UniversalTargetGoal.java` - AI goal using TargetingSystem
+- `entity/MobWarlordEntity.java` - Boss entity using WarlordSystem
+- `mob_configs/*.json` - 80 mob configs for ScalingSystem
 
 ### Individual Mob JSON Configs
 Each mob has a complete configuration file in `src/main/resources/mob_configs/`:

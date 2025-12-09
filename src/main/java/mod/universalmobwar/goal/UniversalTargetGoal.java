@@ -4,6 +4,8 @@ import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.system.AllianceSystem;
+import mod.universalmobwar.system.TargetingSystem;
+import mod.universalmobwar.system.WarlordSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.TrackTargetGoal;
@@ -96,11 +98,12 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	
 	/**
 	 * Check if this mob is a warlord minion (for warlord integration)
+	 * Uses WarlordSystem for centralized minion tracking.
 	 */
 	private UUID getMasterUuidIfMinion() {
 		// Only check if warlord system is enabled
-		if (!ModConfig.getInstance().isWarlordActive()) return null;
-		return MobWarlordEntity.getMasterUuid(mob.getUuid());
+		if (!WarlordSystem.isEnabled()) return null;
+		return WarlordSystem.getMasterUuid(mob.getUuid());
 	}
 
 	// ==========================================================================
@@ -128,6 +131,7 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		if (!mob.isAlive()) return false;
 
 		// WARLORD INTEGRATION: Check if this mob is a warlord minion
+		// Uses WarlordSystem for centralized minion tracking
 		UUID masterUuid = getMasterUuidIfMinion();
 		if (masterUuid != null) {
 			// This is a minion - clear any invalid targets
@@ -138,10 +142,9 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 					mob.setTarget(null);
 					return false;
 				}
-				// Don't target fellow minions (same master)
+				// Don't target fellow minions (same master) - use WarlordSystem
 				if (currentTarget instanceof MobEntity targetMob) {
-					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
-					if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
+					if (WarlordSystem.isMinionOf(targetMob.getUuid(), masterUuid)) {
 						mob.setTarget(null);
 						return false;
 					}
@@ -194,6 +197,7 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	public void start() {
 		if (this.candidate != null) {
 			// WARLORD INTEGRATION: Double-check if this mob is a warlord minion before setting target
+			// Uses WarlordSystem for centralized minion tracking
 			UUID masterUuid = getMasterUuidIfMinion();
 			if (masterUuid != null) {
 				// This is a minion - validate the candidate
@@ -202,20 +206,17 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 					this.candidate = null;
 					return;
 				}
-				// Don't target fellow minions (same master)
+				// Don't target fellow minions (same master) - use WarlordSystem
 				if (this.candidate instanceof MobEntity targetMob) {
-					UUID targetMasterUuid = MobWarlordEntity.getMasterUuid(targetMob.getUuid());
-					if (targetMasterUuid != null && targetMasterUuid.equals(masterUuid)) {
+					if (WarlordSystem.isMinionOf(targetMob.getUuid(), masterUuid)) {
 						this.candidate = null;
 						return;
 					}
 				}
 			}
 			mob.setTarget(this.candidate);
-			// Track target change
-			MobWarData data = MobWarData.get(mob);
-			data.setCurrentTarget(this.candidate.getUuid());
-			MobWarData.save(mob, data);
+			// Track target change - use TargetingSystem helper
+			TargetingSystem.updateTargetData(mob, this.candidate);
 			// ALLIANCE INTEGRATION: Update alliances if enabled
 			if (isAllianceIntegrationEnabled() && mob.getWorld() instanceof ServerWorld serverWorld) {
 				AllianceSystem.updateAlliances(mob, serverWorld);
