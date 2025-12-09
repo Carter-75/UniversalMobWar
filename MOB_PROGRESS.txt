@@ -1,0 +1,159 @@
+================================================================================
+                        UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
+================================================================================
+
+PROGRESS: 1 / 80 mobs completed
+
+================================================================================
+                              ALL MOBS (A-Z ORDER)
+================================================================================
+
+1.  [X] Allay              - DONE
+2.  [ ] Armadillo
+3.  [ ] Axolotl
+4.  [ ] Bat
+5.  [ ] Bee
+6.  [ ] Blaze
+7.  [ ] Bogged
+8.  [ ] Breeze
+9.  [ ] Camel
+10. [ ] Cat
+11. [ ] Cave_Spider
+12. [ ] Chicken
+13. [ ] Cod
+14. [ ] Cow
+15. [ ] Creaking
+16. [ ] Creeper
+17. [ ] Dolphin
+18. [ ] Donkey
+19. [ ] Drowned
+20. [ ] Elder_Guardian
+21. [ ] Ender_Dragon
+22. [ ] Enderman
+23. [ ] Endermite
+24. [ ] Evoker
+25. [ ] Fox
+26. [ ] Frog
+27. [ ] Giant
+28. [ ] Glow_Squid
+29. [ ] Goat
+30. [ ] Guardian
+31. [ ] Hoglin
+32. [ ] Horse
+33. [ ] Husk
+34. [ ] Illusioner
+35. [ ] Iron_Golem
+36. [ ] Llama
+37. [ ] Magma_Cube
+38. [ ] Mooshroom
+39. [ ] Mule
+40. [ ] Ocelot
+41. [ ] Panda
+42. [ ] Parrot
+43. [ ] Phantom
+44. [ ] Pig
+45. [ ] Piglin
+46. [ ] Piglin_Brute
+47. [ ] Pillager
+48. [ ] Polar_Bear
+49. [ ] Pufferfish
+50. [ ] Rabbit
+51. [ ] Ravager
+52. [ ] Salmon
+53. [ ] Sheep
+54. [ ] Shulker
+55. [ ] Silverfish
+56. [ ] Skeleton
+57. [ ] Skeleton_Horse
+58. [ ] Slime
+59. [ ] Sniffer
+60. [ ] Snow_Golem
+61. [ ] Spider
+62. [ ] Squid
+63. [ ] Stray
+64. [ ] Strider
+65. [ ] Tadpole
+66. [ ] Trader_Llama
+67. [ ] Tropical_Fish
+68. [ ] Turtle
+69. [ ] Vex
+70. [ ] Villager
+71. [ ] Vindicator
+72. [ ] Wandering_Trader
+73. [ ] Warden
+74. [ ] Witch
+75. [ ] Wither
+76. [ ] Wither_Skeleton
+77. [ ] Wolf
+78. [ ] Zoglin
+79. [ ] Zombie
+80. [ ] Zombie_Villager
+
+================================================================================
+                              INSTRUCTIONS FOR AI
+================================================================================
+
+EVERY TIME you need to create the next mob, follow these steps:
+
+1. READ THIS FILE (MOB_PROGRESS.txt)
+   - Find the next uncompleted mob (marked with [ ])
+   - Note its position in the A-Z list
+
+2. READ skilltree.txt
+   - Find the mob's entry in the "mob_list" section
+   - Note: type (passive/neutral/hostile), weapon, armor, shield, trees
+   - If passive: uses passive_potion_effects (regeneration, resistance, health_boost)
+   - If hostile/neutral: uses hostile_and_neutral_potion_effects
+   - If has equipment: uses all_mobs_item_masteries (drop_mastery, durability_mastery)
+   - If has trees: include those skill trees from shared_trees or specific_trees
+
+3. LOOK UP the Minecraft 1.21.1 Yarn mapping for the mob's entity class
+   - Example: Allay -> net.minecraft.entity.passive.AllayEntity
+   - Example: Zombie -> net.minecraft.entity.mob.ZombieEntity
+   - Use web search if needed: "Minecraft 1.21.1 Fabric [MobName]Entity yarn mappings"
+
+4. CREATE THE MIXIN FILE
+   - Location: src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
+   - Must be COMPLETELY STANDALONE (no dependencies on other files)
+   - Include ALL logic inline:
+     * Point system (world age scaling, kill scaling)
+     * All available upgrades with costs
+     * Spending logic (80% buy, 20% save)
+     * NBT persistence
+     * Effect application
+   - Match formatting of existing AllayMixin.java
+
+5. CREATE THE JSON CONFIG FILE
+   - Location: src/main/resources/mob_configs/[mobname].json (lowercase)
+   - Must be COMPLETELY STANDALONE
+   - Include all available upgrades for that mob
+   - Empty sections for things the mob doesn't have
+   - Match formatting of existing allay.json
+
+6. UPDATE universalmobwar.mixins.json
+   - Add the new mixin: "mob.[MobName]Mixin"
+
+7. UPDATE THIS FILE (MOB_PROGRESS.txt)
+   - Change [ ] to [X] for the completed mob
+   - Update the PROGRESS count at the top
+
+================================================================================
+                              IMPORTANT NOTES
+================================================================================
+
+- Each mob needs BOTH a mixin AND a json file
+- Files must be STANDALONE - no shared code, no imports from other mob files
+- Even after all 80 mobs are created, the system won't work yet
+- The connection/integration code will be done LATER
+- For now, just focus on creating consistent, standalone files for each mob
+
+================================================================================
+                              FILE LOCATIONS
+================================================================================
+
+Mixin files:  src/main/java/mod/universalmobwar/mixin/mob/
+JSON configs: src/main/resources/mob_configs/
+Mixin config: src/main/resources/universalmobwar.mixins.json
+Skill tree:   skilltree.txt
+
+================================================================================
