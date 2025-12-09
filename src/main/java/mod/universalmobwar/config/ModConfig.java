@@ -11,143 +11,218 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configuration file for Universal Mob War mod.
- * Stores default gamerule values and mob exclusions.
+ * Universal Mob War Configuration
+ * All settings for mob evolution, alliances, and battles
  */
 @Config(name = "universalmobwar")
 public class ModConfig implements ConfigData {
 
-    // ========== GENERAL ==========
-    @ConfigEntry.Category("General")
-    @ConfigEntry.Gui.Tooltip
+    // ========== GENERAL SETTINGS ==========
+    @ConfigEntry.Category("general")
+    @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean modEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean ignoreSameSpecies = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean targetPlayers = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean neutralMobsAlwaysAggressive = false;
-    @ConfigEntry.Gui.Tooltip
-    public boolean allianceSystemEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public double rangeMultiplier = 1.0;
-    @ConfigEntry.Gui.Tooltip
-    public boolean debugUpgradeLog = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean disableNaturalMobSpawns = false;
-    @ConfigEntry.Gui.Tooltip
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean evolutionSystemEnabled = true;
-    @ConfigEntry.Category("Mobs")
-    @ConfigEntry.Gui.Tooltip
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean allianceSystemEnabled = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean targetPlayers = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean ignoreSameSpecies = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean neutralMobsAlwaysAggressive = false;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean disableNaturalMobSpawns = false;
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 50)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public double rangeMultiplier = 1.0;
+    
+    // ========== MOB EVOLUTION ==========
+    @ConfigEntry.Category("evolution")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean scalingEnabled = true;
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public double dayScalingMultiplier = 1.0;
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public double killScalingMultiplier = 1.0;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean allowBossScaling = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean allowModdedScaling = true;
+    
+    // ========== VISUALS ==========
+    @ConfigEntry.Category("visuals")
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean showTargetLines = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean showHealthBars = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean showMobLabels = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean showLevelParticles = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public boolean disableParticles = false;
+    
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 144)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int minFpsForVisuals = 30;
+    
+    // ========== PERFORMANCE ==========
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean performanceMode = false;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean enableBatching = true;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean enableAsyncTasks = true;
+    
+    @ConfigEntry.BoundedDiscrete(min = 100, max = 5000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int targetingCacheMs = 1500;
+    
+    @ConfigEntry.BoundedDiscrete(min = 10, max = 200)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int targetingMaxQueriesPerTick = 50;
+    
+    @ConfigEntry.BoundedDiscrete(min = 50, max = 1000)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int mobDataSaveDebounceMs = 200;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 50)
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public int maxParticlesPerConnection = 8;
+    
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 100)
+    @ConfigEntry.Gui.Tooltip(count = 1)
+    public int maxDrawnMinionConnections = 15;
+    
+    // ========== DEBUG ==========
+    @ConfigEntry.Category("debug")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean debugUpgradeLog = false;
+    
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean debugLogging = false;
+    
+    // ========== MOB LISTS ==========
+    @ConfigEntry.Category("mobs")
+    @ConfigEntry.Gui.Tooltip(count = 2)
     public List<String> excludedMobs = new ArrayList<>();
-    @ConfigEntry.Gui.Tooltip
+    
+    @ConfigEntry.Gui.Excluded
     public List<String> specialMobs = Arrays.asList("witch", "creeper", "cave_spider");
 
-    // ========== SCALING ==========
-    @ConfigEntry.Category("Scaling")
-    @ConfigEntry.Gui.Tooltip
-    public boolean scalingEnabled = true;
-    @ConfigEntry.Gui.Tooltip
-    public double dayScalingMultiplier = 1.0;
-    @ConfigEntry.Gui.Tooltip
-    public double killScalingMultiplier = 1.0;
-    @ConfigEntry.Gui.Tooltip
-    public int maxTier = 20;
-    @ConfigEntry.Gui.Tooltip
-    public boolean allowBossScaling = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean allowModdedScaling = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean restrictEffectsToMobTheme = true;
+    // ========== EQUIPMENT TIERS (Hidden) ==========
+    @ConfigEntry.Gui.Excluded
+    public List<String> swordTiers = Arrays.asList(
+        "minecraft:wooden_sword", 
+        "minecraft:stone_sword", 
+        "minecraft:iron_sword", 
+        "minecraft:diamond_sword", 
+        "minecraft:netherite_sword"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldSwordTiers = Arrays.asList(
+        "minecraft:golden_sword", 
+        "minecraft:netherite_sword"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> axeTiers = Arrays.asList(
+        "minecraft:wooden_axe", 
+        "minecraft:stone_axe", 
+        "minecraft:iron_axe", 
+        "minecraft:diamond_axe", 
+        "minecraft:netherite_axe"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldAxeTiers = Arrays.asList(
+        "minecraft:golden_axe", 
+        "minecraft:netherite_axe"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> helmetTiers = Arrays.asList(
+        "minecraft:leather_helmet", 
+        "minecraft:chainmail_helmet", 
+        "minecraft:iron_helmet", 
+        "minecraft:diamond_helmet", 
+        "minecraft:netherite_helmet"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> chestTiers = Arrays.asList(
+        "minecraft:leather_chestplate", 
+        "minecraft:chainmail_chestplate", 
+        "minecraft:iron_chestplate", 
+        "minecraft:diamond_chestplate", 
+        "minecraft:netherite_chestplate"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> legsTiers = Arrays.asList(
+        "minecraft:leather_leggings", 
+        "minecraft:chainmail_leggings", 
+        "minecraft:iron_leggings", 
+        "minecraft:diamond_leggings", 
+        "minecraft:netherite_leggings"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> bootsTiers = Arrays.asList(
+        "minecraft:leather_boots", 
+        "minecraft:chainmail_boots", 
+        "minecraft:iron_boots", 
+        "minecraft:diamond_boots", 
+        "minecraft:netherite_boots"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldHelmetTiers = Arrays.asList(
+        "minecraft:golden_helmet", 
+        "minecraft:netherite_helmet"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldChestTiers = Arrays.asList(
+        "minecraft:golden_chestplate", 
+        "minecraft:netherite_chestplate"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldLegsTiers = Arrays.asList(
+        "minecraft:golden_leggings", 
+        "minecraft:netherite_leggings"
+    );
+    
+    @ConfigEntry.Gui.Excluded
+    public List<String> goldBootsTiers = Arrays.asList(
+        "minecraft:golden_boots", 
+        "minecraft:netherite_boots"
+    );
 
-    // ========== PERFORMANCE ==========
-    @ConfigEntry.Category("Performance")
-    @ConfigEntry.Gui.Tooltip
-    public boolean performanceMode = false;
-    @ConfigEntry.Gui.Tooltip
-    public int targetingCacheMs = 1500;
-    @ConfigEntry.Gui.Tooltip
-    public int targetingMaxQueriesPerTick = 50;
-    @ConfigEntry.Gui.Tooltip
-    public int mobDataSaveDebounceMs = 200;
-    @ConfigEntry.Gui.Tooltip
-    public boolean enableBatching = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean enableAsyncTasks = true;
-    @ConfigEntry.Gui.Tooltip
-    public int maxParticlesPerConnection = 8;
-    @ConfigEntry.Gui.Tooltip
-    public int maxDrawnMinionConnections = 15;
-    @ConfigEntry.Gui.Tooltip
-    public int minFpsForVisuals = 30;
-    @ConfigEntry.Gui.Tooltip
-    public boolean debugLogging = false;
-
-    // ========== VISUALS ==========
-    @ConfigEntry.Category("Visuals")
-    @ConfigEntry.Gui.Tooltip
-    public boolean showTargetLines = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showHealthBars = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showMobLabels = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean showLevelParticles = true;
-    @ConfigEntry.Gui.Tooltip
-    public boolean disableParticles = false;
-
-    // Upgrade cost arrays (hidden from GUI)
-    @ConfigEntry.Gui.Excluded
-    public int[] generalUpgradeCosts = {2};
-    @ConfigEntry.Gui.Excluded
-    public int[] generalPassiveUpgradeCosts = {2, 2, 2};
-    @ConfigEntry.Gui.Excluded
-    public int[] swordUpgradeCosts = {1, 1, 2, 2, 3, 3, 4, 4, 5};
-    @ConfigEntry.Gui.Excluded
-    public int[] tridentUpgradeCosts = {3, 3, 3};
-    @ConfigEntry.Gui.Excluded
-    public int[] bowUpgradeCosts = {2, 2, 2, 3, 3, 3, 3};
-    @ConfigEntry.Gui.Excluded
-    public int[] armorUpgradeCosts = {2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5};
-    @ConfigEntry.Gui.Excluded
-    public int[] zombieUpgradeCosts = {3};
-    @ConfigEntry.Gui.Excluded
-    public int[] projectileUpgradeCosts = {2};
-    @ConfigEntry.Gui.Excluded
-    public int[] creeperUpgradeCosts = {3};
-    @ConfigEntry.Gui.Excluded
-    public int[] witchUpgradeCosts = {3};
-    @ConfigEntry.Gui.Excluded
-    public int[] caveSpiderUpgradeCosts = {3};
-
-    // Item tiers (hidden)
-    @ConfigEntry.Gui.Excluded
-    public List<String> swordTiers = Arrays.asList("minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:netherite_sword");
-    @ConfigEntry.Gui.Excluded
-    public List<String> goldSwordTiers = Arrays.asList("minecraft:golden_sword", "minecraft:netherite_sword");
-    @ConfigEntry.Gui.Excluded
-    public List<String> axeTiers = Arrays.asList("minecraft:wooden_axe", "minecraft:stone_axe", "minecraft:iron_axe", "minecraft:diamond_axe", "minecraft:netherite_axe");
-    @ConfigEntry.Gui.Excluded
-    public List<String> goldAxeTiers = Arrays.asList("minecraft:golden_axe", "minecraft:netherite_axe");
-    @ConfigEntry.Gui.Excluded
-    public List<String> helmetTiers = Arrays.asList("minecraft:leather_helmet", "minecraft:chainmail_helmet", "minecraft:iron_helmet", "minecraft:diamond_helmet", "minecraft:netherite_helmet");
-    @ConfigEntry.Gui.Excluded
-    public List<String> chestTiers = Arrays.asList("minecraft:leather_chestplate", "minecraft:chainmail_chestplate", "minecraft:iron_chestplate", "minecraft:diamond_chestplate", "minecraft:netherite_chestplate");
-    @ConfigEntry.Gui.Excluded
-    public List<String> legsTiers = Arrays.asList("minecraft:leather_leggings", "minecraft:chainmail_leggings", "minecraft:iron_leggings", "minecraft:diamond_leggings", "minecraft:netherite_leggings");
-    @ConfigEntry.Gui.Excluded
-    public List<String> bootsTiers = Arrays.asList("minecraft:leather_boots", "minecraft:chainmail_boots", "minecraft:iron_boots", "minecraft:diamond_boots", "minecraft:netherite_boots");
-
-        // Gold armor tiers for piglins/brutes only
-        @ConfigEntry.Gui.Excluded
-        public List<String> goldHelmetTiers = Arrays.asList("minecraft:golden_helmet", "minecraft:netherite_helmet");
-        @ConfigEntry.Gui.Excluded
-        public List<String> goldChestTiers = Arrays.asList("minecraft:golden_chestplate", "minecraft:netherite_chestplate");
-        @ConfigEntry.Gui.Excluded
-        public List<String> goldLegsTiers = Arrays.asList("minecraft:golden_leggings", "minecraft:netherite_leggings");
-        @ConfigEntry.Gui.Excluded
-        public List<String> goldBootsTiers = Arrays.asList("minecraft:golden_boots", "minecraft:netherite_boots");
-
+    // ========== INTERNAL ==========
     private static ConfigHolder<ModConfig> holder;
 
     public static ModConfig getInstance() {
@@ -178,4 +253,3 @@ public class ModConfig implements ConfigData {
         }
     }
 }
-

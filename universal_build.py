@@ -71,11 +71,15 @@ class UniversalBuildSystem:
         self.errors = []
         self.warnings = []
         self.root = Path(__file__).parent.resolve()
-        self.timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.log_file = self.root / "universal_build.log"
+        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
     def validate_all(self):
         """Run all validations"""
         header("VALIDATION SUITE")
+        self.log_to_file("\n" + "=" * 80)
+        self.log_to_file("VALIDATION SUITE")
+        self.log_to_file("=" * 80)
         
         self.validate_json_configs()
         self.validate_mob_completeness()
@@ -232,20 +236,32 @@ class UniversalBuildSystem:
     def build_project(self):
         """Build with Gradle"""
         header("GRADLE BUILD")
+        self.log_to_file("\n" + "=" * 80)
+        self.log_to_file("GRADLE BUILD")
+        self.log_to_file("=" * 80)
         
         gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
         
         # Clean
         info("Running gradle clean...")
+        self.log_to_file("Running gradle clean...")
         try:
-            subprocess.run([gradlew, "clean"], cwd=self.root, check=True, timeout=300)
-            success("Clean completed")
+            result = subprocess.run([gradlew, "clean"], cwd=self.root, capture_output=True, text=True, timeout=300)
+            if result.returncode == 0:
+                success("Clean completed")
+                self.log_to_file("✅ Clean completed")
+            else:
+                error(f"Clean failed: {result.stderr}")
+                self.log_to_file(f"❌ Clean failed: {result.stderr}")
+                return False
         except Exception as e:
             error(f"Clean failed: {e}")
+            self.log_to_file(f"❌ Clean failed: {e}")
             return False
         
         # Build
         info("Running gradle build...")
+        self.log_to_file("Running gradle build...")
         try:
             result = subprocess.run(
                 [gradlew, "build", "--no-daemon", "--stacktrace"],
@@ -257,6 +273,8 @@ class UniversalBuildSystem:
             
             if result.returncode == 0:
                 success("Build successful!")
+                self.log_to_file("✅ Build successful!")
+                self.log_to_file("\nBuild output:\n" + result.stdout[-500:])  # Last 500 chars
                 
                 # Find JAR
                 libs_dir = self.root / "build/libs"
@@ -266,24 +284,33 @@ class UniversalBuildSystem:
                 if jars:
                     jar_file = jars[0]
                     jar_size = jar_file.stat().st_size / (1024 * 1024)
-                    success(f"JAR created: {jar_file.name} ({jar_size:.2f} MB)")
+                    msg = f"JAR created: {jar_file.name} ({jar_size:.2f} MB)"
+                    success(msg)
+                    self.log_to_file(f"✅ {msg}")
                     return True
                 else:
                     error("No JAR file found!")
+                    self.log_to_file("❌ No JAR file found!")
                     return False
             else:
                 error("Build failed!")
-                print(result.stdout)
-                print(result.stderr)
+                self.log_to_file("❌ Build failed!")
+                self.log_to_file("\nBuild errors:\n" + result.stderr)
+                print(result.stdout[-1000:])  # Print last 1000 chars
+                print(result.stderr[-1000:])
                 return False
                 
         except Exception as e:
             error(f"Build failed: {e}")
+            self.log_to_file(f"❌ Build failed: {e}")
             return False
     
     def git_commit_and_push(self, message="Automated build"):
         """Commit and push to GitHub"""
         header("GIT COMMIT & PUSH")
+        self.log_to_file("\n" + "=" * 80)
+        self.log_to_file("GIT COMMIT & PUSH")
+        self.log_to_file("=" * 80)
         
         try:
             # Check if there are changes
@@ -296,11 +323,13 @@ class UniversalBuildSystem:
             
             if not result.stdout.strip():
                 info("No changes to commit")
+                self.log_to_file("No changes to commit")
                 return True
             
             # Add all
             subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
             success("Files staged")
+            self.log_to_file("✅ Files staged")
             
             # Commit
             commit_msg = f"{message}\n\nGenerated: {self.timestamp}"
@@ -310,9 +339,11 @@ class UniversalBuildSystem:
                 check=True
             )
             success(f"Committed: {message}")
+            self.log_to_file(f"✅ Committed: {message}")
             
             # Push
             info("Pushing to GitHub...")
+            self.log_to_file("Pushing to GitHub...")
             result = subprocess.run(
                 ["git", "push", "origin", "main"],
                 cwd=self.root,
@@ -322,58 +353,57 @@ class UniversalBuildSystem:
             
             if result.returncode == 0:
                 success("Pushed to origin/main ✓")
+                self.log_to_file("✅ Pushed to origin/main")
                 return True
             else:
                 error(f"Push failed: {result.stderr}")
+                self.log_to_file(f"❌ Push failed: {result.stderr}")
                 return False
                 
         except subprocess.CalledProcessError as e:
             error(f"Git operation failed: {e}")
+            self.log_to_file(f"❌ Git operation failed: {e}")
             return False
+    
+    def log_to_file(self, message):
+        """Append message to log file"""
+        with open(self.log_file, 'a') as f:
+            f.write(message + "\n")
     
     def generate_report(self):
         """Generate build report"""
         header("BUILD REPORT")
         
-        if not self.errors:
-            success("✅ ALL CHECKS PASSED!")
-        else:
-            error(f"❌ {len(self.errors)} ERROR(S) FOUND:")
-            for i, err in enumerate(self.errors, 1):
-                print(f"  {i}. {err}")
-        
-        if self.warnings:
-            warning(f"⚠️  {len(self.warnings)} WARNING(S):")
-            for i, warn in enumerate(self.warnings, 1):
-                print(f"  {i}. {warn}")
-        
-        # Save detailed report
-        report_file = self.root / f"build_report_{self.timestamp}.txt"
-        with open(report_file, 'w') as f:
+        # Clear old log and start fresh
+        with open(self.log_file, 'w') as f:
             f.write("=" * 80 + "\n")
-            f.write("UNIVERSAL MOB WAR - BUILD REPORT\n")
+            f.write("UNIVERSAL MOB WAR - BUILD LOG\n")
             f.write("=" * 80 + "\n\n")
             f.write(f"Timestamp: {self.timestamp}\n")
             f.write(f"Minecraft Version: 1.21.1\n")
             f.write(f"Mob Configs: 80\n")
-            f.write(f"Mixins: 22+\n\n")
-            
-            if self.errors:
-                f.write("ERRORS:\n")
-                for err in self.errors:
-                    f.write(f"  ❌ {err}\n")
-                f.write("\n")
-            
-            if self.warnings:
-                f.write("WARNINGS:\n")
-                for warn in self.warnings:
-                    f.write(f"  ⚠️  {warn}\n")
-                f.write("\n")
-            
-            if not self.errors:
-                f.write("✅ ALL CHECKS PASSED!\n")
+            f.write(f"Mixins: 22\n\n")
         
-        success(f"Report saved: {report_file.name}")
+        if not self.errors:
+            success("✅ ALL CHECKS PASSED!")
+            self.log_to_file("✅ ALL CHECKS PASSED!")
+        else:
+            error(f"❌ {len(self.errors)} ERROR(S) FOUND:")
+            self.log_to_file(f"❌ {len(self.errors)} ERROR(S) FOUND:")
+            for i, err in enumerate(self.errors, 1):
+                msg = f"  {i}. {err}"
+                print(msg)
+                self.log_to_file(msg)
+        
+        if self.warnings:
+            warning(f"⚠️  {len(self.warnings)} WARNING(S):")
+            self.log_to_file(f"⚠️  {len(self.warnings)} WARNING(S):")
+            for i, warn in enumerate(self.warnings, 1):
+                msg = f"  {i}. {warn}"
+                print(msg)
+                self.log_to_file(msg)
+        
+        success(f"Complete log: universal_build.log")
 
 def main():
     parser = argparse.ArgumentParser(
