@@ -378,7 +378,7 @@ public class UpgradeSystem {
         boolean useSword = isG && !isBow && !isTrident && !isAxe && !isNW && !isWitch && !isPiglinBrute;
         boolean useAxe = isAxe || isPiglinBrute;
 
-        if (isG) addGeneralUpgrades(state, collector);
+        if (isG) addGeneralUpgrades(state, collector, context);
         if (isGP) addGeneralPassiveUpgrades(state, collector);
         if (isZ) addZombieUpgrades(state, collector, ZOMBIE_COSTS, context);
         if (isPro) addProjectileUpgrades(state, collector, PROJECTILE_COSTS);
@@ -525,7 +525,7 @@ public class UpgradeSystem {
         }
     }
 
-    private static void addGeneralUpgrades(SimState state, UpgradeCollector options) {
+    private static void addGeneralUpgrades(SimState state, UpgradeCollector options, SimulationContext context) {
         SkillTreeConfig config = SkillTreeConfig.getInstance();
         
         // HEALING: Load from JSON
@@ -577,9 +577,18 @@ public class UpgradeSystem {
         }
         
         // SHIELD CHANCE: Fixed cost of 10 pts from skilltree
+        // CRITICAL: Check if mob can actually have shield (from MobDefinition)
         int shieldLvl = state.getLevel("shield_chance");
         if (shieldLvl == 0) { // Only level 1 available per skilltree
-            addOpt(options, state, "shield_chance", "g", "offhand", 10);
+            // Get mob definition to verify shield availability
+            String mobName = context.translationKey.replace("entity.minecraft.", "")
+                .replace("entity.", "")
+                .replaceAll("\\.", "_");
+            
+            MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
+            if (mobDef != null && mobDef.shield) {
+                addOpt(options, state, "shield_chance", "g", "offhand", 10);
+            }
         }
     }
 
@@ -976,11 +985,17 @@ public class UpgradeSystem {
                 net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE, 999999, 0));
         }
         
-        // Equipment
+        // Equipment - Use MobDefinition to determine starting equipment
+        String mobName = mob.getType().getTranslationKey()
+            .replace("entity.minecraft.", "")
+            .replace("entity.", "")
+            .replaceAll("\\.", "_");
+        MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
         boolean isPiglin = mob.getType().getTranslationKey().contains("piglin");
         
-        // Sword - ONLY equip if upgrades purchased (melee mobs start with nothing)
-        boolean hasSword = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        // Sword - Melee mobs start NAKED, only equip if upgrades purchased
+        boolean hasSwordUpgrades = state.getCategoryCount("sword") > 0 || state.getItemTier("sword") > 0;
+        boolean hasSword = hasSwordUpgrades; // Swords must be earned
         if (hasSword && state.getItemTier("sword") >= 0) {
             boolean isWitherSkeleton = mob.getType().getTranslationKey().contains("wither_skeleton");
             List<String> tiers = isPiglin ? GOLD_SWORD_TIERS : SWORD_TIERS;
@@ -1014,8 +1029,9 @@ public class UpgradeSystem {
             }
         }
 
-        // Axe - ONLY equip if upgrades purchased (melee mobs start with nothing)
-        boolean hasAxe = state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        // Axe - Melee mobs start NAKED, only equip if upgrades purchased
+        boolean hasAxeUpgrades = state.getCategoryCount("axe") > 0 || state.getItemTier("axe") > 0;
+        boolean hasAxe = hasAxeUpgrades; // Axes must be earned
         if (hasAxe && state.getItemTier("axe") >= 0) {
             List<String> tiers = isPiglin ? GOLD_AXE_TIERS : AXE_TIERS;
             int tierIndex = state.getItemTier("axe");
@@ -1041,8 +1057,10 @@ public class UpgradeSystem {
             }
         }
 
-        // Trident - Drowned START with trident (ranged weapon)
-        boolean hasTrident = (profile.categories != null && profile.categories.contains("trident")) || state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
+        // Trident - Drowned START with trident (ranged weapon per MobDefinition)
+        boolean hasTridentUpgrades = state.getCategoryCount("trident") > 0 || state.getItemTier("trident") > 0;
+        boolean mobStartsWithTrident = (mobDef != null && mobDef.weaponType == MobDefinition.WeaponType.TRIDENT);
+        boolean hasTrident = mobStartsWithTrident || hasTridentUpgrades;
         if (hasTrident && state.getItemTier("trident") >= 0) {
             int tierIndex = state.getItemTier("trident");
             // Only one trident tier in vanilla, but support for future expansion
@@ -1069,9 +1087,12 @@ public class UpgradeSystem {
             }
         }
 
-        // Bow/Crossbow - Ranged weapon users START with their weapon
-        // Pillagers, Piglins (ranged), Illusioners use crossbow; others use bow
-        boolean hasBow = (profile.categories != null && profile.categories.contains("bow")) || state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
+        // Bow/Crossbow - Ranged weapon users START with their weapon per MobDefinition
+        // Pillagers, Piglins (ranged), Illusioners use crossbow; Skeletons use bow
+        boolean hasBowUpgrades = state.getCategoryCount("bow") > 0 || state.getItemTier("bow") > 0;
+        boolean mobStartsWithBow = (mobDef != null && 
+            (mobDef.weaponType == MobDefinition.WeaponType.BOW || mobDef.weaponType == MobDefinition.WeaponType.CROSSBOW));
+        boolean hasBow = mobStartsWithBow || hasBowUpgrades;
         if (hasBow && state.getItemTier("bow") >= 0) {
             // Determine if this mob uses crossbow or bow
             String translationKey = mob.getType().getTranslationKey();
@@ -1096,8 +1117,14 @@ public class UpgradeSystem {
             }
         }
         
-        // Armor - ONLY equip if upgrades purchased (all mobs start naked)
-        if (state.getCategoryCount("armor") > 0 || state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0) {
+        // Armor - ONLY equip if upgrades purchased (all mobs start naked per skilltree)
+        // CRITICAL: Also verify mob CAN have armor from MobDefinition
+        boolean hasArmorUpgrades = state.getCategoryCount("armor") > 0 || 
+            state.getItemTier("head") > 0 || state.getItemTier("chest") > 0 || 
+            state.getItemTier("legs") > 0 || state.getItemTier("feet") > 0;
+        boolean mobCanHaveArmor = (mobDef != null && mobDef.armorType != MobDefinition.ArmorType.NONE);
+        
+        if (hasArmorUpgrades && mobCanHaveArmor) {
             if (state.getItemTier("head") >= 0) {
                 int headTier = Math.min(state.getItemTier("head"), HELMET_TIERS.size() - 1);
                 String itemId = HELMET_TIERS.get(headTier);
@@ -1183,18 +1210,29 @@ public class UpgradeSystem {
         
         // Shield Chance: 0% -> 100% (Normal curve)
         // Now handled via points (shield_chance level)
+        // CRITICAL: Verify mob can have shield from MobDefinition
         int shieldLvl = state.getLevel("shield_chance");
         if (shieldLvl > 0) {
-             // Level 1-5. 
-             // Level 1: 20%, Level 5: 100%
-             double p = shieldLvl * 0.20;
-             if (mob.getRandom().nextDouble() < p) {
-                 ItemStack shield = new ItemStack(Items.SHIELD);
-                 // Apply defensive enchants (Unbreaking/Mending) from Armor tree (using Chest stats as proxy for shield)
-                 applyEnchant(mob, shield, "unbreaking", state.getLevel("armor_unbreaking_chest"));
-                 applyEnchant(mob, shield, "mending", state.getLevel("armor_mending_chest"));
-                 mob.equipStack(EquipmentSlot.OFFHAND, shield);
-             }
+            String mobName = mob.getType().getTranslationKey()
+                .replace("entity.minecraft.", "")
+                .replace("entity.", "")
+                .replaceAll("\\.", "_");
+            
+            MobDefinition mobDef = ArchetypeClassifier.getMobDefinition(mobName);
+            boolean canHaveShield = (mobDef != null && mobDef.shield);
+            
+            if (canHaveShield) {
+                // Level 1-5. 
+                // Level 1: 20%, Level 5: 100%
+                double p = shieldLvl * 0.20;
+                if (mob.getRandom().nextDouble() < p) {
+                    ItemStack shield = new ItemStack(Items.SHIELD);
+                    // Apply defensive enchants (Unbreaking/Mending) from Armor tree (using Chest stats as proxy for shield)
+                    applyEnchant(mob, shield, "unbreaking", state.getLevel("armor_unbreaking_chest"));
+                    applyEnchant(mob, shield, "mending", state.getLevel("armor_mending_chest"));
+                    mob.equipStack(EquipmentSlot.OFFHAND, shield);
+                }
+            }
         }
 
         // NOTE: Removed automatic 'maxed' forcing of durability/drop chance.

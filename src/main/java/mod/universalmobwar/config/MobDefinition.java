@@ -47,7 +47,9 @@ public class MobDefinition {
         
         // Parse weapon type
         this.weaponType = parseWeaponType(weapon);
-        this.startsWithWeapon = isRangedWeapon(weaponType) || weaponType == WeaponType.IRON_AXE || weaponType == WeaponType.GOLD_AXE;
+        // CRITICAL: ONLY ranged weapons start with weapon per skilltree.txt
+        // All melee weapons (swords, axes) must be earned
+        this.startsWithWeapon = isRangedWeapon(weaponType);
         
         // Parse armor type
         this.armorType = parseArmorType(armor);
