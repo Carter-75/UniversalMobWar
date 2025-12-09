@@ -19,7 +19,8 @@
 		"NaturalMobSpawnBlockerMixin",
 		"mob.AllayMixin",
 		"mob.ArmadilloMixin",
-		"mob.AxolotlMixin"
+		"mob.AxolotlMixin",
+		"mob.BatMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
