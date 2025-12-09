@@ -138,6 +138,44 @@ EVERY TIME you need to create the next mob, follow these steps:
    - Update the PROGRESS count at the top
 
 ================================================================================
+                              SKILL TREE NAMING RULES
+================================================================================
+
+When a mob has skill trees from skilltree.txt, use DESCRIPTIVE names based on
+the mob's theme and abilities. DO NOT use generic names like "ranged_r" or "z".
+
+TREE NAME MAPPINGS (skilltree.txt key -> Descriptive name to use):
+
+For "z" / "zombie_z" tree (Horde_Summon, Hunger_Attack):
+  - Zombie, Zombie_Villager, Husk -> "Undead Horde Tactics"
+  - Drowned                       -> "Drowned Legion Tactics"
+  - Bogged                        -> "Swamp Shambler Tactics"
+  - Giant                         -> "Colossal Undead Tactics"
+  - Zoglin                        -> "Corrupted Beast Tactics"
+
+For "r" / "ranged_r" tree (Piercing_Shot, Bow_Potion_Mastery, Multishot):
+  - Skeleton, Stray, Bogged       -> "Skeletal Archery"
+  - Blaze                         -> "Infernal Bombardment"
+  - Breeze                        -> "Wind Charge Mastery"
+  - Pillager                      -> "Raider Marksmanship"
+  - Drowned                       -> "Abyssal Trident Arts"
+  - Witch                         -> "Hexed Projectiles"
+  - Shulker                       -> "Levitation Artillery"
+  - Llama, Trader_Llama           -> "Llama Spit Tactics"
+  - Snow_Golem                    -> "Frostball Barrage"
+  - Illusioner                    -> "Phantom Archery"
+  - Wither                        -> "Skull Barrage Mastery"
+
+For "creeper" tree (Creeper_Power, Creeper_Potion_Cloud):
+  - Creeper                       -> "Explosive Evolution"
+
+For "witch" tree (Potion_Throw_Speed, Extra_Potion_Bag):
+  - Witch                         -> "Potion Brewing Mastery"
+
+For "cave_spider" tree (Poison_Mastery):
+  - Cave_Spider                   -> "Venomous Predator"
+
+================================================================================
                               IMPORTANT NOTES
 ================================================================================
 
@@ -146,6 +184,7 @@ EVERY TIME you need to create the next mob, follow these steps:
 - Even after all 80 mobs are created, the system won't work yet
 - The connection/integration code will be done LATER
 - For now, just focus on creating consistent, standalone files for each mob
+- ALWAYS use the descriptive skill tree names from the mapping above!
 
 ================================================================================
                               FILE LOCATIONS

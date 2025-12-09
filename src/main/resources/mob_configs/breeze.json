@@ -9,7 +9,7 @@
     "shield": false
   },
   
-  "skill_trees": ["ranged_r"],
+  "skill_trees": ["Wind Charge Mastery"],
   
   "point_system": {
     "daily_scaling": [
@@ -73,7 +73,7 @@
         { "level": 5, "cost": 25, "chance": "80%", "duration": "20s", "cooldown": "60s" }
       ]
     },
-    "ranged_tree": {
+    "wind_charge_mastery": {
       "piercing_shot": [
         { "level": 1, "cost": 8,  "pierce": 1 },
         { "level": 2, "cost": 12, "pierce": 2 },
