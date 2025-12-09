@@ -1,615 +1,312 @@
-```
-
-# UNIVERSAL MOB WAR – COMPLETE SKILL TREE & POINT SYSTEM
-
-**v3.1 — Fully Complete, No Truncations (December 07, 2025)**
-
-Complete, merged, fully-detailed system. All mechanics current. Every table, rule, cost, and example included verbatim.
-
-============================================================
-
-💰 CORE POINT SYSTEM
-
-============================================================
-
-Points behave like RPG currency.
-
-• Earned from:
-
-  – Days survived (cumulative daily tiers)
-
-  – Kills accumulated (1 per kill)
-
-• totalPoints = all points ever earned
-
-• spentPoints = all points ever spent
-
-• Budget = totalPoints − spentPoints
-
-• Points spent automatically every server tick (20/second)
-
-------------------------------------------------------------
-
-📊 POINT ACCUMULATION (FULL FORMULA)
-
-------------------------------------------------------------
-
-Day-scaling (cumulative, tiered daily earnings):
-
-• Days 0–10 → 0.1 pts/day
-
-• Days 11–15 → 0.5 pts/day
-
-• Days 16–20 → 1.0 pts/day
-
-• Days 21–25 → 1.5 pts/day
-
-• Days 26–30 → 3.0 pts/day
-
-• Days 31+ → 5.0 pts/day
-
-Kill-scaling:
-
-• 1 point per kill (fixed multiplier 1.0)
-
-Example (Day 35 spawn):
-
-• Cumulative day points = (10×0.1) + (5×0.5) + (5×1.0) + (5×1.5) + (5×3.0) + (5×5.0) = 1 + 2.5 + 5 + 7.5 + 15 + 25 = 56 pts
-
-• +100 kills = 100 pts
-
-• totalPoints = 156 pts
-
-============================================================
-
-🌳 UNIVERSAL BASE TREE (g) — All hostile + modded hostile mobs
-
-============================================================
-
-Every hostile mob uses this baseline tree unless overridden by additive mob-specific trees.
-
-------------------------------------------------------------
-
-HEALING (5 levels, 1/2/3/4/5 pts → total 15)
-
-------------------------------------------------------------
-
-• Level 1: Permanent Regen I
-
-• Level 2: Permanent Regen II
-
-• Level 3: 20% chance on taking damage → Regen III (10s duration, 60s shared CD)
-
-• Level 4: 40% chance on taking damage → Regen IV (10s duration, 60s shared CD)
-
-• Level 5: 80% chance on taking damage → Regen V (20s duration, 60s shared CD)
-
-------------------------------------------------------------
-
-HEALTH BOOST (10 levels, 2/3/4/5/6/7/8/9/10/11 pts → total 65)
-
-------------------------------------------------------------
-
-• +2 max HP per level
-
-• Max: +20 HP (10 extra hearts)
-
-• Progressive cost scaling for significant stat increases
-
-------------------------------------------------------------
-
-RESISTANCE (3 levels, 4/6/8 pts → total 18)
-
-------------------------------------------------------------
-
-• Level 1: Permanent Resistance I
-
-• Level 2: Permanent Resistance II
-
-• Level 3: Permanent Resistance II + Fire Resistance I
-
-------------------------------------------------------------
-
-STRENGTH (4 levels, 3/5/7/9 pts → total 24)
-
-------------------------------------------------------------
-
-• +20% damage per level
-
-• Max: +80% damage
-
-------------------------------------------------------------
-
-SPEED (3 levels, 6/9/12 pts → total 27)
-
-------------------------------------------------------------
-
-• +20% movement speed per level
-
-• Max: +60% speed
-
-------------------------------------------------------------
-
-INVISIBILITY MASTERY (5 levels, 5/7/9/11/13 pts → total 45)
-
-------------------------------------------------------------
-
-• On taking damage: chance to become invisible (60s shared cooldown)
-
-• Level 1: 5% chance → 5s invisibility
-
-• Level 2: 20% chance → 8s invisibility
-
-• Level 3: 40% chance → 12s invisibility
-
-• Level 4: 60% chance → 16s invisibility
-
-• Level 5: 80% chance → 20s invisibility
-
-------------------------------------------------------------
-
-SHIELD CHANCE (5 levels, 8/11/14/17/20 pts → total 70)
-
-------------------------------------------------------------
-
-• Chance to equip/raise shield on attack (blocks incoming attacks)
-
-• Level 1: 20%
-
-• Level 2: 40%
-
-• Level 3: 60%
-
-• Level 4: 80%
-
-• Level 5: 100%
-
-============================================================
-
-🛠️ EQUIPMENT SYSTEM — TIERS, MASTERY, ENCHANTS
-
-============================================================
-
-### Tier Progression
-
-• Weapons: Wood → Stone → Iron → Diamond → Netherite
-
-• Armor (all pieces): Leather → Chain → Iron → Diamond → Netherite
-
-• Piglin weapons: Gold → Netherite (breaks = destroyed, no lower tier)
-
-### Tier-Up Trigger
-
-• Requires **full mastery** on current gear:
-
-  - Durability Mastery level 10
-
-  - Drop Mastery level 10
-
-• On tier-up: All enchants wiped, both masteries reset to 0
-
-### If Equipment Breaks
-
-• Drops 1 tier lower
-
-• If at base tier (Wood/Leather/Gold for Piglins) → fully removed/destroyed
-
-• All enchants and masteries wiped to 0
-
-------------------------------------------------------------
-
-DURABILITY MASTERY (per equipment slot)
-
-------------------------------------------------------------
-
-• 10 levels, 10/12/14/16/18/20/22/24/26/28 pts → total 190
-
-• Level 10 = "perfect" (near-unbreakable) durability
-
-• Required for tier-up
-
-• Progressive cost reflects increasing durability value
-
-------------------------------------------------------------
-
-DROP MASTERY (per equipment slot)
-
-------------------------------------------------------------
-
-• 10 levels, 10/12/14/16/18/20/22/24/26/28 pts → total 190
-
-• Level 10 = exactly 1% drop chance on mob death (no Netherite reduction)
-
-• Required for tier-up
-
-------------------------------------------------------------
-
-📜 FULL ENCHANT COST TABLE
-
-------------------------------------------------------------
-
-### SWORD / AXE
-
-• Sharpness I–V (3/4/5/6/7 pts → total 25)
-
-• Fire Aspect I–II (4/5 pts → total 9)
-
-• Knockback I–II (3/4 pts → total 7)
-
-• Smite I–V (3/4/5/6/7 pts → total 25)
-
-• Bane of Arthropods I–V (3/4/5/6/7 pts → total 25)
-
-• Looting I–III (5/7/9 pts → total 21)
-
-• Unbreaking I–III (3/4/5 pts → total 12)
-
-• Mending (10 pts)
-
-### ARMOR (per piece)
-
-• Protection I–IV (3/4/5/6 pts → total 18)
-
-• Fire Protection I–IV (3/4/5/6 pts → total 18)
-
-• Blast Protection I–IV (3/4/5/6 pts → total 18)
-
-• Projectile Protection I–IV (3/4/5/6 pts → total 18)
-
-• Thorns I–III (4/5/6 pts → total 15)
-
-• Unbreaking I–III (3/4/5 pts → total 12)
-
-• Mending (10 pts)
-
-Helmet only:
-
-• Aqua Affinity (6 pts)
-
-• Respiration I–III (4/5/6 pts → total 15)
-
-Leggings only:
-
-• Swift Sneak I–III (6/8/10 pts → total 24)
-
-Boots only:
-
-• Feather Falling I–IV (3/4/5/6 pts → total 18)
-
-• Depth Strider I–III (4/5/6 pts → total 15)
-
-• Soul Speed I–III (5/6/7 pts → total 18)
-
-• Frost Walker I–II (6/7 pts → total 13)
-
-### BOW / CROSSBOW
-
-• Power I–V (2/3/4/5/6 pts → total 20)
-
-• Punch I–II (4/5 pts → total 9)
-
-• Flame (8 pts)
-
-• Infinity (12 pts)
-
-• Unbreaking I–III (3/4/5 pts → total 12)
-
-• Mending (10 pts)
-
-### TRIDENT (Drowned only)
-
-• Loyalty I–III (4/5/6 pts → total 15)
-
-• Impaling I–V (3/4/5/6/7 pts → total 25)
-
-• Riptide I–III (5/6/7 pts → total 18)
-
-• Channeling (8 pts)
-
-• Unbreaking I–III (3/4/5 pts → total 12)
-
-• Mending (10 pts)
-
-============================================================
-
-🎯 MOB-SPECIFIC SKILL TREES (additive to base "g" tree)
-
-============================================================
-
-------------------------------------------------------------
-
-ZOMBIE TREE (z) — Zombies, Husks, Drowned, Zoglins
-
-------------------------------------------------------------
-
-• Horde Summon 1–5 (10/15/20/25/30 pts → total 100)
-
-  - 10% → 50% chance on hit to summon reinforcements (marked to prevent loops)
-
-• Infectious Bite 1–3 (8/12/16 pts → total 36)
-
-  - 33% → 100% chance to convert hit villager → zombie villager
-
-• Hunger Attack 1–3 (6/10/14 pts → total 30)
-
-  - Progressive hunger effect on hit:
-  
-    - L1: Hunger I (10s)
-    
-    - L2: Hunger II (15s)
-    
-    - L3: Hunger III (20s)
-
-------------------------------------------------------------
-
-ARCHER TREE (bow + pro) — Skeleton, Stray, Bogged
-
-------------------------------------------------------------
-
-• Piercing Shot 1–4 (8/12/16/20 pts → total 56)
-
-  - Arrow pierces 1 → 4 mobs
-
-• Bow Potion Mastery 1–5 (10/15/20/25/30 pts → total 100)
-
-  - Progressive chance and potion strength for tipped arrows:
-  
-    - L1: 20% chance → Slowness I (10s)
-    
-    - L2: 40% chance → Slowness II (15s) or Weakness I (10s)
-    
-    - L3: 60% chance → Poison I (10s) or Weakness I (15s)
-    
-    - L4: 80% chance → Poison II (15s) or Instant Damage I
-    
-    - L5: 100% chance → Poison II (20s) or Instant Damage II or Wither I (10s)
-
-• Multishot 1–3 (15/25/35 pts → total 75)
-
-  - +1 → +3 extra arrows per shot
-
-------------------------------------------------------------
-
-CREEPER TREE (creeper)
-
-------------------------------------------------------------
-
-• Creeper Power 1–5 (10/15/20/25/30 pts → total 100)
-
-  - Progressive explosion radius:
-  
-    - L1: Radius 3.0 (vanilla)
-    
-    - L2: Radius 4.25
-    
-    - L3: Radius 5.5
-    
-    - L4: Radius 6.75
-    
-    - L5: Radius 8.0
-
-• Creeper Potion 1–3 (12/18/24 pts → total 54)
-
-  - Progressive lingering potion clouds on explosion:
-
-    - L1: Slowness I (10s)
-
-    - L2: Slowness I (15s) + Weakness I (10s)
-
-    - L3: Slowness II (20s) + Weakness I (15s) + Poison I (10s)
-
-------------------------------------------------------------
-
-WITCH TREE (witch)
-
-------------------------------------------------------------
-
-• Potion Throw Speed 1–5 (10/15/20/25/30 pts → total 100)
-
-  - Progressive throw speed and accuracy:
-  
-    - L1: 0.75× speed, 8.0 inaccuracy
-    
-    - L2: 0.90× speed, 6.0 inaccuracy
-    
-    - L3: 1.05× speed, 4.0 inaccuracy
-    
-    - L4: 1.15× speed, 3.0 inaccuracy
-    
-    - L5: 1.25× speed, 2.0 inaccuracy
-
-• Harming Upgrade 1–3 (12/18/24 pts → total 54)
-
-  - Progressive instant damage potion strength:
-  
-    - L1: Instant Damage I
-    
-    - L2: Instant Damage II
-    
-    - L3: Instant Damage II + Wither I (10s)
-
-------------------------------------------------------------
-
-CAVE SPIDER TREE (cave_spider)
-
-------------------------------------------------------------
-
-• Poison Mastery 1–5 (8/12/16/20/24 pts → total 80)
-
-  - Progressive poison effect on hit:
-  
-    - L1: Poison I (7s)
-    
-    - L2: Poison I (14s)
-    
-    - L3: Poison II (14s)
-    
-    - L4: Poison II (20s)
-    
-    - L5: Poison II (20s) + Wither I (10s)
-
-------------------------------------------------------------
-
-PASSIVE TREE (gp) — Non-hostile mobs
-
-------------------------------------------------------------
-
-• Healing 1–3 (2/3/4 pts → total 9)
-
-  - Progressive passive regeneration for peaceful mobs
-
-• Health Boost 1–3 (2/3/4 pts → total 9)
-
-  - Progressive health increases for survival
-
-• Resistance 1 (2 pts)
-
-  - Basic damage reduction for defensive play
-
-============================================================
-
-🗡️ SPECIAL WEAPON & ARMOR RULES — PER MOB TYPE
-
-============================================================
-
-All special/ranged mobs spawn **empty-handed**.
-
-• Base weapon equip: 0 pts cost
-
-• Upgrades use standard enchant/mastery/tier rules
-
-• Drowned → Trident only (no sword tiers)
-
-• Pillager → Crossbow only (no tiers)
-
-• Piglin (ranged) → Crossbow only (no tiers)
-
-• Piglin (melee) → Golden Sword → Netherite Sword
-
-• Piglin Brute → Golden Axe → Netherite Axe only
-
-• Wither Skeleton → Stone Sword → full tier path
-
-• Illusioner → Crossbow only
-
-• Phantom, Ravager → “nw” tag (no weapon slot)
-
-• Piglin assignment (permanent, deterministic):
-
-  - piglinUUID % 2 == 0 → melee (sword)
-
-  - piglinUUID % 2 == 1 → ranged (crossbow)
-
-• Modded(other not listed) mobs auto-detected:
-
-  - Has attack damage > 0 → “g” tree (hostile)
-
-  - No attack damage → “gp” tree (passive)
-
-  - No hands/equipment → “nw” tag
-
-============================================================
-
-🎯 SMART POINT SPENDING LOGIC
-
-============================================================
-
-Every server tick (20/sec):
-
-1. Compute current budget (totalPoints - spentPoints)
-
-2. List ALL currently affordable upgrades (skills, enchants, masteries)
-
-3. Weight them:
-
-   - Low tier/cost (<10 pts): ×3 priority
-
-   - Mid (10–29 pts): ×1.5 priority
-
-   - High (30+ pts): ×1 priority
-
-4. Smart saving: If upgrade <5 pts AND any ≥10-pt upgrade available → 50% chance to skip
-
-5. Weighted random selection from list
-
-6. Apply upgrade, deduct exact cost from budget, save to NBT
-
-7. Repeat until budget < cheapest available upgrade
-
-============================================================
-
-📈 FULL EXAMPLE — DROWNED DAY 1 → 50
-
-============================================================
-
-Total earned ≈448 pts by Day 50.
-
-**Day 1 Spawn:**
-
-• 20 HP
-
-• Empty hands
-
-• No armor
-
-• No effects
-
-**Early (~3.5 pts):**
-
-• Equip Trident (0 pts)
-
-• Healing I (1 pt)
-
-• Health Boost I (2 pts)
-
-**Mid (~78 pts @ Day 25):**
-
-• Trident: Impaling V, Loyalty III, Riptide III, Channeling, Mending
-
-• Equip full Iron Armor set
-
-• Zombie tree: Horde Summon II
-
-• Base: Healing II, some Health/Strength
-
-**Late (Day 50, full budget spent):**
-
-• Full Durability Mastery 10 (all slots)
-
-• Full Drop Mastery 10 (1% drops)
-
-• Full Netherite Armor + Trident
-
-• Healing V (80% burst Regen V)
-
-• Health Boost 10 → 40 total HP
-
-• Strength IV (+80%), Speed III (+60%), Resistance III
-
-• Shield Chance V (100%)
-
-• Zombie tree: Horde V (50%), Infectious III (100%), Hunger III
-
-→ **Elite trident god-class drowned**
-
-============================================================
-
-📦 MODDED MOB AUTO-SUPPORT
-
-============================================================
-
-• Attack damage attribute > 0 → “g” (full hostile tree + progression)
-
-• No attack damage → “gp” (passive buffs only)
-
-• Empty hands/no slots → “nw” (no equipment)
-
-• Seamless integration: auto spending, tiering, enchanting, skills
-
-============================================================
-
-END OF SPEC — v3.1 FULLY COMPLETE, NO TRUNCATIONS
-
-============================================================
-
-```
+{
+  "universal_mob_war_skill_tree": {
+    "description": "Complete universal mob progression system – vanilla mobs only – fully configurable",
+    "point_system": {
+      "earning": {
+        "sources": ["World age in days (global)", "Player kills of that mob type"],
+        "total_points": "All points ever earned",
+        "spent_points": "All points ever spent",
+        "budget": "total_points - spent_points"
+      },
+      "daily_scaling": [
+        { "days": "0-10",  "points_per_day": 0.1 },
+        { "days": "11-15", "points_per_day": 0.5 },
+        { "days": "16-20", "points_per_day": 1.0 },
+        { "days": "21-25", "points_per_day": 1.5 },
+        { "days": "26-30", "points_per_day": 3.0 },
+        { "days": "31+",   "points_per_day": 5.0 }
+      ],
+      "kill_scaling": "1 point per player kill",
+      "spending_logic": {
+        "trigger": [
+          "On natural spawn",
+          "Every new world day (only for mobs currently in simulation distance)",
+          "Whenever a mob has not attempted an upgrade in more than 1 full day"
+        ],
+        "behavior": "While the mob has any points left to spend:\n- First, list every currently affordable upgrade (equal weighting)\n- Pick ONE random upgrade from that list\n- 80% chance to BUY it immediately\n- 20% chance to SAVE the points and stop spending for this cycle\nThis repeats until either the 20% save roll succeeds or nothing affordable remains.\nAll purchased upgrades are accumulated. ONLY when the spending loop ends (save roll succeeded or nothing left to buy) does the system calculate and apply the final equipment/effects to the mob in one single batch.",
+        "performance": "All upgrade calculations for every mob in simulation distance are expected to complete within configurable target time (default 5 seconds) using multithreading. The system spreads work to stay close to this target."
+      }
+    },
+
+    "universal_upgrades": {
+      "all_mobs_item_masteries": {
+        "note": "These two masteries apply to EVERY equipped item (weapon, shield, armor pieces) on ALL mobs that have items.",
+        "drop_mastery": [
+          { "level": 1,  "cost": 5,  "drop_chance": "100% to 90%" },
+          { "level": 2,  "cost": 7,  "drop_chance": "90% to 80%" },
+          { "level": 3,  "cost": 9,  "drop_chance": "80% to 70%" },
+          { "level": 4,  "cost": 11, "drop_chance": "70% to 60%" },
+          { "level": 5,  "cost": 13, "drop_chance": "60% to 50%" },
+          { "level": 6,  "cost": 15, "drop_chance": "50% to 40%" },
+          { "level": 7,  "cost": 17, "drop_chance": "40% to 30%" },
+          { "level": 8,  "cost": 19, "drop_chance": "30% to 20%" },
+          { "level": 9,  "cost": 21, "drop_chance": "20% to 10%" },
+          { "level": 10, "cost": 23, "drop_chance": "10% to 1%" }
+        ],
+        "durability_mastery": [
+          { "level": 1,  "cost": 10, "durability": "1% to 10%" },
+          { "level": 2,  "cost": 12, "durability": "to 20%" },
+          { "level": 3,  "cost": 14, "durability": "to 30%" },
+          { "level": 4,  "cost": 16, "durability": "to 40%" },
+          { "level": 5,  "cost": 18, "durability": "to 50%" },
+          { "level": 6,  "cost": 20, "durability": "to 60%" },
+          { "level": 7,  "cost": 22, "durability": "to 70%" },
+          { "level": 8,  "cost": 24, "durability": "to 80%" },
+          { "level": 9,  "cost": 26, "durability": "to 90%" },
+          { "level": 10, "cost": 28, "durability": "to 100%" }
+        ]
+      },
+
+      "hostile_and_neutral_potion_effects": {
+        "healing": [
+          { "level": 1, "cost": 1,  "effect": "Permanent Regeneration I" },
+          { "level": 2, "cost": 2,  "effect": "Permanent Regeneration II" },
+          { "level": 3, "cost": 3,  "effect": "Permanent Regen II + on damage to Regen III 10s (60s cd)" },
+          { "level": 4, "cost": 4,  "effect": "Permanent Regen II + on damage to Regen IV 10s (60s cd)" },
+          { "level": 5, "cost": 5,  "effect": "Permanent Regen II + on damage to Regen V 20s (60s cd)" }
+        ],
+        "health_boost": [
+          { "level": 1,  "cost": 2,  "hp": "+2",  "total": "+2" },
+          { "level": 2,  "cost": 3,  "hp": "+2",  "total": "+4" },
+          { "level": 3,  "cost": 4,  "hp": "+2",  "total": "+6" },
+          { "level": 4,  "cost": 5,  "hp": "+2",  "total": "+8" },
+          { "level": 5,  "cost": 6,  "hp": "+2",  "total": "+10" },
+          { "level": 6,  "cost": 7,  "hp": "+2",  "total": "+12" },
+          { "level": 7,  "cost": 8,  "hp": "+2",  "total": "+14" },
+          { "level": 8,  "cost": 9,  "hp": "+2",  "total": "+16" },
+          { "level": 9,  "cost": 10, "hp": "+2",  "total": "+18" },
+          { "level": 10, "cost": 11, "hp": "+2",  "total": "+20" }
+        ],
+        "resistance": [
+          { "level": 1, "cost": 4, "effect": "Permanent Resistance I" },
+          { "level": 2, "cost": 6, "effect": "Permanent Resistance II" },
+          { "level": 3, "cost": 8, "effect": "Permanent Resistance II + Permanent Fire Resistance I" }
+        ],
+        "strength": [
+          { "level": 1, "cost": 3, "effect": "Strength I" },
+          { "level": 2, "cost": 5, "effect": "Strength II" },
+          { "level": 3, "cost": 7, "effect": "Strength III" },
+          { "level": 4, "cost": 9, "effect": "Strength IV" }
+        ],
+        "speed": [
+          { "level": 1, "cost": 6,  "effect": "Speed I" },
+          { "level": 2, "cost": 9,  "effect": "Speed II" },
+          { "level": 3, "cost": 12, "effect": "Speed III" }
+        ],
+        "invisibility_on_hit": [
+          { "level": 1, "cost": 8,  "chance": "5%",  "duration": "5s",  "cooldown": "60s" },
+          { "level": 2, "cost": 12, "chance": "20%", "duration": "8s",  "cooldown": "60s" },
+          { "level": 3, "cost": 16, "chance": "40%", "duration": "12s", "cooldown": "60s" },
+          { "level": 4, "cost": 20, "chance": "60%", "duration": "16s", "cooldown": "60s" },
+          { "level": 5, "cost": 25, "chance": "80%", "duration": "20s", "cooldown": "60s" }
+        ]
+      }
+    },
+
+    "equipment_rules": {
+      "general": "Mod disables all natural equipment spawning. Every single item (weapon, shield, armor piece) is purchased individually and upgraded independently.",
+      "item_break_behavior": "When any item reaches 0 durability to downgrades one material tier, all enchants wiped, Drop Mastery and Durability Mastery reset to 0 for that item. If already lowest tier to item removed.",
+      "tier_upgrade_requirement": "To unlock the OPTION to purchase the next material tier for a specific item, the mob must have: Drop Mastery lvl 10 + Durability Mastery lvl 10 + ALL possible enchantments at maximum level on the current item.",
+      "shield": { "cost": 10, "available_to": "Any mob that can hold a main-hand weapon" }
+    },
+
+    "weapon_progression": {
+      "normal_sword": { "start": "none",     "upgrade_costs": [3,4,5,6,7],   "tiers": ["wood","stone","iron","diamond","netherite"] },
+      "stone_sword":  { "start": "stone",    "upgrade_costs": [null,null,5,6,7], "tiers": ["stone","iron","diamond","netherite"] },
+      "gold_sword":   { "start": "gold",     "upgrade_costs": [null,null,null,null,10], "tiers": ["gold","netherite"] },
+      "iron_axe":     { "start": "iron_axe", "upgrade_costs": [5,7],         "tiers": ["iron","diamond","netherite"] },
+      "gold_axe":     { "start": "gold_axe", "upgrade_costs": [10],          "tiers": ["gold","netherite"] }
+    },
+
+    "armor_progression": {
+      "normal_armor": {
+        "helmet":     { "start": "none", "start_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["leather","chainmail","iron","diamond","netherite"] },
+        "chestplate": { "start": "none", "start_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["leather","chainmail","iron","diamond","netherite"] },
+        "leggings":   { "start": "none", "start_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["leather","chainmail","iron","diamond","netherite"] },
+        "boots":      { "start": "none", "start_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["leather","chainmail","iron","diamond","netherite"] }
+      },
+      "gold_armor": {
+        "helmet":     { "start": "none", "start_cost": 3, "netherite_cost": 7, "tiers": ["gold","netherite"] },
+        "chestplate": { "start": "none", "start_cost": 3, "netherite_cost": 7, "tiers": ["gold","netherite"] },
+        "leggings":   { "start": "none", "start_cost": 3, "netherite_cost": 7, "tiers": ["gold","netherite"] },
+        "boots":      { "start": "none", "start_cost": 3, "netherite_cost": 7, "tiers": ["gold","netherite"] }
+      }
+    },
+
+    "enchant_costs": {
+      "sword": { "Sharpness": ["I:3","II:4","III:5","IV:6","V:7"], "Fire_Aspect": ["I:4","II:5"], "Knockback": ["I:3","II:4"], "Looting": ["I:5","II:7","III:9"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" },
+      "axe":   { "Sharpness": ["I:3","II:4","III:5","IV:6","V:7"], "Fire_Aspect": ["I:4","II:5"], "Knockback": ["I:3","II:4"], "Looting": ["I:5","II:7","III:9"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" },
+      "helmet":     { "Protection": ["I:3","II:4","III:5","IV:6"], "Fire_Protection": ["I:3","II:4","III:5","IV:6"], "Blast_Protection": ["I:3","II:4","III:5","IV:6"], "Projectile_Protection": ["I:3","II:4","III:5","IV:6"], "Thorns": ["I:4","II:5","III:6"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10", "Aqua_Affinity": "6", "Respiration": ["I:4","II:5","III:6"] },
+      "chestplate": { "Protection": ["I:3","II:4","III:5","IV:6"], "Fire_Protection": ["I:3","II:4","III:5","IV:6"], "Blast_Protection": ["I:3","II:4","III:5","IV:6"], "Projectile_Protection": ["I:3","II:4","III:5","IV:6"], "Thorns": ["I:4","II:5","III:6"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" },
+      "leggings":   { "Protection": ["I:3","II:4","III:5","IV:6"], "Fire_Protection": ["I:3","II:4","III:5","IV:6"], "Blast_Protection": ["I:3","II:4","III:5","IV:6"], "Projectile_Protection": ["I:3","II:4","III:5","IV:6"], "Thorns": ["I:4","II:5","III:6"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10", "Swift_Sneak": ["I:6","II:8","III:10"] },
+      "boots":      { "Protection": ["I:3","II:4","III:5","IV:6"], "Fire_Protection": ["I:3","II:4","III:5","IV:6"], "Blast_Protection": ["I:3","II:4","III:5","IV:6"], "Projectile_Protection": ["I:3","II:4","III:5","IV:6"], "Thorns": ["I:4","II:5","III:6"], "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10", "Feather_Falling": ["I:3","II:4","III:5","IV:6"], "Depth_Strider": ["I:4","II:5","III:6"], "Soul_Speed": ["I:5","II:6","III:7"], "Frost_Walker": ["I:6","II:7"] },
+      "bow":        { "Power": ["I:2","II:3","III:4","IV:5","V:6"], "Punch": ["I:4","II:5"], "Flame": "8", "Infinity": "12", "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" },
+      "crossbow":   { "Quick_Charge": ["1:3","2:4","3:5"], "Piercing": ["1:3","2:4","3:5","4:6"], "Multishot": "5", "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" },
+      "trident":    { "initial_cost": 5, "Loyalty": ["I:4","II:5","III:6"], "Impaling": ["I:3","II:4","III:5","IV:6","V:7"], "Riptide": ["I:5","II:6","III:7"], "Channeling": "8", "Unbreaking": ["I:3","II:4","III:5"], "Mending": "10" }
+    },
+
+    "shared_trees": {
+      "zombie_z": {
+        "Horde_Summon": [
+          { "level": 1, "cost": 10, "chance": "10%" },
+          { "level": 2, "cost": 15, "chance": "20%" },
+          { "level": 3, "cost": 20, "chance": "30%" },
+          { "level": 4, "cost": 25, "chance": "40%" },
+          { "level": 5, "cost": 30, "chance": "50%" }
+        ],
+        "Hunger_Attack": [
+          { "level": 1, "cost": 6,  "effect": "Hunger I 10s" },
+          { "level": 2, "cost": 10, "effect": "Hunger II 15s" },
+          { "level": 3, "cost": 14, "effect": "Hunger III 20s" }
+        ]
+      },
+      "ranged_r": {
+        "Piercing_Shot": [
+          { "level": 1, "cost": 8,  "pierce": 1 },
+          { "level": 2, "cost": 12, "pierce": 2 },
+          { "level": 3, "cost": 16, "pierce": 3 },
+          { "level": 4, "cost": 20, "pierce": 4 }
+        ],
+        "Bow_Potion_Mastery": [
+          { "level": 1, "cost": 10, "chance": "20%", "effect": "Slowness I 10s" },
+          { "level": 2, "cost": 15, "chance": "40%", "effect": "Slowness II 15s or Weakness I 10s" },
+          { "level": 3, "cost": 20, "chance": "60%", "effect": "Poison I 10s or Weakness I 15s" },
+          { "level": 4, "cost": 25, "chance": "80%", "effect": "Poison II 15s or Instant Damage I" },
+          { "level": 5, "cost": 30, "chance": "100%", "effect": "Poison II 20s or Instant Damage II or Wither I 10s" }
+        ],
+        "Multishot": [
+          { "level": 1, "cost": 15, "extra": "+1" },
+          { "level": 2, "cost": 25, "extra": "+2" },
+          { "level": 3, "cost": 35, "extra": "+3" }
+        ]
+      }
+    },
+
+    "specific_trees": {
+      "creeper": {
+        "Creeper_Power": [
+          { "level": 1, "cost": 10, "radius": 4.25 },
+          { "level": 2, "cost": 15, "radius": 5.5 },
+          { "level": 3, "cost": 20, "radius": 6.75 },
+          { "level": 4, "cost": 25, "radius": 8.0 },
+          { "level": 5, "cost": 30, "radius": 10.0 }
+        ],
+        "Creeper_Potion_Cloud": [
+          { "level": 1, "cost": 12, "effects": "Slowness I 10s" },
+          { "level": 2, "cost": 18, "effects": "Slowness I 15s + Weakness I 10s" },
+          { "level": 3, "cost": 24, "effects": "Slowness II 20s + Weakness I 15s + Poison I 10s" },
+          { "level": 4, "cost": 30, "effects": "Slowness II 20s + Weakness I 15s + Poison I 10s + Wither I 15s" }
+        ]
+      },
+      "witch": {
+        "Potion_Throw_Speed": [
+          { "level": 1, "cost": 10, "speed": "1.15x", "inaccuracy": 8.0 },
+          { "level": 2, "cost": 15, "speed": "1.3x",  "inaccuracy": 6.0 },
+          { "level": 3, "cost": 20, "speed": "1.45x", "inaccuracy": 4.0 },
+          { "level": 4, "cost": 25, "speed": "1.6x",  "inaccuracy": 3.0 },
+          { "level": 5, "cost": 30, "speed": "1.75x", "inaccuracy": 2.0 }
+        ],
+        "Extra_Potion_Bag": [
+          { "level": 1, "cost": 12, "potion": "Instant Damage I" },
+          { "level": 2, "cost": 18, "potion": "Instant Damage II" },
+          { "level": 3, "cost": 24, "potion": "Instant Damage II + Wither I 10s" }
+        ]
+      },
+      "cave_spider": {
+        "Poison_Mastery": [
+          { "level": 1, "cost": 0,  "effect": "Poison I 7s" },
+          { "level": 2, "cost": 8,  "effect": "Poison I 14s" },
+          { "level": 3, "cost": 12, "effect": "Poison II 10s" },
+          { "level": 4, "cost": 16, "effect": "Poison II 15s" },
+          { "level": 5, "cost": 20, "effect": "Poison II 20s + Wither I 10s" },
+          { "level": 6, "cost": 24, "effect": "Poison II 20s + Wither I 10s + Slowness II 15s" }
+        ]
+      }
+    },
+
+    "mob_list": {
+      "Allay": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Armadillo": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Axolotl": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Bat": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Bee": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Blaze": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Bogged": { "type": "hostile", "weapon": "bow", "armor": "full_normal", "shield": true, "trees": ["z","r"] },
+      "Breeze": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Camel": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Cat": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Cave_Spider": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["cave_spider"] },
+      "Chicken": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Cod": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Cow": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Creaking": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["creeper"] },
+      "Creeper": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["creeper"] },
+      "Dolphin": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Donkey": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Drowned": { "type": "hostile", "weapon": "trident", "armor": "full_normal", "shield": true, "trees": ["z","r"] },
+      "Elder_Guardian": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Ender_Dragon": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Enderman": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Endermite": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Evoker": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Fox": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Frog": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Giant": { "type": "hostile", "weapon": "normal_sword", "armor": "full_normal", "shield": true, "trees": ["z"] },
+      "Glow_Squid": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Goat": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Guardian": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Hoglin": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Horse": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Husk": { "type": "hostile", "weapon": "normal_sword", "armor": "full_normal", "shield": true, "trees": ["z"] },
+      "Illusioner": { "type": "hostile", "weapon": "crossbow", "armor": "full_normal", "shield": true, "trees": ["r"] },
+      "Iron_Golem": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Llama": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Magma_Cube": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Mooshroom": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Mule": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Ocelot": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Panda": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Parrot": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Phantom": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Pig": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Piglin": { "type": "neutral", "weapon": "gold_sword_or_crossbow_50%", "armor": "full_gold", "shield": true, "trees": ["r_if_crossbow"] },
+      "Piglin_Brute": { "type": "hostile", "weapon": "gold_axe", "armor": "full_gold", "shield": true, "trees": [] },
+      "Pillager": { "type": "hostile", "weapon": "crossbow", "armor": "none", "shield": true, "trees": ["r"] },
+      "Polar_Bear": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Pufferfish": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Rabbit": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Ravager": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Salmon": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Sheep": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Shulker": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Silverfish": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Skeleton": { "type": "hostile", "weapon": "bow", "armor": "full_normal", "shield": true, "trees": ["r"] },
+      "Skeleton_Horse": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Slime": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Sniffer": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Snow_Golem": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Spider": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Squid": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Stray": { "type": "hostile", "weapon": "bow", "armor": "full_normal", "shield": true, "trees": ["r"] },
+      "Strider": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Tadpole": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Trader_Llama": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Tropical_Fish": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Turtle": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Vex": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Villager": { "type": "passive", "weapon": "none", "armor": "full_normal_possible", "shield": false, "trees": [] },
+      "Vindicator": { "type": "hostile", "weapon": "iron_axe", "armor": "full_normal", "shield": true, "trees": [] },
+      "Wandering_Trader": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Warden": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Witch": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["witch","r"] },
+      "Wither": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
+      "Wither_Skeleton": { "type": "hostile", "weapon": "stone_sword", "armor": "full_normal", "shield": true, "trees": ["r"] },
+      "Wolf": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Zoglin": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["z"] },
+      "Zombie": { "type": "hostile", "weapon": "normal_sword", "armor": "full_normal", "shield": true, "trees": ["z"] },
+      "Zombie_Villager": { "type": "hostile", "weapon": "normal_sword", "armor": "full_normal", "shield": true, "trees": ["z"] }
+    },
+
+    "final_notes": "20% chance to SAVE points (stop spending) on every single pick. 80% chance to actually buy the chosen upgrade and continue. Spending loop ends only on a successful save roll or when nothing is left to buy."
+  }
+}
