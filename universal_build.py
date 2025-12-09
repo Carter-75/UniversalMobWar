@@ -390,7 +390,7 @@ class UniversalBuildSystem:
     
     def log_to_file(self, message):
         """Append message to log file"""
-        with open(self.log_file, 'a') as f:
+        with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(message + "\n")
     
     def generate_report(self):
@@ -398,7 +398,7 @@ class UniversalBuildSystem:
         header("BUILD REPORT")
         
         # Clear old log and start fresh
-        with open(self.log_file, 'w') as f:
+        with open(self.log_file, 'w', encoding='utf-8') as f:
             f.write("=" * 80 + "\n")
             f.write("UNIVERSAL MOB WAR - BUILD LOG\n")
             f.write("=" * 80 + "\n\n")
