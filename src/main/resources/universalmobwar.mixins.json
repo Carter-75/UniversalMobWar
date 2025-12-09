@@ -17,7 +17,8 @@
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin",
 		"NaturalMobSpawnBlockerMixin",
-		"mob.AllayMixin"
+		""mob.AllayMixin",
+		"mob.ArmadilloMixin""
 	],
 	"injectors": {
 		"defaultRequire": 1
