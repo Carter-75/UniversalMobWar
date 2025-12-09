@@ -533,20 +533,11 @@ class UniversalBuildSystem:
                 error(f"Missing core mixin: {mixin}")
                 self.errors.append(f"Missing: {mixin}")
         
-        # Count mob mixins
-        if mob_mixin_dir.exists():
-            mob_mixins = list(mob_mixin_dir.glob("*.java"))
-            info(f"Mob mixins found: {len(mob_mixins)}")
-            
-            # Check that each JSON has a corresponding mixin
-            json_dir = self.root / "src/main/resources/mob_configs"
-            for json_file in json_dir.glob("*.json"):
-                mob_name = json_file.stem.title().replace("_", "")
-                mixin_name = f"{mob_name}Mixin.java"
-                mixin_path = mob_mixin_dir / mixin_name
-                if not mixin_path.exists():
-                    warning(f"Missing mixin for {json_file.name}: {mixin_name}")
-                    self.warnings.append(f"Missing mixin: {mixin_name}")
+        # NOTE: Individual mob mixins are NO LONGER NEEDED!
+        # MobDataMixin now handles ALL mobs globally.
+        # ScalingSystem automatically loads JSON configs and applies upgrades.
+        # The mob/ folder can be empty - just add mob_configs/*.json files.
+        info("Using global scaling (MobDataMixin handles all mobs)")
         
         # Count total mixins
         total_mixins = len(list(mixin_dir.glob("*.java")))

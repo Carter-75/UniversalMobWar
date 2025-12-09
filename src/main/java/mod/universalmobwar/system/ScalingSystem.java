@@ -636,6 +636,9 @@ public class ScalingSystem {
             applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), "weapon_enchant_", world);
         }
         
+        // Apply durability mastery - set durability based on level
+        applyDurabilityMastery(weapon, skillData, weaponConfig, "weapon_durability_mastery");
+        
         // Equip it
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
     }
@@ -653,6 +656,9 @@ public class ScalingSystem {
         if (shieldConfig.has("enchants")) {
             applyEnchantments(shield, skillData, shieldConfig.getAsJsonObject("enchants"), "shield_enchant_", world);
         }
+        
+        // Apply durability mastery
+        applyDurabilityMastery(shield, skillData, shieldConfig, "shield_durability_mastery");
         
         // Equip it
         mob.equipStack(EquipmentSlot.OFFHAND, shield);
@@ -688,6 +694,9 @@ public class ScalingSystem {
             applyEnchantments(armor, skillData, armorConfig.getAsJsonObject("enchants"), slotName + "_enchant_", world);
         }
         
+        // Apply durability mastery
+        applyDurabilityMastery(armor, skillData, armorConfig, slotName + "_durability_mastery");
+        
         // Equip it
         mob.equipStack(slot, armor);
     }
@@ -714,6 +723,35 @@ public class ScalingSystem {
         }
         
         item.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+    }
+    
+    /**
+     * Apply durability mastery - set item durability based on upgrade level
+     * Higher mastery = spawn with more durability (0.10 to 1.00 = 10% to 100%)
+     */
+    private static void applyDurabilityMastery(ItemStack item, NbtCompound skillData, JsonObject config, String skillKey) {
+        int masteryLevel = skillData.getInt(skillKey);
+        if (masteryLevel <= 0) return;
+        
+        // Get durability percentage from config
+        double durabilityPercent = 0.10; // Default 10%
+        if (config.has("durability_mastery")) {
+            JsonArray levels = config.getAsJsonArray("durability_mastery");
+            if (masteryLevel <= levels.size()) {
+                JsonObject levelData = levels.get(masteryLevel - 1).getAsJsonObject();
+                if (levelData.has("durability")) {
+                    durabilityPercent = levelData.get("durability").getAsDouble();
+                }
+            }
+        }
+        
+        // Set item damage (inverted - lower damage = more durability)
+        int maxDurability = item.getMaxDamage();
+        if (maxDurability > 0) {
+            int targetDurability = (int) (maxDurability * durabilityPercent);
+            int damageToSet = maxDurability - targetDurability;
+            item.setDamage(Math.max(0, damageToSet));
+        }
     }
     
     /**
@@ -897,6 +935,226 @@ public class ScalingSystem {
                 }
             }
         }
+    }
+    
+    // ==========================================================================
+    //                        SPECIAL ABILITY HANDLERS
+    // ==========================================================================
+    
+    /**
+     * Handle melee attack abilities like hunger_attack
+     * Call this when a mob deals melee damage to a player
+     */
+    public static void handleMeleeAttackAbilities(MobEntity mob, MobWarData data, 
+            net.minecraft.entity.LivingEntity target, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        // Hunger Attack - apply hunger effect on hit
+        int hungerLevel = skillData.getInt("ability_hunger_attack");
+        if (hungerLevel > 0 && abilities.has("hunger_attack")) {
+            JsonArray levels = abilities.getAsJsonArray("hunger_attack");
+            if (hungerLevel <= levels.size()) {
+                JsonObject levelData = levels.get(hungerLevel - 1).getAsJsonObject();
+                int effectLevel = levelData.has("hunger_level") ? levelData.get("hunger_level").getAsInt() : 1;
+                int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 10;
+                
+                target.addStatusEffect(new StatusEffectInstance(
+                    StatusEffects.HUNGER, duration * 20, effectLevel - 1, false, true, true));
+            }
+        }
+    }
+    
+    /**
+     * Handle horde summon ability - chance to summon reinforcements when damaged
+     * Call this when a mob takes damage
+     */
+    public static void handleHordeSummon(MobEntity mob, MobWarData data, ServerWorld world, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        // Horde Summon - chance to spawn reinforcements
+        int hordeLevel = skillData.getInt("ability_horde_summon");
+        if (hordeLevel > 0 && abilities.has("horde_summon")) {
+            JsonArray levels = abilities.getAsJsonArray("horde_summon");
+            if (hordeLevel <= levels.size()) {
+                JsonObject levelData = levels.get(hordeLevel - 1).getAsJsonObject();
+                double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.1;
+                
+                // Check cooldown (60 seconds)
+                UUID mobUuid = mob.getUuid();
+                Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+                long lastUse = cooldowns.getOrDefault("horde_summon", 0L);
+                
+                if (currentTick - lastUse >= 1200L) { // 60 seconds cooldown
+                    if (mob.getRandom().nextDouble() < chance) {
+                        // Spawn a copy of this mob type nearby
+                        try {
+                            MobEntity reinforcement = (MobEntity) mob.getType().create(world);
+                            if (reinforcement != null) {
+                                double offsetX = (mob.getRandom().nextDouble() - 0.5) * 4;
+                                double offsetZ = (mob.getRandom().nextDouble() - 0.5) * 4;
+                                reinforcement.refreshPositionAndAngles(
+                                    mob.getX() + offsetX, mob.getY(), mob.getZ() + offsetZ,
+                                    mob.getRandom().nextFloat() * 360, 0);
+                                world.spawnEntity(reinforcement);
+                                cooldowns.put("horde_summon", currentTick);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle ranged attack abilities - piercing, multishot, potion effects
+     * Call this when a mob fires a projectile
+     * Returns the number of extra projectiles to fire (for multishot)
+     */
+    public static int handleRangedAbilities(MobEntity mob, MobWarData data, 
+            net.minecraft.entity.LivingEntity target, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return 0;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return 0;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return 0;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return 0;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int extraProjectiles = 0;
+        
+        // Multishot - extra projectiles
+        int multishotLevel = skillData.getInt("ability_multishot");
+        if (multishotLevel > 0 && abilities.has("multishot")) {
+            JsonArray levels = abilities.getAsJsonArray("multishot");
+            if (multishotLevel <= levels.size()) {
+                JsonObject levelData = levels.get(multishotLevel - 1).getAsJsonObject();
+                extraProjectiles = levelData.has("extra_projectiles") ? 
+                    levelData.get("extra_projectiles").getAsInt() : 1;
+            }
+        }
+        
+        return extraProjectiles;
+    }
+    
+    /**
+     * Get piercing level for projectiles
+     */
+    public static int getPiercingLevel(MobEntity mob, MobWarData data) {
+        if (!ModConfig.getInstance().isScalingActive()) return 0;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return 0;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return 0;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return 0;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int piercingLevel = skillData.getInt("ability_piercing_shot");
+        if (piercingLevel > 0 && abilities.has("piercing_shot")) {
+            JsonArray levels = abilities.getAsJsonArray("piercing_shot");
+            if (piercingLevel <= levels.size()) {
+                JsonObject levelData = levels.get(piercingLevel - 1).getAsJsonObject();
+                return levelData.has("pierce_count") ? levelData.get("pierce_count").getAsInt() : 1;
+            }
+        }
+        return 0;
+    }
+    
+    /**
+     * Apply ranged potion effects to a hit target
+     * Call this when a projectile from a mob hits a target
+     */
+    public static void applyRangedPotionEffects(MobEntity mob, MobWarData data, 
+            net.minecraft.entity.LivingEntity target) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int potionMasteryLevel = skillData.getInt("ability_ranged_potion_mastery");
+        if (potionMasteryLevel > 0 && abilities.has("ranged_potion_mastery")) {
+            JsonArray levels = abilities.getAsJsonArray("ranged_potion_mastery");
+            if (potionMasteryLevel <= levels.size()) {
+                JsonObject levelData = levels.get(potionMasteryLevel - 1).getAsJsonObject();
+                double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.2;
+                
+                if (mob.getRandom().nextDouble() < chance && levelData.has("effects")) {
+                    JsonArray effectsArray = levelData.getAsJsonArray("effects");
+                    for (JsonElement effectEl : effectsArray) {
+                        JsonObject effect = effectEl.getAsJsonObject();
+                        String type = effect.get("type").getAsString();
+                        int level = effect.has("level") ? effect.get("level").getAsInt() : 1;
+                        int duration = effect.has("duration") ? effect.get("duration").getAsInt() : 10;
+                        
+                        var statusEffect = getPotionEffectByName(type);
+                        if (statusEffect != null) {
+                            // Instant effects don't need duration
+                            if (type.equals("instant_damage") || type.equals("instant_health")) {
+                                target.addStatusEffect(new StatusEffectInstance(
+                                    statusEffect, 1, level - 1, false, true, true));
+                            } else {
+                                target.addStatusEffect(new StatusEffectInstance(
+                                    statusEffect, duration * 20, level - 1, false, true, true));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Get status effect by name for ranged potion mastery
+     */
+    private static net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> 
+            getPotionEffectByName(String name) {
+        return switch (name.toLowerCase()) {
+            case "slowness" -> StatusEffects.SLOWNESS;
+            case "weakness" -> StatusEffects.WEAKNESS;
+            case "poison" -> StatusEffects.POISON;
+            case "wither" -> StatusEffects.WITHER;
+            case "instant_damage", "harming" -> StatusEffects.INSTANT_DAMAGE;
+            case "instant_health", "healing" -> StatusEffects.INSTANT_HEALTH;
+            case "blindness" -> StatusEffects.BLINDNESS;
+            case "nausea" -> StatusEffects.NAUSEA;
+            case "hunger" -> StatusEffects.HUNGER;
+            case "mining_fatigue" -> StatusEffects.MINING_FATIGUE;
+            default -> null;
+        };
     }
     
     // ==========================================================================
