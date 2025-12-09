@@ -161,12 +161,24 @@ class UniversalBuildSystem:
         # Check for old Identifier constructor
         old_identifier_count = 0
         for java_file in java_files:
-            with open(java_file, 'r') as f:
-                content = f.read()
-                if "new Identifier(" in content and "import" in content:
-                    error(f"{java_file.name}: Uses old 'new Identifier()' constructor")
-                    self.errors.append(f"{java_file.name}: Old API detected")
-                    old_identifier_count += 1
+            try:
+                with open(java_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if "new Identifier(" in content and "import" in content:
+                        error(f"{java_file.name}: Uses old 'new Identifier()' constructor")
+                        self.errors.append(f"{java_file.name}: Old API detected")
+                        old_identifier_count += 1
+            except UnicodeDecodeError:
+                # Try with different encoding
+                try:
+                    with open(java_file, 'r', encoding='latin-1') as f:
+                        content = f.read()
+                        if "new Identifier(" in content and "import" in content:
+                            error(f"{java_file.name}: Uses old 'new Identifier()' constructor")
+                            self.errors.append(f"{java_file.name}: Old API detected")
+                            old_identifier_count += 1
+                except Exception as e:
+                    warning(f"Could not read {java_file.name}: {e}")
         
         if old_identifier_count == 0:
             success("All code uses 1.21.1 APIs (Identifier.of)")
@@ -174,12 +186,23 @@ class UniversalBuildSystem:
         # Check for deprecated imports
         deprecated_imports = ["SkillTreeConfig", "MobDefinition"]
         for java_file in java_files:
-            with open(java_file, 'r') as f:
-                content = f.read()
-                for dep in deprecated_imports:
-                    if f"import.*{dep}" in content and "MobConfig" not in content:
-                        error(f"{java_file.name}: Imports deprecated class {dep}")
-                        self.errors.append(f"{java_file.name}: Deprecated import")
+            try:
+                with open(java_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    for dep in deprecated_imports:
+                        if f"import.*{dep}" in content and "MobConfig" not in content:
+                            error(f"{java_file.name}: Imports deprecated class {dep}")
+                            self.errors.append(f"{java_file.name}: Deprecated import")
+            except UnicodeDecodeError:
+                try:
+                    with open(java_file, 'r', encoding='latin-1') as f:
+                        content = f.read()
+                        for dep in deprecated_imports:
+                            if f"import.*{dep}" in content and "MobConfig" not in content:
+                                error(f"{java_file.name}: Imports deprecated class {dep}")
+                                self.errors.append(f"{java_file.name}: Deprecated import")
+                except Exception as e:
+                    warning(f"Could not read {java_file.name}: {e}")
         
         if not self.errors:
             success("No deprecated imports found")
