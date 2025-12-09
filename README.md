@@ -8,124 +8,251 @@
 
 ## 🎯 What is Universal Mob War?
 
-Universal Mob War completely overhauls mob behavior in Minecraft, creating a dynamic, ever-evolving battlefield where:
+Universal Mob War completely overhauls mob behavior, creating a dynamic battlefield where mobs evolve based on world age and combat, fight each other in massive wars, form temporary alliances, and can spawn as legendary bosses.
 
-- **Mobs fight each other** in epic battles across the world
-- **Mobs evolve over time**, gaining equipment, enchantments, and special abilities
-- **Alliances form naturally** as mobs team up against common enemies
-- **Legendary bosses** spawn during raids and can be summoned
-- **Progressive skill system** with 80+ individual mob configurations
-- **Works with ALL mobs** - vanilla and modded!
-
-Watch as a simple Zombie transforms from bare-fisted into a fully armored Netherite warrior with devastating special abilities!
-
----
-
-## ⚔️ Core Features
-
-### 🔥 Mob Evolution System
-Mobs aren't static anymore - they **grow stronger** based on world age and combat experience:
-
-- **Point Accumulation**: Mobs earn points from world days (0.1 → 5.0 pts/day) and player kills (1 pt/kill)
-- **Progressive Upgrades**: 80% chance to buy upgrades, 20% chance to save for better ones
-- **Equipment Progression**: Wood → Stone → Iron → Diamond → Netherite
-- **47 Total Skills**: Health, Strength, Speed, Healing, Resistance, and mob-specific abilities
-- **Visual Evolution**: Watch mobs spawn with equipment and upgrade over time
-
-**Example**: A Zombie on Day 50 with 120 kills has ~178 skill points:
-- Diamond Sword with Sharpness IV, Fire Aspect II, Looting II
-- Full Diamond Armor with Protection III, Thorns II
-- Special Skills: Horde Summon (30% chance), Infectious Bite (66%)
-- Health: 42 HP (21 hearts), Strength III, Speed II
-
-### 🤝 Alliance System
-Mobs work together against common enemies:
-
-- **Strong Alliances** (same species): 20s duration, 80% cooperation
-- **Weak Alliances** (different species): 5s duration, 30% cooperation
-- **Dynamic Formation**: Allies attack the same target together
-- **Visual Indicators**: Purple particles show alliance connections
-- **Strategic Gameplay**: Watch coordinated attacks and betrayals
-
-### 👹 Mob Warlord Boss
-A legendary boss that commands armies of minions:
-
-- **Raid Integration**: 50% chance to spawn as raid captain on wave 3+
-- **Manual Summon**: Use `/mobwar summon warlord` command
-- **Boss Abilities**: 
-  - Summons reinforcement mobs when damaged
-  - Protects minions from player damage
-  - Enhanced stats and special equipment
-  - Drops unique loot
-- **Epic Battles**: Warlord + mob armies vs. village defenders
-
-### 🌳 Mob-Specific Skill Trees
-
-**Zombies & Undead** (Zombie, Husk, Drowned, Zoglin):
-- Horde Summon: 10-50% chance to call reinforcements
-- Infectious Bite: Convert villagers to zombies
-- Hunger Attack: Inflict starvation on hit
-
-**Skeletons & Archers** (Skeleton, Stray, Bogged):
-- Piercing Shot: Arrows pierce through multiple mobs
-- Bow Potion Mastery: Fire poison/wither arrows
-- Multishot: Fire multiple arrows at once
-
-**Creepers**:
-- Creeper Power: Explosion radius 3.0 → 8.0 blocks
-- Creeper Potion Mastery: Lingering poison clouds
-
-**Witches**:
-- Witch Potion Mastery: Throw potions 100% faster
-- Witch Harming Upgrade: Instant Damage II + Wither
-
-**Cave Spiders**:
-- Poison Mastery: Poison II (20s) + Wither I
-
-**All Mobs** (Universal Tree):
-- Health Boost (10 levels): +2 HP per level, max +20 HP
-- Strength (4 levels): +20% → +80% damage
-- Speed (3 levels): +20% → +60% movement
-- Healing (5 levels): Regeneration effects
-- Resistance (3 levels): Damage reduction + Fire Resistance
-- Invisibility (5 levels): 5-80% activation chance on hit
-- Shield (5 levels): 20-100% chance to equip shield
-
-### 🎮 Universal Compatibility
-Works with **ALL mobs** - vanilla and modded:
-
-- **Auto-Detection**: Automatically classifies unknown mobs
-- **Smart Defaults**: Modded mobs get universal upgrades
-- **No Configuration Needed**: Just install and play
-- **Tested**: Works with 400+ mod modpacks
+**Key Features:**
+- 🔥 **Progressive Evolution**: Mobs earn points and spend them on upgrades using an 80%/20% buy/save system
+- ⚔️ **Inter-Mob Combat**: All mobs fight each other based on species, type, and alliances
+- 🤝 **Dynamic Alliances**: Mobs team up against common enemies (same species = strong, different = weak)
+- 👹 **Mob Warlord Boss**: Legendary raid boss with minion armies
+- 📊 **80 Individual Mob Configs**: Each mob has its own JSON with complete upgrade paths
+- 🌍 **Universal Compatibility**: Works with ALL mobs - vanilla and modded!
 
 ---
 
-## 🎯 Gameplay Modes
+## 💰 Point Economy & Budget System
 
-### Maximum Chaos
+### How Mobs Earn Points
+
+Every mob accumulates points from TWO sources:
+
+1. **World Age (Daily Scaling)**
+   - Day 0-10: 0.1 points/day (very slow start)
+   - Day 11-15: 0.5 points/day
+   - Day 16-20: 1.0 points/day
+   - Day 21-25: 1.5 points/day
+   - Day 26-30: 3.0 points/day
+   - Day 31+: **5.0 points/day** (late game acceleration)
+
+2. **Player Kills**
+   - 1 point per player kill (of that mob type)
+   - Tracks global kills across all mobs of that type
+   - Multiplied by `killScalingMultiplier` config setting
+
+**Formula**: `TotalPoints = (DailyPoints × dayScalingMultiplier) + (KillCount × killScalingMultiplier)`
+
+### How Mobs Spend Points (80%/20% System)
+
+When a mob spawns or reaches a spending trigger (1+ days since last spawn):
+
+1. **Calculate Budget**: Total available points from world age + kills
+2. **Enter Spending Loop**:
+   ```
+   WHILE (points > 0):
+     - List ALL affordable upgrades (equal weight)
+     - Pick ONE random upgrade from the list
+     - Roll dice:
+       → 80% chance: BUY IT (subtract cost, apply upgrade)
+       → 20% chance: SAVE IT (stop spending, keep remaining points)
+   ```
+3. **Loop Ends When**:
+   - 20% save roll succeeds (mob saves remaining points for later)
+   - No affordable upgrades remain (spent everything)
+4. **Apply Equipment**: After spending loop completes, apply all purchased gear in ONE batch
+
+**Result**: Mobs make progressive, random purchases with a tendency to save for bigger upgrades.
+
+### Example: Zombie on Day 50 with 30 Player Kills
+
 ```
-Config: ignoreSameSpecies = false, rangeMultiplier = 5.0
-Result: EVERY mob attacks EVERY other mob at 5× detection range!
+Daily Points: 5.0 points/day × 50 days = 250 points
+Kill Points: 30 kills × 1 point/kill = 30 points
+Total Budget: 280 points
+
+Spending Loop (simplified):
+1. Buy Health_Boost_1 (cost 1) → 279 points left
+2. Buy Strength_1 (cost 1) → 278 points left
+3. Buy Weapon_Tier_1 (cost 5) → 273 points left
+4. Save roll (20%) → STOP, keep 273 points for next spawn
+... OR continue buying until save roll or broke
+
+Final Result:
+- Diamond Sword (Sharpness IV, Fire Aspect II)
+- Full Iron Armor (Protection II)
+- Health: 30 HP, Strength II, Speed I
+- Special: Horde Summon 30% chance, Infectious Bite
 ```
 
-### Spectator Mode
-```
-Config: targetPlayers = false
-Result: Watch mobs battle without being targeted!
-```
+---
 
-### Rapid Evolution
-```
-Config: dayScalingMultiplier = 3.0, killScalingMultiplier = 2.0
-Result: Mobs evolve 3× faster, reaching endgame in days!
-```
+## 🛡️ Equipment & Upgrade System
 
-### Survival Challenge
-```
-Config: dayScalingMultiplier = 0.5, targetPlayers = true
-Result: Slow progression, you're the target - hardcore mode!
-```
+### Weapon Progression (5 Tiers)
+
+Mobs purchase `weapon_tier` upgrades from their individual JSON:
+
+**Regular Swords** (Zombie, Husk, etc.):
+- Tier 1: Wooden Sword (cost varies per mob)
+- Tier 2: Stone Sword
+- Tier 3: Iron Sword
+- Tier 4: Diamond Sword
+- Tier 5: Netherite Sword
+
+**Gold Swords** (Piglins):
+- Tier 1: Golden Sword
+- Tier 2: Netherite Sword
+
+**Axes** (Vindicators, Piglin Brutes):
+- Tier 1: Iron/Gold Axe
+- Tier 2: Diamond Axe
+- Tier 3: Netherite Axe
+
+**Ranged** (Skeleton, Stray, Pillager):
+- Bow, Crossbow, Trident (no tier progression, upgrade via enchants)
+
+### Armor Progression (5 Tiers Each Piece)
+
+Mobs buy `helmet_tier`, `chestplate_tier`, `leggings_tier`, `boots_tier` separately:
+
+**Regular Armor**:
+1. Leather (cheapest)
+2. Chainmail
+3. Iron
+4. Diamond
+5. Netherite (most expensive)
+
+**Gold Armor** (Piglins/Hoglins):
+1. Golden
+2. Netherite
+
+### Enchantments (Progressive Levels)
+
+Each enchant has 4-8 levels with increasing costs:
+
+**Weapon Enchants**:
+- Sharpness I-VIII (1 → 8 points)
+- Fire Aspect I-III (3 → 7 points)
+- Knockback I-III (2 → 6 points)
+- Looting I-IV (5 → 14 points)
+
+**Armor Enchants**:
+- Protection I-VIII (1 → 8 points)
+- Thorns I-IV (4 → 10 points)
+- Feather Falling I-V (2 → 10 points)
+- Blast Protection I-V (2 → 10 points)
+
+**Universal Masteries** (Apply to ALL items):
+- Drop Mastery 1-10: Reduces item drop chance from 100% → 1%
+- Durability Mastery 1-10: Increases item durability from 1% → 100%
+
+### Equipment Downgrade on Break
+
+When an item reaches 0 durability:
+1. Item downgrades ONE tier (Diamond Sword → Iron Sword)
+2. ALL enchants wiped
+3. Drop Mastery and Durability Mastery reset to 0 for that item
+4. If already lowest tier (Wooden), item is removed
+
+**Unlock Next Tier Requirement**:
+- Drop Mastery Level 10
+- Durability Mastery Level 10
+- ALL enchants at maximum level on current item
+
+---
+
+## 🌳 Skill Trees (Mob-Specific)
+
+### Universal Tree (ALL Mobs)
+
+**Offensive**:
+- `health_boost` (10 levels): +2 HP per level (max +20 HP)
+- `strength` (4 levels): +20% → +80% damage
+- `speed` (3 levels): +20% → +60% movement speed
+
+**Defensive**:
+- `healing` (5 levels): Permanent Regen I-II, burst healing on damage
+- `resistance` (3 levels): Damage reduction + Fire Resistance
+- `invis_mastery` (5 levels): 5-80% chance for Invisibility on hit
+
+**Equipment**:
+- `shield_tier` (5 levels): 20-100% chance to equip shield
+- `weapon_tier` (1-5): Weapon material progression
+- `helmet_tier`, `chestplate_tier`, `leggings_tier`, `boots_tier` (1-5 each)
+
+### Zombie Tree (Zombie, Husk, Drowned, Zoglin)
+
+- `horde_summon` (10 levels): 10% → 100% chance to summon 2-4 reinforcements
+- `infection` (8 levels): 11% → 100% convert Villagers to Zombies
+- `hunger_attack` (5 levels): Inflict Hunger I-V for 10s
+
+### Skeleton Tree (Skeleton, Stray, Bogged, Wither Skeleton)
+
+- `piercing_shot` (7 levels): 10% → 70% chance for piercing arrows
+- `bow_potion` (8 levels): Fire Poison/Wither arrows (3s → 10s duration)
+- `multishot` (5 levels): 10% → 50% chance to fire 2-3 arrows
+
+### Creeper Tree
+
+- `creeper_power` (10 levels): Explosion radius 3.0 → 12.0 blocks
+- `creeper_potion` (7 levels): Lingering Poison I-III cloud (5s → 11s)
+
+### Witch Tree
+
+- `witch_potion` (5 levels): Throw potions 100% → 500% faster
+- `witch_harming` (6 levels): Instant Damage I → II + Wither I → II
+
+### Cave Spider Tree
+
+- `poison_mastery` (9 levels): Poison I (5s) → Poison II (20s) + Wither I
+
+---
+
+## 🤝 Alliance System
+
+Mobs attacking the SAME target automatically form alliances:
+
+### Strong Alliances (Same Species)
+- Duration: 20 seconds
+- Cooperation: 80% chance to remain allied
+- Example: Zombie + Zombie attacking a Skeleton
+
+### Weak Alliances (Different Species)
+- Duration: 5 seconds
+- Cooperation: 30% chance to remain allied
+- Example: Zombie + Creeper attacking a Skeleton
+
+**Visual Indicator**: Purple particle lines connect allied mobs
+
+**Alliance Breaks**:
+- Timer expires (5s or 20s)
+- Common target dies
+- Cooperation roll fails (20% or 70% chance)
+- One mob attacks the other directly
+
+---
+
+## 👹 Mob Warlord Boss
+
+A legendary boss that spawns during raids:
+
+### Spawn Conditions
+- 25% chance on final raid wave (configurable)
+- Requires raid level ≥3 (configurable)
+- OR use `/mobwar summon warlord` command
+- OR use `/mobwar raid forceboss` to guarantee next raid
+
+### Boss Abilities
+- Summons 20 minions on spawn (configurable)
+- Protects minions from player damage (90% reduction)
+- 3× health multiplier (configurable)
+- 2× damage multiplier (configurable)
+- Enhanced equipment and special skills
+- Commands minion army to focus fire
+
+### Boss Loot
+- Guaranteed rare drops
+- Enhanced enchanted gear
+- Unique boss-specific items
 
 ---
 
@@ -133,123 +260,208 @@ Result: Slow progression, you're the target - hardcore mode!
 
 ```bash
 /mobwar help              # Show all commands
-/mobwar stats             # View nearby mob stats
-/mobwar summon warlord    # Summon Mob Warlord boss
+/mobwar stats             # View nearby mob stats and levels
+/mobwar summon warlord    # Spawn Mob Warlord boss
 /mobwar raid forceboss    # Force Warlord in next raid
-/mobwar reload            # Reload configuration
+/mobwar reload            # Reload configuration files
 ```
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration (Mod Menu)
 
-**Mod Menu Integration**: Click gear icon next to mod name for instant config!
+**Access**: Click gear icon next to "Universal Mob War" in Mod Menu
+
+### General Settings
+- `modEnabled`: Master on/off switch
+- `evolutionSystemEnabled`: Enable mob leveling
+- `allianceSystemEnabled`: Enable alliance formation
+- `targetPlayers`: Whether mobs attack players
+- `ignoreSameSpecies`: Allow same-species combat
+- `neutralMobsAlwaysAggressive`: Make neutral mobs hostile
+- `disableNaturalMobSpawns`: Disable natural mob spawning
+- `rangeMultiplier`: Detection range (0.1× to 5.0×, default 1.0×)
+
+### Evolution Settings
+- `dayScalingMultiplier`: Speed of daily point gain (0× to 10×, default 1.0×)
+- `killScalingMultiplier`: Points per player kill (0× to 10×, default 1.0×)
+- `allowBossScaling`: Enable boss mob evolution
+- `allowModdedScaling`: Enable modded mob evolution
+
+### Warlord Settings
+- `enableMobWarlord`: Enable boss spawning
+- `alwaysSpawnWarlordOnFinalWave`: Force spawn on every final wave
+- `warlordSpawnChance`: 0-100% spawn chance (default 25%)
+- `warlordMinRaidLevel`: Minimum raid level (default 3)
+- `warlordMinionCount`: Number of minions (default 20)
+- `warlordHealthMultiplier`: Boss health scaling (default 3×)
+- `warlordDamageMultiplier`: Boss damage scaling (default 2×)
+
+### Performance Settings
+- `performanceMode`: Reduce visual effects for FPS
+- `enableBatching`: Batch mob upgrade processing
+- `enableAsyncTasks`: Use multithreading for calculations
+- `upgradeProcessingTimeMs`: Target time for all upgrades (1-30s, default 5s)
+- `targetingCacheMs`: Cache targeting queries (100-5000ms)
+- `targetingMaxQueriesPerTick`: Max target scans per tick (10-200)
+
+### Visual Settings
+- `showTargetLines`: Purple lines showing targeting
+- `showHealthBars`: Health bars above mobs
+- `showMobLabels`: Level/skill labels
+- `showLevelParticles`: Particle effects on levelup
+- `minFpsForVisuals`: Disable visuals below FPS threshold
+
+### Debug Settings
+- `debugUpgradeLog`: Show upgrade decisions in chat
+- `debugLogging`: Verbose console logging
 
 **Config File**: `config/universalmobwar.json` (auto-generates)
 
-**Key Settings**:
-- `modEnabled`: Master switch
-- `evolutionSystemEnabled`: Mob leveling system
-- `allianceSystemEnabled`: Alliance formation
-- `targetPlayers`: Whether mobs attack players
-- `dayScalingMultiplier`: Speed of evolution (default: 1.0×)
-- `killScalingMultiplier`: Points per kill (default: 1.0×)
-- `rangeMultiplier`: Detection range (0.1× to 5.0×)
-- `debugUpgradeLog`: See upgrade decisions in chat
-- `excludedMobs`: List of mobs to exclude
-
-**Example Configuration**:
-```json
-{
-  "modEnabled": true,
-  "evolutionSystemEnabled": true,
-  "dayScalingMultiplier": 2.0,
-  "targetPlayers": false,
-  "debugUpgradeLog": false
-}
-```
-
-Apply changes with `/mobwar reload` or restart the game.
-
 ---
 
-## 📊 Technical Details
+## 🏗️ Technical Architecture
 
-### System Architecture
-- **80 Individual Mob JSONs**: Each mob has its own configuration file
-- **Data-Driven Design**: All costs, skills, and upgrades defined in JSON
-- **22 Mixins**: Core systems injected into Minecraft
-- **Smart Caching**: 1.5s targeting cache, 80% query reduction
-- **Performance Optimized**: Batching, async tasks, FPS-based throttling
+### 80 Individual Mob JSONs
+Each mob has a complete configuration file in `src/main/resources/mob_configs/`:
 
-### Requirements
-- **Minecraft**: 1.21.1
-- **Fabric Loader**: ≥0.15.10
-- **Fabric API**: ≥0.102.0+1.21.1
-- **Mod Menu**: Optional (for config GUI)
-- **Cloth Config**: Optional (for advanced settings)
+```
+mob_configs/
+├── Zombie.json          (Universal tree + Zombie tree + costs)
+├── Skeleton.json        (Universal tree + Skeleton tree + costs)
+├── Creeper.json         (Universal tree + Creeper tree + costs)
+├── Piglin.json          (Gold equipment + special rules)
+└── ... (80 total files)
+```
+
+**Each JSON contains**:
+- Point earning system (daily scaling map, kill scaling)
+- Universal upgrades (health, strength, speed, healing, etc.)
+- Mob-specific skill trees
+- Equipment costs and progression
+- Enchantment costs (all 27 enchants, mob uses relevant ones)
+- Starting weapon/armor configuration
+- Shield availability
+
+### Batched Upgrade System
+
+On mob spawn or trigger (1+ days passed):
+
+1. **Collection Phase**: Gather all mobs needing upgrades into queue
+2. **Parallel Processing**: Multithreaded calculation of all upgrade decisions
+   - Each mob: Run 80%/20% buy/save loop
+   - Calculate final equipment/stats
+   - Complete within configurable time (default 5s)
+3. **Application Phase**: Main thread applies all equipment/effects in one batch
+
+**Performance**: Dynamic thread allocation (CPU cores), prevents lag spikes, scales with world size
+
+### 22 Core Mixins
+
+- `MobDataMixin`: Attach upgrade data to mobs (saves to NBT)
+- `MobUpgradeTickMixin`: Trigger upgrade calculations every 20 ticks
+- `UniversalBaseTreeMixin`: Apply universal buffs (Regen, Speed, Strength)
+- `EquipmentBreakMixin`: Downgrade items on break
+- `MobDeathTrackerMixin`: Track player kills per mob type
+- `HordeSummonMixin`: Zombie reinforcement spawning
+- `CreeperExplosionMixin`: Dynamic explosion radius
+- `BowPotionMixin`: Skeleton potion arrows
+- `WitchPotionMixin`: Witch potion throw speed
+- `CaveSpiderMixin`: Enhanced poison effects
+- ... (22 total mixins for all features)
 
 ### Data Persistence
-- Mob levels and equipment save to entity NBT
+
+- Mob levels saved to entity NBT
 - Survives chunk unload/reload
 - Survives server restart
 - Works in singleplayer and multiplayer
+- Kill counts saved to world data
 
 ---
 
 ## 📦 Installation
 
 1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api) (v0.102.0+)
+2. Install [Fabric API](https://modrinth.com/mod/fabric-api) v0.102.0+
 3. Download `universal-mob-war-3.1.0.jar`
 4. Place in `mods` folder
 5. Launch and enjoy!
 
-**Optional**: Install [Mod Menu](https://modrinth.com/mod/modmenu) for config GUI
+**Optional**:
+- [Mod Menu](https://modrinth.com/mod/modmenu) (for config GUI)
+- [Cloth Config](https://modrinth.com/mod/cloth-config) (for advanced settings)
 
 ---
 
 ## 🔨 Building from Source
 
-**Requirements**: Python 3, Java 21, Gradle
+**Requirements**:
+- Python 3.x
+- Java 21+
+- Gradle (via wrapper)
 
 ```bash
 # Clone repository
 git clone https://github.com/Carter-75/UniversalMobWar.git
 cd UniversalMobWar
 
-# Validate all 80 mob configs
-./universal_build.py --check
+# Validate all 80 mob JSONs + code
+python universal_build.py --check
 
-# Build the mod
-./universal_build.py --build
+# Build the mod JAR
+python universal_build.py --build
 
-# JAR output: build/libs/universal-mob-war-3.1.0.jar
+# Build + push to GitHub
+python universal_build.py --deploy
+
+# Output: build/libs/universal-mob-war-3.1.0.jar
 ```
 
-The `universal_build.py` script validates all mob configurations, checks code compatibility with Minecraft 1.21.1, and builds the final JAR.
+**Build Script Features**:
+- Validates 80 mob JSON configurations
+- Checks Java code for 1.21.1 API compatibility
+- Verifies all 22 mixins present
+- Runs full Gradle build
+- Single log file: `universal_build.log`
 
 ---
 
-## 🎥 What You'll See
+## 🎮 Gameplay Examples
 
 ### Early Game (Days 1-10)
-- Mobs spawn with basic equipment (wooden/leather)
-- Small skirmishes between individuals
-- Weak alliances forming temporarily
-- Mobs gaining first upgrades (health, strength)
+```
+Points: ~1 point total
+Upgrades: Health +2, maybe Strength I
+Equipment: None or wooden sword
+Result: Slightly tougher mobs, basic combat
+```
 
-### Mid Game (Days 10-30)
-- Mobs equipped with iron/diamond gear
-- Coordinated group battles
-- Special abilities starting to activate
-- Stronger alliances lasting longer
+### Mid Game (Days 15-25)
+```
+Points: ~20 points total
+Upgrades: Health +6, Strength II, Speed I, weapon tier 2-3
+Equipment: Stone/Iron sword, leather/iron armor
+Result: Coordinated battles, alliances forming
+```
 
 ### Late Game (Days 30+)
-- Fully armored Netherite warriors
-- Epic battles with explosions and potions
-- Mob Warlords leading armies
-- Villages under siege from evolved hordes
+```
+Points: ~178 points total
+Upgrades: Health +20, Strength IV, Speed III, all trees progressing
+Equipment: Diamond/Netherite gear with enchants
+Result: Epic wars, Warlord bosses, village sieges
+```
+
+### Maximum Chaos Mode
+```
+Config:
+- ignoreSameSpecies = false (Zombies attack Zombies!)
+- rangeMultiplier = 5.0 (5× detection range)
+- targetPlayers = false (you're spectator)
+
+Result: EVERY mob attacks EVERY other mob at massive range!
+```
 
 ---
 
@@ -274,27 +486,32 @@ The `universal_build.py` script validates all mob configurations, checks code co
 
 ## 🐛 Bug Reports
 
-Found a bug? Report it with:
-- Minecraft version
+Report bugs on GitHub with:
+- Minecraft 1.21.1
 - Fabric Loader version
 - Other mods installed
 - Steps to reproduce
-- Screenshots/logs
+- Screenshots/logs (`latest.log` and `universal_build.log`)
 
 ---
 
 ## 🎉 Summary
 
-Universal Mob War transforms Minecraft into a living, breathing battlefield where:
-- **80 different mobs** each have unique upgrade paths
-- **Mobs battle each other** in epic wars across the world
-- **Evolution system** turns weak mobs into unstoppable warriors
-- **Legendary bosses** like the Mob Warlord command armies
-- **Alliances form** creating dynamic team battles
-- **100% compatible** with vanilla and modded content
+Universal Mob War transforms Minecraft into a dynamic battlefield:
 
-**Watch the world burn!** 🔥
+- ✅ **80 individual mob configs** with complete upgrade paths
+- ✅ **Progressive point economy** with 80%/20% buy/save system
+- ✅ **5-tier equipment progression** (Wood → Netherite)
+- ✅ **27 enchantments** with multi-level costs
+- ✅ **6 mob-specific skill trees** with unique abilities
+- ✅ **Dynamic alliance system** (strong/weak, 5s-20s duration)
+- ✅ **Legendary Mob Warlord boss** with minion armies
+- ✅ **100% compatible** with vanilla and modded mobs
+- ✅ **Performance optimized** with multithreading and batching
+- ✅ **Fully data-driven** - all costs/skills in JSON files
+
+**Watch the world evolve into an epic war!** 🔥
 
 ---
 
-**Made with ❤️ for Minecraft 1.21.1**
+**Made with ❤️ for Minecraft 1.21.1 | Powered by Fabric**
