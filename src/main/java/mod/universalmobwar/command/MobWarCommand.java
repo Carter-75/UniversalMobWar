@@ -298,7 +298,7 @@ public class MobWarCommand {
         mod.universalmobwar.command.RaidBossSpawnCommand.shouldForceSpawn();
         
         source.sendFeedback(() -> 
-            Text.literal("✅ Next raid will GUARANTEE a Mob Warlord spawn on the final wave!")
+            Text.literal("[SUCCESS] Next raid will GUARANTEE a Mob Warlord spawn on the final wave!")
                 .styled(style -> style.withColor(Formatting.GREEN).withBold(true)), 
             true
         );
