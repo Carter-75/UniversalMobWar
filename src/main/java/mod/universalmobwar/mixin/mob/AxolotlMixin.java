@@ -1,8 +1,10 @@
 package mod.universalmobwar.mixin.mob;
 
+import mod.universalmobwar.data.MobWarData;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.AxolotlEntity;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,68 +16,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Standalone mixin for Axolotl - Neutral mob
  * 
- * Axolotl from skilltree.txt:
- * - type: neutral
- * - weapon: none
- * - armor: none
- * - shield: false
- * - trees: []
+ * Uses MobWarData for persistence (handled by MobDataMixin on MobEntity)
  * 
- * Available upgrades (hostile_and_neutral_potion_effects, since neutral):
- * - healing: 5 levels (cost 1-5) -> Regen I-II + on-damage boost
- * - health_boost: 10 levels (cost 2-11) -> +2 to +20 HP
- * - resistance: 3 levels (cost 4, 6, 8) -> Resistance I-II + Fire Resistance
- * - strength: 4 levels (cost 3, 5, 7, 9) -> Strength I-IV
- * - speed: 3 levels (cost 6, 9, 12) -> Speed I-III
- * - invisibility_on_hit: 5 levels (cost 8, 12, 16, 20, 25) -> 5-80% chance
- * 
- * NO item masteries (no equipment)
- * NO skill trees
+ * Available upgrades (hostile_and_neutral_potion_effects):
+ * - healing: 5 levels (cost 1-5)
+ * - health_boost: 10 levels (cost 2-11)
+ * - resistance: 3 levels (cost 4, 6, 8)
+ * - strength: 4 levels (cost 3, 5, 7, 9)
+ * - speed: 3 levels (cost 6, 9, 12)
  */
 @Mixin(AxolotlEntity.class)
 public abstract class AxolotlMixin {
 
-    // ========== NBT Data Storage ==========
     @Unique
-    private static final String NBT_KEY = "UniversalMobWar_Axolotl";
+    private static final String DATA_KEY = "axolotl_upgrades";
     
     @Unique
-    private int totalPoints = 0;
-    
-    @Unique
-    private int spentPoints = 0;
-    
-    // Hostile/Neutral potion effect levels
-    @Unique
-    private int healingLevel = 0;           // 0-5
-    
-    @Unique
-    private int healthBoostLevel = 0;       // 0-10
-    
-    @Unique
-    private int resistanceLevel = 0;        // 0-3
-    
-    @Unique
-    private int strengthLevel = 0;          // 0-4
-    
-    @Unique
-    private int speedLevel = 0;             // 0-3
-    
-    @Unique
-    private int invisibilityOnHitLevel = 0; // 0-5
-    
-    // Cooldown tracking for on-hit effects
-    @Unique
-    private long lastInvisibilityTrigger = 0;
-    
-    @Unique
-    private long lastDamageRegenTrigger = 0;
-    
-    // Tracking for triggers
-    @Unique
-    private long lastUpdateTick = 0;
+    private long lastProcessTick = 0;
 
-    // ========== Point System ==========
+    // ========== Point Calculation ==========
     
     @Unique
     private int calculateWorldAgePoints(World world) {
@@ -84,65 +43,32 @@ public abstract class AxolotlMixin {
         
         double points = 0.0;
         for (int day = 1; day <= worldDays; day++) {
-            if (day <= 10) {
-                points += 0.1;
-            } else if (day <= 15) {
-                points += 0.5;
-            } else if (day <= 20) {
-                points += 1.0;
-            } else if (day <= 25) {
-                points += 1.5;
-            } else if (day <= 30) {
-                points += 3.0;
-            } else {
-                points += 5.0;
-            }
+            if (day <= 10) points += 0.1;
+            else if (day <= 15) points += 0.5;
+            else if (day <= 20) points += 1.0;
+            else if (day <= 25) points += 1.5;
+            else if (day <= 30) points += 3.0;
+            else points += 5.0;
         }
         return (int) points;
     }
-    
-    @Unique
-    private int getBudget() {
-        return totalPoints - spentPoints;
-    }
 
-    // ========== Upgrade Costs (from skilltree.txt hostile_and_neutral_potion_effects) ==========
+    // ========== Upgrade Costs ==========
     
     @Unique
     private int getHealingCost(int level) {
-        return switch (level) {
-            case 1 -> 1;
-            case 2 -> 2;
-            case 3 -> 3;
-            case 4 -> 4;
-            case 5 -> 5;
-            default -> Integer.MAX_VALUE;
-        };
+        return level >= 1 && level <= 5 ? level : Integer.MAX_VALUE;
     }
     
     @Unique
     private int getHealthBoostCost(int level) {
-        return switch (level) {
-            case 1 -> 2;
-            case 2 -> 3;
-            case 3 -> 4;
-            case 4 -> 5;
-            case 5 -> 6;
-            case 6 -> 7;
-            case 7 -> 8;
-            case 8 -> 9;
-            case 9 -> 10;
-            case 10 -> 11;
-            default -> Integer.MAX_VALUE;
-        };
+        return level >= 1 && level <= 10 ? level + 1 : Integer.MAX_VALUE;
     }
     
     @Unique
     private int getResistanceCost(int level) {
         return switch (level) {
-            case 1 -> 4;
-            case 2 -> 6;
-            case 3 -> 8;
+            case 1 -> 4; case 2 -> 6; case 3 -> 8;
             default -> Integer.MAX_VALUE;
         };
     }
@@ -150,10 +76,7 @@ public abstract class AxolotlMixin {
     @Unique
     private int getStrengthCost(int level) {
         return switch (level) {
-            case 1 -> 3;
-            case 2 -> 5;
-            case 3 -> 7;
-            case 4 -> 9;
+            case 1 -> 3; case 2 -> 5; case 3 -> 7; case 4 -> 9;
             default -> Integer.MAX_VALUE;
         };
     }
@@ -161,246 +84,152 @@ public abstract class AxolotlMixin {
     @Unique
     private int getSpeedCost(int level) {
         return switch (level) {
-            case 1 -> 6;
-            case 2 -> 9;
-            case 3 -> 12;
-            default -> Integer.MAX_VALUE;
-        };
-    }
-    
-    @Unique
-    private int getInvisibilityOnHitCost(int level) {
-        return switch (level) {
-            case 1 -> 8;
-            case 2 -> 12;
-            case 3 -> 16;
-            case 4 -> 20;
-            case 5 -> 25;
+            case 1 -> 6; case 2 -> 9; case 3 -> 12;
             default -> Integer.MAX_VALUE;
         };
     }
 
-    // ========== Spending Logic ==========
+    // ========== Tick Processing ==========
     
-    @Unique
-    private void spendPoints(AxolotlEntity self) {
-        java.util.Random random = new java.util.Random();
-        
-        while (getBudget() > 0) {
-            java.util.List<Runnable> affordableUpgrades = new java.util.ArrayList<>();
-            
-            // Check healing
-            int nextHealingLevel = healingLevel + 1;
-            if (nextHealingLevel <= 5 && getBudget() >= getHealingCost(nextHealingLevel)) {
-                final int cost = getHealingCost(nextHealingLevel);
-                affordableUpgrades.add(() -> {
-                    healingLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            // Check health boost
-            int nextHealthLevel = healthBoostLevel + 1;
-            if (nextHealthLevel <= 10 && getBudget() >= getHealthBoostCost(nextHealthLevel)) {
-                final int cost = getHealthBoostCost(nextHealthLevel);
-                affordableUpgrades.add(() -> {
-                    healthBoostLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            // Check resistance
-            int nextResistLevel = resistanceLevel + 1;
-            if (nextResistLevel <= 3 && getBudget() >= getResistanceCost(nextResistLevel)) {
-                final int cost = getResistanceCost(nextResistLevel);
-                affordableUpgrades.add(() -> {
-                    resistanceLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            // Check strength
-            int nextStrengthLevel = strengthLevel + 1;
-            if (nextStrengthLevel <= 4 && getBudget() >= getStrengthCost(nextStrengthLevel)) {
-                final int cost = getStrengthCost(nextStrengthLevel);
-                affordableUpgrades.add(() -> {
-                    strengthLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            // Check speed
-            int nextSpeedLevel = speedLevel + 1;
-            if (nextSpeedLevel <= 3 && getBudget() >= getSpeedCost(nextSpeedLevel)) {
-                final int cost = getSpeedCost(nextSpeedLevel);
-                affordableUpgrades.add(() -> {
-                    speedLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            // Check invisibility on hit
-            int nextInvisLevel = invisibilityOnHitLevel + 1;
-            if (nextInvisLevel <= 5 && getBudget() >= getInvisibilityOnHitCost(nextInvisLevel)) {
-                final int cost = getInvisibilityOnHitCost(nextInvisLevel);
-                affordableUpgrades.add(() -> {
-                    invisibilityOnHitLevel++;
-                    spentPoints += cost;
-                });
-            }
-            
-            if (affordableUpgrades.isEmpty()) {
-                break;
-            }
-            
-            // 20% chance to save and stop
-            if (random.nextDouble() < 0.20) {
-                break;
-            }
-            
-            // 80% chance - pick and buy random upgrade
-            int index = random.nextInt(affordableUpgrades.size());
-            affordableUpgrades.get(index).run();
-        }
-        
-        applyEffects(self);
-    }
-    
-    // ========== Effect Application ==========
-    
-    @Unique
-    private void applyEffects(AxolotlEntity self) {
-        // Healing: Levels 1-2 give permanent regen, 3+ add on-damage boost (handled in damage event)
-        if (healingLevel >= 1) {
-            int regenAmplifier = Math.min(healingLevel - 1, 1); // Cap at Regen II for permanent
-            self.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.REGENERATION,
-                Integer.MAX_VALUE,
-                regenAmplifier,
-                false, false, true
-            ));
-        }
-        
-        // Health boost: +2 HP per level
-        if (healthBoostLevel > 0) {
-            self.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.HEALTH_BOOST,
-                Integer.MAX_VALUE,
-                healthBoostLevel - 1,
-                false, false, true
-            ));
-        }
-        
-        // Resistance
-        if (resistanceLevel >= 1) {
-            int resistAmplifier = Math.min(resistanceLevel - 1, 1); // Resistance I or II
-            self.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.RESISTANCE,
-                Integer.MAX_VALUE,
-                resistAmplifier,
-                false, false, true
-            ));
-            
-            // Level 3 adds Fire Resistance
-            if (resistanceLevel >= 3) {
-                self.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.FIRE_RESISTANCE,
-                    Integer.MAX_VALUE,
-                    0,
-                    false, false, true
-                ));
-            }
-        }
-        
-        // Strength
-        if (strengthLevel > 0) {
-            self.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.STRENGTH,
-                Integer.MAX_VALUE,
-                strengthLevel - 1,
-                false, false, true
-            ));
-        }
-        
-        // Speed
-        if (speedLevel > 0) {
-            self.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.SPEED,
-                Integer.MAX_VALUE,
-                speedLevel - 1,
-                false, false, true
-            ));
-        }
-    }
-
-    // ========== NBT Persistence ==========
-    
-    @Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-    private void writeCustomDataToNbt(NbtCompound nbt, CallbackInfo ci) {
-        NbtCompound modData = new NbtCompound();
-        modData.putInt("totalPoints", totalPoints);
-        modData.putInt("spentPoints", spentPoints);
-        modData.putInt("healingLevel", healingLevel);
-        modData.putInt("healthBoostLevel", healthBoostLevel);
-        modData.putInt("resistanceLevel", resistanceLevel);
-        modData.putInt("strengthLevel", strengthLevel);
-        modData.putInt("speedLevel", speedLevel);
-        modData.putInt("invisibilityOnHitLevel", invisibilityOnHitLevel);
-        modData.putLong("lastInvisibilityTrigger", lastInvisibilityTrigger);
-        modData.putLong("lastDamageRegenTrigger", lastDamageRegenTrigger);
-        modData.putLong("lastUpdateTick", lastUpdateTick);
-        nbt.put(NBT_KEY, modData);
-    }
-    
-    @Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-    private void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) {
-        if (nbt.contains(NBT_KEY)) {
-            NbtCompound modData = nbt.getCompound(NBT_KEY);
-            totalPoints = modData.getInt("totalPoints");
-            spentPoints = modData.getInt("spentPoints");
-            healingLevel = modData.getInt("healingLevel");
-            healthBoostLevel = modData.getInt("healthBoostLevel");
-            resistanceLevel = modData.getInt("resistanceLevel");
-            strengthLevel = modData.getInt("strengthLevel");
-            speedLevel = modData.getInt("speedLevel");
-            invisibilityOnHitLevel = modData.getInt("invisibilityOnHitLevel");
-            lastInvisibilityTrigger = modData.getLong("lastInvisibilityTrigger");
-            lastDamageRegenTrigger = modData.getLong("lastDamageRegenTrigger");
-            lastUpdateTick = modData.getLong("lastUpdateTick");
-            
-            applyEffects((AxolotlEntity) (Object) this);
-        }
-    }
-
-    // ========== Tick Handling ==========
-    
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void onTick(CallbackInfo ci) {
+    @Inject(method = "mobTick", at = @At("HEAD"))
+    private void onMobTick(CallbackInfo ci) {
         AxolotlEntity self = (AxolotlEntity) (Object) this;
         World world = self.getWorld();
         
-        if (world.isClient()) {
+        if (world.isClient()) return;
+        
+        long currentTick = world.getTime();
+        
+        // Only process every 100 ticks (5 seconds) for performance
+        if (currentTick - lastProcessTick < 100) return;
+        lastProcessTick = currentTick;
+        
+        MobWarData data = MobWarData.get((MobEntity) self);
+        NbtCompound skillData = data.getSkillData();
+        
+        // Initialize if needed
+        if (!skillData.contains(DATA_KEY)) {
+            NbtCompound upgrades = new NbtCompound();
+            upgrades.putInt("healing", 0);
+            upgrades.putInt("health_boost", 0);
+            upgrades.putInt("resistance", 0);
+            upgrades.putInt("strength", 0);
+            upgrades.putInt("speed", 0);
+            skillData.put(DATA_KEY, upgrades);
+        }
+        
+        // Calculate available points
+        int totalPoints = calculateWorldAgePoints(world);
+        int spentPoints = (int) data.getSpentPoints();
+        int budget = totalPoints - spentPoints;
+        
+        if (budget <= 0) {
+            applyEffects(self, skillData.getCompound(DATA_KEY));
             return;
         }
         
-        long currentTick = world.getTime();
-        int newTotalPoints = calculateWorldAgePoints(world);
+        // Spending logic
+        NbtCompound upgrades = skillData.getCompound(DATA_KEY);
+        java.util.Random random = new java.util.Random();
         
-        // Spending triggers:
-        // 1. Points increased (new day)
-        // 2. More than 1 day (24000 ticks) since last update attempt
-        boolean shouldSpend = false;
-        
-        if (newTotalPoints > totalPoints) {
-            totalPoints = newTotalPoints;
-            shouldSpend = true;
-        } else if (currentTick - lastUpdateTick > 24000L) {
-            shouldSpend = true;
+        while (budget > 0) {
+            java.util.List<Runnable> affordable = new java.util.ArrayList<>();
+            
+            int healLvl = upgrades.getInt("healing");
+            if (healLvl < 5 && budget >= getHealingCost(healLvl + 1)) {
+                final int cost = getHealingCost(healLvl + 1);
+                affordable.add(() -> {
+                    upgrades.putInt("healing", healLvl + 1);
+                    data.setSpentPoints(data.getSpentPoints() + cost);
+                });
+            }
+            
+            int hpLvl = upgrades.getInt("health_boost");
+            if (hpLvl < 10 && budget >= getHealthBoostCost(hpLvl + 1)) {
+                final int cost = getHealthBoostCost(hpLvl + 1);
+                affordable.add(() -> {
+                    upgrades.putInt("health_boost", hpLvl + 1);
+                    data.setSpentPoints(data.getSpentPoints() + cost);
+                });
+            }
+            
+            int resLvl = upgrades.getInt("resistance");
+            if (resLvl < 3 && budget >= getResistanceCost(resLvl + 1)) {
+                final int cost = getResistanceCost(resLvl + 1);
+                affordable.add(() -> {
+                    upgrades.putInt("resistance", resLvl + 1);
+                    data.setSpentPoints(data.getSpentPoints() + cost);
+                });
+            }
+            
+            int strLvl = upgrades.getInt("strength");
+            if (strLvl < 4 && budget >= getStrengthCost(strLvl + 1)) {
+                final int cost = getStrengthCost(strLvl + 1);
+                affordable.add(() -> {
+                    upgrades.putInt("strength", strLvl + 1);
+                    data.setSpentPoints(data.getSpentPoints() + cost);
+                });
+            }
+            
+            int spdLvl = upgrades.getInt("speed");
+            if (spdLvl < 3 && budget >= getSpeedCost(spdLvl + 1)) {
+                final int cost = getSpeedCost(spdLvl + 1);
+                affordable.add(() -> {
+                    upgrades.putInt("speed", spdLvl + 1);
+                    data.setSpentPoints(data.getSpentPoints() + cost);
+                });
+            }
+            
+            if (affordable.isEmpty()) break;
+            if (random.nextDouble() < 0.20) break; // 20% save chance
+            
+            affordable.get(random.nextInt(affordable.size())).run();
+            budget = totalPoints - (int) data.getSpentPoints();
         }
         
-        if (shouldSpend && getBudget() > 0) {
-            lastUpdateTick = currentTick;
-            spendPoints(self);
+        // Save and apply
+        skillData.put(DATA_KEY, upgrades);
+        data.setSkillData(skillData);
+        MobWarData.save((MobEntity) self, data);
+        applyEffects(self, upgrades);
+    }
+    
+    @Unique
+    private void applyEffects(AxolotlEntity self, NbtCompound upgrades) {
+        int healing = upgrades.getInt("healing");
+        int healthBoost = upgrades.getInt("health_boost");
+        int resistance = upgrades.getInt("resistance");
+        int strength = upgrades.getInt("strength");
+        int speed = upgrades.getInt("speed");
+        
+        // Apply regeneration
+        if (healing > 0) {
+            int amp = Math.min(healing - 1, 1); // Regen I or II
+            self.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 200, amp, false, false, true));
+        }
+        
+        // Apply health boost
+        if (healthBoost > 0) {
+            self.addStatusEffect(new StatusEffectInstance(StatusEffects.HEALTH_BOOST, 200, healthBoost - 1, false, false, true));
+        }
+        
+        // Apply resistance
+        if (resistance > 0) {
+            int amp = Math.min(resistance - 1, 1);
+            self.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 200, amp, false, false, true));
+            if (resistance >= 3) {
+                self.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 200, 0, false, false, true));
+            }
+        }
+        
+        // Apply strength
+        if (strength > 0) {
+            self.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 200, strength - 1, false, false, true));
+        }
+        
+        // Apply speed
+        if (speed > 0) {
+            self.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 200, speed - 1, false, false, true));
         }
     }
 }
