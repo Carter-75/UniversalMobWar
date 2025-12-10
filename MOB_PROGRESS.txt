@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 23 / 80 mobs completed
+PROGRESS: 26 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -31,9 +31,9 @@ PROGRESS: 23 / 80 mobs completed
 21. [X] Ender_Dragon     - DONE
 22. [X] Enderman         - DONE
 23. [X] Endermite        - DONE
-24. [ ] Evoker
-25. [ ] Fox
-26. [ ] Frog
+24. [X] Evoker           - DONE
+25. [X] Fox              - DONE
+26. [X] Frog             - DONE
 27. [ ] Giant
 28. [ ] Glow_Squid
 29. [ ] Goat

@@ -1,0 +1,32 @@
+{
+  "mob_name": "Frog",
+  "entity_class": "net.minecraft.entity.passive.FrogEntity",
+  "mob_type": "passive",
+  "tree_name": "Swamp Drifter",
+
+  "point_system": {
+    "daily_scaling": [
+      { "days_min": 0,  "days_max": 10, "points_per_day": 0.1 },
+      { "days_min": 11, "days_max": 15, "points_per_day": 0.5 },
+      { "days_min": 16, "days_max": 20, "points_per_day": 1.0 },
+      { "days_min": 21, "days_max": 25, "points_per_day": 1.5 },
+      { "days_min": 26, "days_max": 30, "points_per_day": 3.0 },
+      { "days_min": 31, "days_max": -1, "points_per_day": 5.0 }
+    ],
+    "kill_scaling": 1,
+    "buy_chance": 0.80,
+    "save_chance": 0.20
+  },
+
+  "tree": {
+    "passive_potion_effects": {},
+    "hostile_neutral_potion_effects": {},
+    "weapon": {},
+    "shield": {},
+    "helmet": {},
+    "chestplate": {},
+    "leggings": {},
+    "boots": {},
+    "special_abilities": {}
+  }
+}

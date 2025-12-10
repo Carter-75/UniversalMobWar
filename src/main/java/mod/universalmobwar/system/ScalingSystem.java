@@ -65,7 +65,7 @@ public class ScalingSystem {
         "blaze", "bogged", "breeze", "camel", "cat",
         "cave_spider", "chicken", "cod", "cow", "creeper",
         "creaking", "dolphin", "donkey", "drowned", "elder_guardian",
-        "ender_dragon", "enderman", "endermite"
+        "ender_dragon", "enderman", "endermite", "evoker", "fox", "frog"
     };
     
     private static boolean configsLoaded = false;
