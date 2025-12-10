@@ -123,9 +123,9 @@ PROGRESS: 70 / 80 mobs completed
 68. [X] Turtle
 69. [X] Vex
 70. [X] Villager
-71. [ ] Vindicator
-72. [ ] Wandering_Trader
-73. [ ] Warden
+71. [X] Vindicator
+72. [X] Wandering_Trader
+73. [X] Warden
 74. [ ] Witch
 75. [ ] Wither
 76. [ ] Wither_Skeleton
