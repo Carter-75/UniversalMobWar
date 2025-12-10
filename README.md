@@ -271,50 +271,48 @@ A legendary boss that spawns during raids:
 
 **Access**: Click gear icon next to "Universal Mob War" in Mod Menu
 
-### General Settings
-- `modEnabled`: Master on/off switch
-- `evolutionSystemEnabled`: Enable mob leveling
-- `allianceSystemEnabled`: Enable alliance formation
-- `targetPlayers`: Whether mobs attack players
-- `ignoreSameSpecies`: Allow same-species combat
-- `neutralMobsAlwaysAggressive`: Make neutral mobs hostile
-- `disableNaturalMobSpawns`: Disable natural mob spawning
-- `rangeMultiplier`: Detection range (0.1× to 5.0×, default 1.0×)
+**Scroll-Friendly Layout**: The in-game screen is now scrollable, so every option stays readable even on 720p installs. Widgets are spaced with consistent padding so you can breeze through the categories listed below.
 
-### Evolution Settings
-- `dayScalingMultiplier`: Speed of daily point gain (0× to 10×, default 1.0×)
-- `killScalingMultiplier`: Points per player kill (0× to 10×, default 1.0×)
-- `allowBossScaling`: Enable boss mob evolution
+### General
+- `modEnabled` – Global kill switch for the entire mod.
+- `targetingEnabled`, `allianceEnabled`, `scalingEnabled`, `warlordEnabled` – Independent toggles for each core system. They also keep the legacy flags (`evolutionSystemEnabled`, etc.) in sync.
+- `warlordSpawnChance` – 0–100% slider that controls the chance the Warlord hijacks the final raid wave (default 25%).
 
-### Warlord Settings
-- `enableMobWarlord`: Enable boss spawning
-- `alwaysSpawnWarlordOnFinalWave`: Force spawn on every final wave
-- `warlordSpawnChance`: 0-100% spawn chance (default 25%)
-- `warlordMinRaidLevel`: Minimum raid level (default 3)
-- `warlordMinionCount`: Number of minions (default 20)
-- `warlordHealthMultiplier`: Boss health scaling (default 3×)
-- `warlordDamageMultiplier`: Boss damage scaling (default 2×)
+### Targeting
+- `targetPlayers` – If off, mobs fully ignore players and focus on PvPVE wars.
+- `ignoreSameSpecies` – When disabled, zombies can fight zombies, skeletons can fight skeletons, etc.
+- `neutralMobsAlwaysAggressive` – Forces wolves, golems, and other neutrals into the conflict.
+- `disableNaturalMobSpawns` – Blocks every natural spawn so only scripted events and commands create mobs.
+- `rangeMultiplier` – 0.1×–5.0× slider that expands or shrinks the targeting radius.
+- `targetingCacheMs` – 500–5000 ms cache window for target lookups.
+- `targetingMaxQueriesPerTick` – 10–200 scans per tick so you can tune CPU usage.
 
-### Performance Settings
-- `performanceMode`: Reduce visual effects for FPS
-- `enableBatching`: Batch mob upgrade processing
-- `enableAsyncTasks`: Use multithreading for calculations
-- `upgradeProcessingTimeMs`: Target time for all upgrades (1-30s, default 5s)
-- `targetingCacheMs`: Cache targeting queries (100-5000ms)
-- `targetingMaxQueriesPerTick`: Max target scans per tick (10-200)
+### Scaling
+- `allowBossScaling` – Boss mobs (including the Warlord) obey the same JSON-driven scaling rules.
+- `dayScalingMultiplier` – 0×–10× multiplier for world-age point income.
+- `killScalingMultiplier` – 0×–10× multiplier per recorded player kill.
+- `saveChancePercent` – 0–100% slider for the 80%/20% buy/save loop (buy chance auto-updates to `100 - save`).
 
-### Visual Settings
-- `showTargetLines`: Purple lines showing targeting
-- `showHealthBars`: Health bars above mobs
-- `showMobLabels`: Level/skill labels
-- `showLevelParticles`: Particle effects on levelup
-- `minFpsForVisuals`: Disable visuals below FPS threshold
+### Performance
+- `upgradeProcessingTimeMs` – 1–30 second window (slider shows seconds) used by the batch processor to stay within your frame budget.
 
-### Debug Settings
-- `debugUpgradeLog`: Show upgrade decisions in chat
-- `debugLogging`: Verbose console logging
+### Visuals
+- `disableParticles` – Quick FPS-friendly kill switch for most particles this mod spawns.
+- `showTargetLines` – Toggle the purple target beams between combatants.
+- `showLevelParticles` – Enables/disables the celebratory upgrade bursts.
+- `minFpsForVisuals` – Visual effects auto-disable if the client dips below this FPS threshold.
 
-**Config File**: `config/universalmobwar.json` (auto-generates)
+### Debug
+- `performanceMode` – Cuts most visual flourishes and applies safer defaults when you need guaranteed FPS.
+- `enableBatching` / `enableAsyncTasks` – Control how scaling work is grouped and whether it can hop to background threads.
+- `mobDataSaveDebounceMs` – Tune how often mob progress is written to disk (50–1000 ms window).
+- `weakAllianceDurationMs`, `strongAllianceDurationMs`, `allianceBreakChancePercent`, `strongAllianceBreakChancePercent` – All alliance timing/probability sliders live here now.
+- `alwaysSpawnWarlordOnFinalWave`, `warlordMinRaidLevel`, `warlordMinionCount`, `warlordHealthMultiplierPercent`, `warlordDamageMultiplierPercent` – Complete Warlord tuning without touching JSON.
+- `maxParticlesPerConnection`, `maxDrawnMinionConnections` – Cap how many connection effects render per mob/minion.
+- `debugUpgradeLog`, `debugLogging` – Toggle chat spam for upgrade decisions or ultra-verbose console logging.
+- `excludedMobs` list – Still lives in `config/universalmobwar.json`; edit it manually (plus `/mobwar reload`) if you want this system to ignore specific entities.
+
+**Config File**: `config/universalmobwar.json` (auto-generates and syncs with Mod Menu). Only touch it for `excludedMobs` (plus `/mobwar reload`) or other future experimental flags.
 
 ---
 

@@ -22,6 +22,9 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
@@ -266,7 +269,7 @@ public class ScalingSystem {
             
             // Spend points on upgrades (with save chance logic loop)
             if (budget > 0) {
-                spendPoints(mob, data, config, mobType, budget);
+                spendPoints(mob, data, config, mobType, budget, totalPoints);
             }
             
             // Apply permanent effects only when upgrades change
@@ -372,8 +375,9 @@ public class ScalingSystem {
     /**
      * Spend points on upgrades using 80/20 buy/save logic from JSON
      */
-    private static void spendPoints(MobEntity mob, MobWarData data, JsonObject config, String mobType, int budget) {
+    private static void spendPoints(MobEntity mob, MobWarData data, JsonObject config, String mobType, int budget, double totalPoints) {
         Random random = new Random(mob.getUuid().hashCode() + data.getSkillData().getLong("lastUpdateTick"));
+        UpgradeLogger logger = new UpgradeLogger(mob);
         
         // Get buy/save chances (JSON defaults then overridden by global config slider)
         double buyChance = 0.80;
@@ -410,20 +414,34 @@ public class ScalingSystem {
         
         // Get current upgrade levels from skill data
         NbtCompound skillData = data.getSkillData();
+        logger.logStart(budget, totalPoints, data.getSpentPoints(), data.getKillCount(), buyChance, saveChance);
         
         // Spending loop
         int iterations = 0;
         boolean purchasedUpgrade = false;
+        String exitReason = "Budget exhausted";
         while (budget > 0 && iterations < 50) { // Cap iterations to prevent infinite loop
             iterations++;
             
             List<UpgradeOption> affordable = getAffordableUpgrades(mob, config, mobType, skillData, budget);
             
-            if (affordable.isEmpty()) break;
+            if (affordable.isEmpty()) {
+                exitReason = "No affordable upgrades remaining";
+                logger.logIteration(iterations, 0.0, affordable.size(), exitReason);
+                break;
+            }
             
             double roll = random.nextDouble();
-            if (roll < saveChance) break;
-            if (roll >= saveChance + buyChance) continue;
+            logger.logIteration(iterations, roll, affordable.size(), null);
+            if (roll < saveChance) {
+                exitReason = "Save roll triggered";
+                logger.log(exitReason + " (carrying " + budget + " points)");
+                break;
+            }
+            if (roll >= saveChance + buyChance) {
+                logger.log("Roll outside buy/save window; retrying next iteration");
+                continue;
+            }
             
             // Buy a random affordable upgrade
             UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
@@ -433,12 +451,18 @@ public class ScalingSystem {
             data.setSpentPoints(data.getSpentPoints() + chosen.cost);
             budget -= chosen.cost;
             purchasedUpgrade = true;
+            logger.logPurchase(chosen, budget);
         }
         
+        if (iterations >= 50 && budget > 0 && "Budget exhausted".equals(exitReason)) {
+            exitReason = "Iteration cap reached";
+        }
+
         data.setSkillData(skillData);
         if (purchasedUpgrade) {
             spawnUpgradeParticles(mob);
         }
+        logger.logCompletion(purchasedUpgrade, budget, exitReason);
     }
 
     private static void spawnUpgradeParticles(MobEntity mob) {
@@ -1856,6 +1880,97 @@ public class ScalingSystem {
         return configsLoaded && MOB_CONFIGS.size() > 0;
     }
     
+    private static String formatUpgradeKey(String rawKey) {
+        if (rawKey == null || rawKey.isEmpty()) {
+            return "Unknown Upgrade";
+        }
+        String normalized = rawKey
+            .replace("effect_", "Effect: ")
+            .replace("ability_", "Ability: ")
+            .replace("weapon_", "Weapon: ")
+            .replace("shield_", "Shield: ")
+            .replace("_tier", " Tier")
+            .replace('_', ' ');
+        String[] parts = normalized.trim().split(" ");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (builder.length() > 0) builder.append(' ');
+            builder.append(Character.toUpperCase(part.charAt(0))).append(part.length() > 1 ? part.substring(1) : "");
+        }
+        return builder.length() > 0 ? builder.toString() : rawKey;
+    }
+
+    private static class UpgradeLogger {
+        private final boolean enabled;
+        private final ServerWorld serverWorld;
+        private final String identifier;
+
+        UpgradeLogger(MobEntity mob) {
+            ModConfig config = ModConfig.getInstance();
+            if (config.debugUpgradeLog && mob.getWorld() instanceof ServerWorld sw) {
+                this.enabled = true;
+                this.serverWorld = sw;
+                String display = mob.getDisplayName().getString();
+                String shortId = mob.getUuid().toString().substring(0, 8);
+                this.identifier = display + "#" + shortId;
+            } else {
+                this.enabled = false;
+                this.serverWorld = null;
+                this.identifier = "";
+            }
+        }
+
+        void logStart(int budget, double totalPoints, double spentPoints, int killCount, double buyChance, double saveChance) {
+            if (!enabled) return;
+            log(String.format(
+                java.util.Locale.US,
+                "Start: budget=%d total=%.2f spent=%.2f kills=%d buy=%.0f%% save=%.0f%%",
+                budget,
+                totalPoints,
+                spentPoints,
+                killCount,
+                buyChance * 100.0,
+                saveChance * 100.0
+            ));
+        }
+
+        void logIteration(int iteration, double roll, int affordable, String note) {
+            if (!enabled) return;
+            if (note != null) {
+                log(String.format(java.util.Locale.US, "Iteration %d: %s", iteration, note));
+            } else {
+                log(String.format(java.util.Locale.US, "Iteration %d: roll=%.3f options=%d", iteration, roll, affordable));
+            }
+        }
+
+        void logPurchase(UpgradeOption option, int remainingBudget) {
+            if (!enabled) return;
+            log(String.format(
+                java.util.Locale.US,
+                "Purchased %s -> level %d (cost=%d, remaining=%d)",
+                formatUpgradeKey(option.key),
+                option.newLevel,
+                option.cost,
+                Math.max(remainingBudget, 0)
+            ));
+        }
+
+        void log(String message) {
+            if (!enabled || serverWorld == null) return;
+            MutableText prefix = Text.literal("[MobWar][" + identifier + "] ")
+                .styled(style -> style.withColor(Formatting.DARK_AQUA).withBold(true));
+            Text finalText = prefix.append(Text.literal(message).styled(style -> style.withColor(Formatting.WHITE)));
+            serverWorld.getServer().getPlayerManager().broadcast(finalText, false);
+        }
+
+        void logCompletion(boolean purchased, int remainingBudget, String exitReason) {
+            if (!enabled) return;
+            String status = purchased ? "completed with purchases" : "completed with no purchases";
+            log(String.format(java.util.Locale.US, "Pass %s. Exit: %s. Remaining budget=%d", status, exitReason, Math.max(remainingBudget, 0)));
+        }
+    }
+
     /**
      * Helper class for upgrade options
      */

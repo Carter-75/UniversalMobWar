@@ -182,12 +182,6 @@ public class ModConfig implements ConfigData {
     public boolean showTargetLines = true;
     
     @ConfigEntry.Gui.Tooltip(count = 1)
-    public boolean showHealthBars = true;
-    
-    @ConfigEntry.Gui.Tooltip(count = 1)
-    public boolean showMobLabels = true;
-    
-    @ConfigEntry.Gui.Tooltip(count = 1)
     public boolean showLevelParticles = true;
     
     @ConfigEntry.Gui.Tooltip(count = 1)

@@ -7,8 +7,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 /**
- * Client-side visual enhancements for spectator mode.
- * Shows target lines, health bars, and mob labels.
+ * Client-side helper for generating formatted mob text when debugging overlays need it.
  */
 public class MobWarVisuals {
         // FPS safeguard: disables some visuals if FPS is low

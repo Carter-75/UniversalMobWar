@@ -33,8 +33,6 @@
   "sameSpeciesAllianceBreakChance": 0.05,
   "excludedMobs": [],
   "showTargetLines": true,
-  "showHealthBars": true,
-  "showMobLabels": true,
   "showLevelParticles": true,
   "disableParticles": false,
   "performanceMode": false
