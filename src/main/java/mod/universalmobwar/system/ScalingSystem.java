@@ -625,43 +625,79 @@ public class ScalingSystem {
         ItemStack weapon = null;
         
         if (weaponType.equals("bow")) {
-            // Bows don't have material tiers - check if mob has any bow enchants purchased
-            boolean hasAnyBowUpgrade = false;
-            if (weaponConfig.has("enchants")) {
-                JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
-                for (String enchantName : enchants.keySet()) {
-                    if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
-                        hasAnyBowUpgrade = true;
-                        break;
+            // Bows don't have material tiers - base_cost 0 means mob spawns with it
+            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
+            if (baseCost == 0) {
+                // Mob spawns with bow
+                weapon = new ItemStack(Items.BOW);
+            } else {
+                // Mob must purchase bow - check if any enchants purchased
+                boolean hasAnyBowUpgrade = false;
+                if (weaponConfig.has("enchants")) {
+                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
+                    for (String enchantName : enchants.keySet()) {
+                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
+                            hasAnyBowUpgrade = true;
+                            break;
+                        }
                     }
                 }
-            }
-            if (hasAnyBowUpgrade) {
-                weapon = new ItemStack(Items.BOW);
+                if (hasAnyBowUpgrade) {
+                    weapon = new ItemStack(Items.BOW);
+                }
             }
         } else if (weaponType.equals("crossbow")) {
-            boolean hasAnyUpgrade = false;
-            if (weaponConfig.has("enchants")) {
-                JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
-                for (String enchantName : enchants.keySet()) {
-                    if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
-                        hasAnyUpgrade = true;
-                        break;
+            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
+            if (baseCost == 0) {
+                // Mob spawns with crossbow
+                weapon = new ItemStack(Items.CROSSBOW);
+            } else {
+                // Mob must purchase crossbow
+                boolean hasAnyUpgrade = false;
+                if (weaponConfig.has("enchants")) {
+                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
+                    for (String enchantName : enchants.keySet()) {
+                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
+                            hasAnyUpgrade = true;
+                            break;
+                        }
                     }
                 }
+                if (hasAnyUpgrade) {
+                    weapon = new ItemStack(Items.CROSSBOW);
+                }
             }
-            if (hasAnyUpgrade) {
-                weapon = new ItemStack(Items.CROSSBOW);
+        } else if (weaponType.equals("trident")) {
+            // Tridents - base_cost 0 means mob spawns with it
+            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
+            if (baseCost == 0) {
+                // Mob spawns with trident
+                weapon = new ItemStack(Items.TRIDENT);
+            } else {
+                // Mob must purchase trident - check if any enchants purchased
+                boolean hasAnyUpgrade = false;
+                if (weaponConfig.has("enchants")) {
+                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
+                    for (String enchantName : enchants.keySet()) {
+                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
+                            hasAnyUpgrade = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasAnyUpgrade) {
+                    weapon = new ItemStack(Items.TRIDENT);
+                }
             }
         } else {
-            // Sword tiers
+            // Sword/Axe tiers
             int tier = skillData.getInt("weapon_tier");
             if (tier > 0 && weaponConfig.has("tiers")) {
                 JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
                 if (tier <= tiers.size()) {
                     JsonObject tierData = tiers.get(tier - 1).getAsJsonObject();
                     String tierName = tierData.get("tier").getAsString();
-                    weapon = getWeaponByTier(tierName);
+                    weapon = getWeaponByTier(tierName, weaponType);
                 }
             }
         }
@@ -792,16 +828,18 @@ public class ScalingSystem {
     }
     
     /**
-     * Get weapon ItemStack by tier name
+     * Get weapon ItemStack by tier name and weapon type
      */
-    private static ItemStack getWeaponByTier(String tier) {
+    private static ItemStack getWeaponByTier(String tier, String weaponType) {
+        boolean isAxe = weaponType != null && weaponType.contains("axe");
+        
         return switch (tier.toLowerCase()) {
-            case "wooden", "wood" -> new ItemStack(Items.WOODEN_SWORD);
-            case "stone" -> new ItemStack(Items.STONE_SWORD);
-            case "iron" -> new ItemStack(Items.IRON_SWORD);
-            case "golden", "gold" -> new ItemStack(Items.GOLDEN_SWORD);
-            case "diamond" -> new ItemStack(Items.DIAMOND_SWORD);
-            case "netherite" -> new ItemStack(Items.NETHERITE_SWORD);
+            case "wooden", "wood" -> new ItemStack(isAxe ? Items.WOODEN_AXE : Items.WOODEN_SWORD);
+            case "stone" -> new ItemStack(isAxe ? Items.STONE_AXE : Items.STONE_SWORD);
+            case "iron" -> new ItemStack(isAxe ? Items.IRON_AXE : Items.IRON_SWORD);
+            case "golden", "gold" -> new ItemStack(isAxe ? Items.GOLDEN_AXE : Items.GOLDEN_SWORD);
+            case "diamond" -> new ItemStack(isAxe ? Items.DIAMOND_AXE : Items.DIAMOND_SWORD);
+            case "netherite" -> new ItemStack(isAxe ? Items.NETHERITE_AXE : Items.NETHERITE_SWORD);
             default -> ItemStack.EMPTY;
         };
     }

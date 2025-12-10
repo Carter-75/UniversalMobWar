@@ -54,7 +54,7 @@ PROGRESS: 41 / 80 mobs completed
 42. [X] Parrot
 43. [X] Phantom
 44. [X] Pig
-45. [X] Piglin
+45. [ ] Piglin
 46. [ ] Piglin_Brute
 47. [ ] Pillager
 48. [ ] Polar_Bear

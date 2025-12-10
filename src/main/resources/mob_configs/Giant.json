@@ -67,8 +67,8 @@
     },
 
     "weapon": {
-      "weapon_type": "normal_sword",
-      "base_cost": 3,
+      "weapon_type": "sword",
+      "base_cost": 0,
       "tiers": [
         { "tier": "wood",     "cost": 3 },
         { "tier": "stone",    "cost": 4 },
