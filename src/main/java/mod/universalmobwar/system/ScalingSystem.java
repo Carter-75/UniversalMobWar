@@ -17,6 +17,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -371,7 +372,7 @@ public class ScalingSystem {
     private static void spendPoints(MobEntity mob, MobWarData data, JsonObject config, String mobType, int budget) {
         Random random = new Random(mob.getUuid().hashCode() + data.getSkillData().getLong("lastUpdateTick"));
         
-        // Get buy/save chances from config
+        // Get buy/save chances (JSON defaults then overridden by global config slider)
         double buyChance = 0.80;
         double saveChance = 0.20;
         
@@ -389,12 +390,27 @@ public class ScalingSystem {
             buyChance /= totalChance;
             saveChance /= totalChance;
         }
+
+        ModConfig modConfig = ModConfig.getInstance();
+        double configBuy = Math.max(0.0, Math.min(1.0, modConfig.getBuyChance()));
+        double configSave = Math.max(0.0, Math.min(1.0, modConfig.getSaveChance()));
+        if (configBuy > 0 || configSave > 0) {
+            double configTotal = configBuy + configSave;
+            if (configTotal <= 0) {
+                buyChance = 1.0;
+                saveChance = 0.0;
+            } else {
+                buyChance = configBuy / configTotal;
+                saveChance = configSave / configTotal;
+            }
+        }
         
         // Get current upgrade levels from skill data
         NbtCompound skillData = data.getSkillData();
         
         // Spending loop
         int iterations = 0;
+        boolean purchasedUpgrade = false;
         while (budget > 0 && iterations < 50) { // Cap iterations to prevent infinite loop
             iterations++;
             
@@ -413,9 +429,39 @@ public class ScalingSystem {
             skillData.putInt(chosen.key, chosen.newLevel);
             data.setSpentPoints(data.getSpentPoints() + chosen.cost);
             budget -= chosen.cost;
+            purchasedUpgrade = true;
         }
         
         data.setSkillData(skillData);
+        if (purchasedUpgrade) {
+            spawnUpgradeParticles(mob);
+        }
+    }
+
+    private static void spawnUpgradeParticles(MobEntity mob) {
+        ModConfig config = ModConfig.getInstance();
+        if (config.disableParticles || !config.showLevelParticles) {
+            return;
+        }
+
+        World world = mob.getWorld();
+        if (!(world instanceof ServerWorld serverWorld)) {
+            return;
+        }
+
+        double horizontalSpread = Math.max(0.2, mob.getWidth() * 0.35);
+        double verticalSpread = Math.max(0.25, mob.getHeight() * 0.4);
+        serverWorld.spawnParticles(
+            ParticleTypes.ENCHANT,
+            mob.getX(),
+            mob.getBodyY(0.6),
+            mob.getZ(),
+            24,
+            horizontalSpread,
+            verticalSpread,
+            horizontalSpread,
+            0.12
+        );
     }
     
     /**

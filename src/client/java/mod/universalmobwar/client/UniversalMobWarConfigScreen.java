@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
+import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
@@ -27,7 +28,8 @@ public class UniversalMobWarConfigScreen extends Screen {
     private ButtonWidget btnVisuals;
     
     private Category currentCategory = Category.GENERAL;
-    private final List<Object> activeWidgets = new ArrayList<>();
+    private final List<ClickableWidget> activeWidgets = new ArrayList<>();
+    private Text categoryDescription = Text.empty();
 
     private enum Category {
         GENERAL, TARGETING, SCALING, PERFORMANCE, VISUALS
@@ -83,17 +85,16 @@ public class UniversalMobWarConfigScreen extends Screen {
     }
 
     private void refreshWidgets() {
-        // Remove old widgets
-        for (Object widget : activeWidgets) {
-            if (widget instanceof net.minecraft.client.gui.Drawable) {
-                this.remove((net.minecraft.client.gui.Element) widget);
-            }
+        // Remove old widgets before drawing new ones
+        for (ClickableWidget widget : activeWidgets) {
+            this.remove(widget);
         }
         activeWidgets.clear();
 
+        categoryDescription = Text.empty();
+
         // Update button states
         btnGeneral.active = currentCategory != Category.GENERAL;
-        btnScaling.active = currentCategory != Category.SCALING;
         btnTargeting.active = currentCategory != Category.TARGETING;
         btnScaling.active = currentCategory != Category.SCALING;
         btnPerformance.active = currentCategory != Category.PERFORMANCE;
@@ -106,94 +107,125 @@ public class UniversalMobWarConfigScreen extends Screen {
 
         switch (currentCategory) {
             case GENERAL:
-                addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for the entire mod.");
-                addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for every system in Universal Mob War.");
-                y += gap;
-                addCheckbox(x, y, "Targeting System", config.targetingEnabled, val -> config.targetingEnabled = val, "Controls mob-vs-mob combat behavior.");
-                y += gap;
-                addCheckbox(x, y, "Alliance System", config.allianceEnabled, val -> {
-                    config.allianceEnabled = val;
-                    config.allianceSystemEnabled = val;
-                }, "Allow mobs to form temporary alliances when fighting a mutual enemy.");
-                y += gap;
-                addCheckbox(x, y, "Scaling System", config.scalingEnabled, val -> {
-                    config.scalingEnabled = val;
-                    config.evolutionSystemEnabled = val;
-                }, "Let mobs earn points, buy upgrades, and equip gear dynamically.");
-                y += gap;
-                addCheckbox(x, y, "Warlord System", config.warlordEnabled, val -> {
-                    config.warlordEnabled = val;
-                    config.enableMobWarlord = val;
-                }, "Unlock the Mob Warlord raid boss and its minion army.");
-                    config.rangeMultiplier = val;
+            categoryDescription = Text.literal("Master toggles for the big Universal Mob War systems.");
+            addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val,
+                "Master switch for every system in Universal Mob War.");
+            y += gap;
+            addCheckbox(x, y, "Targeting System", config.targetingEnabled, val -> config.targetingEnabled = val,
+                "Controls mob-vs-mob combat behavior.");
+            y += gap;
+            addCheckbox(x, y, "Alliance System", config.allianceEnabled, val -> {
+                config.allianceEnabled = val;
+                config.allianceSystemEnabled = val;
+            }, "Let mobs form temporary alliances.");
+            y += gap;
+            addCheckbox(x, y, "Scaling System", config.scalingEnabled, val -> {
+                config.scalingEnabled = val;
+                config.evolutionSystemEnabled = val;
+            }, "Allow mobs to earn and spend upgrade points.");
+            y += gap;
+            addCheckbox(x, y, "Warlord System", config.warlordEnabled, val -> {
+                config.warlordEnabled = val;
+                config.enableMobWarlord = val;
+            }, "Enable the Mob Warlord raid boss feature.");
+            break;
 
             case TARGETING:
-                addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val, "If disabled, mobs focus entirely on other mobs.");
-                y += gap;
-                addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val, "Prevents zombies from fighting other zombies, etc.");
-                y += gap;
-                addCheckbox(x, y, "Neutral Mobs Always Aggressive", config.neutralMobsAlwaysAggressive, val -> config.neutralMobsAlwaysAggressive = val, "Forces golems, wolves, and other neutrals into the war.");
-                y += gap;
-                addCheckbox(x, y, "Disable Natural Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Completely blocks passive and hostile natural spawns.");
-                y += gap;
-                addSlider(x, y, w, h, config.getRangeMultiplier(), 0.1, 5.0,
-                        val -> String.format("Detection Range: %.1fx", val),
-                        val -> {
-                            config.rangeMultiplierPercent = (int)Math.round(val * 100.0);
-                            config.rangeMultiplier = val;
-                        });
-                break;
+            categoryDescription = Text.literal("Fine-tune how mobs pick fights and how often the AI refreshes targets.");
+            addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val,
+                "If disabled, mobs focus entirely on other mobs.");
+            y += gap;
+            addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val,
+                "Prevents zombies from fighting other zombies, etc.");
+            y += gap;
+            addCheckbox(x, y, "Neutral Mobs Always Aggressive", config.neutralMobsAlwaysAggressive,
+                val -> config.neutralMobsAlwaysAggressive = val,
+                "Forces golems, wolves, and other neutrals into the war.");
+            y += gap;
+            addCheckbox(x, y, "Disable Natural Spawns", config.disableNaturalMobSpawns,
+                val -> config.disableNaturalMobSpawns = val,
+                "Completely blocks passive and hostile natural spawns.");
+            y += gap;
+            addSlider(x, y, w, h, config.getRangeMultiplier(), 0.1, 5.0,
+                val -> String.format("Detection Range: %.1fx", val),
+                val -> {
+                    config.rangeMultiplierPercent = (int) Math.round(val * 100.0);
+                    config.rangeMultiplier = val;
                 });
-                break;
-                addCheckbox(x, y, "Enable Scaling", config.scalingEnabled, val -> config.scalingEnabled = val, "Mobs get stronger over time and with kills.");
-                y += gap;
-                addCheckbox(x, y, "Boss Scaling", config.allowBossScaling, val -> config.allowBossScaling = val, "Allow bosses to scale.");
-                y += gap;
-                addSlider(x, y, w, h, config.getDayScalingMultiplier(), 0.0, 10.0,
-                        val -> String.format("Day Multiplier: %.2fx", val),
-                        val -> {
-                            config.dayScalingMultiplierPercent = (int)Math.round(val * 100.0);
-                            config.dayScalingMultiplier = val;
-                        });
-                y += gap;
-                addSlider(x, y, w, h, config.getKillScalingMultiplier(), 0.0, 10.0,
-                        val -> String.format("Kill Multiplier: %.2fx", val),
-                        val -> {
-                            config.killScalingMultiplierPercent = (int)Math.round(val * 100.0);
-                            config.killScalingMultiplier = val;
-                        });
-                    config.dayScalingMultiplierPercent = (int)Math.round(val * 100.0);
+            y += gap;
+            addSlider(x, y, w, h, config.targetingCacheMs, 500, 5000,
+                val -> String.format("Target Cache: %.0f ms", val),
+                val -> config.targetingCacheMs = (int) MathHelper.clamp(Math.round(val), 500, 5000));
+            y += gap;
+            addSlider(x, y, w, h, config.targetingMaxQueriesPerTick, 10, 200,
+                val -> String.format("Queries / Tick: %.0f", val),
+                val -> config.targetingMaxQueriesPerTick = (int) MathHelper.clamp(Math.round(val), 10, 200));
+            break;
+
+            case SCALING:
+            categoryDescription = Text.literal("Make mobs scale with world age, kills, and special rules.");
+            addCheckbox(x, y, "Allow Boss Scaling", config.allowBossScaling, val -> config.allowBossScaling = val,
+                "Bosses obey the same progression rules.");
+            y += gap;
+            addCheckbox(x, y, "Allow Modded Scaling", config.allowModdedScaling, val -> config.allowModdedScaling = val,
+                "Extend progression to non-vanilla mobs.");
+            y += gap;
+            addSlider(x, y, w, h, config.getDayScalingMultiplier(), 0.0, 10.0,
+                val -> String.format("Day Multiplier: %.2fx", val),
+                val -> {
+                    config.dayScalingMultiplierPercent = (int) Math.round(val * 100.0);
                     config.dayScalingMultiplier = val;
                 });
-                double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
-                addSlider(x, y, w, h, windowSeconds, 1.0, 30.0,
-                        val -> String.format("Upgrade Window: %.1fs", val),
-                        val -> config.upgradeProcessingTimeMs = (int)MathHelper.clamp(Math.round(val * 1000.0), 1000, 30000));
-                y += gap;
-                addCheckbox(x, y, "Debug Logging", config.debugLogging, val -> config.debugLogging = val, "Enable detailed system logging for debugging.");
-                y += gap;
-                addCheckbox(x, y, "Debug Upgrade Log", config.debugUpgradeLog, val -> config.debugUpgradeLog = val, "Log all mob upgrade decisions to chat.");
-                y += gap;
-                addSlider(x, y, w, h, "Cache Duration (ms): ", (double)config.targetingCacheMs, 500, 5000, val -> config.targetingCacheMs = val.intValue());
-                y += gap;
-                addSlider(x, y, w, h, "Max Queries/Tick: ", (double)config.targetingMaxQueriesPerTick, 10, 200, val -> config.targetingMaxQueriesPerTick = val.intValue());
-                break;
+            y += gap;
+            addSlider(x, y, w, h, config.getKillScalingMultiplier(), 0.0, 10.0,
+                val -> String.format("Kill Multiplier: %.2fx", val),
+                val -> {
+                    config.killScalingMultiplierPercent = (int) Math.round(val * 100.0);
+                    config.killScalingMultiplier = val;
+                });
+            y += gap;
+            addSlider(x, y, w, h, config.saveChancePercent, 0, 100,
+                val -> String.format("Save Chance: %.0f%% (Buy %.0f%%)", val, 100 - val),
+                val -> {
+                    int clamped = (int) MathHelper.clamp(Math.round(val), 0, 100);
+                    config.saveChancePercent = clamped;
+                    config.buyChancePercent = 100 - clamped;
+                });
+            break;
+
+            case PERFORMANCE:
+            categoryDescription = Text.literal("Keep upgrade processing near the 5 second budget from skilltree.txt.");
+            double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
+            addSlider(x, y, w, h, windowSeconds, 1.0, 30.0,
+                val -> String.format("Upgrade Window: %.1fs", val),
+                val -> config.upgradeProcessingTimeMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 30000));
+            break;
 
             case VISUALS:
-                addCheckbox(x, y, "Disable Particles", config.disableParticles, val -> config.disableParticles = val, "Removes most particles for better FPS.");
-                y += gap;
-                addCheckbox(x, y, "Show Target Lines", config.showTargetLines, val -> config.showTargetLines = val, "Draw lines between mobs and their targets.");
-                y += gap;
-                addCheckbox(x, y, "Show Health Bars", config.showHealthBars, val -> config.showHealthBars = val, "Show health bars above mobs.");
-                y += gap;
-                addCheckbox(x, y, "Show Mob Labels", config.showMobLabels, val -> config.showMobLabels = val, "Show names and levels.");
-                y += gap;
-                addCheckbox(x, y, "Level Up Particles", config.showLevelParticles, val -> config.showLevelParticles = val, "Show particles when mobs level up.");
-                break;
+            categoryDescription = Text.literal("Client-side overlays that make the mob war readable.");
+            addCheckbox(x, y, "Disable Particles", config.disableParticles, val -> config.disableParticles = val,
+                "Removes most particles for better FPS.");
+            y += gap;
+            addCheckbox(x, y, "Show Target Lines", config.showTargetLines, val -> config.showTargetLines = val,
+                "Draw lines between mobs and their targets.");
+            y += gap;
+            addCheckbox(x, y, "Show Health Bars", config.showHealthBars, val -> config.showHealthBars = val,
+                "Show health bars above mobs.");
+            y += gap;
+            addCheckbox(x, y, "Show Mob Labels", config.showMobLabels, val -> config.showMobLabels = val,
+                "Show names and levels above mobs.");
+            y += gap;
+            addCheckbox(x, y, "Level Up Particles", config.showLevelParticles, val -> config.showLevelParticles = val,
+                "Play particles when mobs level up.");
+            y += gap;
+            addSlider(x, y, w, h, config.minFpsForVisuals, 0, 144,
+                val -> String.format("Minimum FPS: %.0f", val),
+                val -> config.minFpsForVisuals = (int) MathHelper.clamp(Math.round(val), 0, 144));
+            break;
         }
     }
 
-    private void addCheckbox(int x, int y, String text, boolean checked, java.util.function.Consumer<Boolean> onSave, String tooltip) {
+        private void addCheckbox(int x, int y, String text, boolean checked, java.util.function.Consumer<Boolean> onSave, String tooltip) {
         CheckboxWidget widget = CheckboxWidget.builder(Text.literal(text), this.textRenderer)
                 .pos(x, y)
                 .checked(checked)
@@ -204,8 +236,8 @@ public class UniversalMobWarConfigScreen extends Screen {
         activeWidgets.add(widget);
     }
 
-    private void addSlider(int x, int y, int w, int h, double value, double min, double max,
-                           Function<Double, String> labelFormatter, Consumer<Double> onSave) {
+        private void addSlider(int x, int y, int w, int h, double value, double min, double max,
+                   Function<Double, String> labelFormatter, Consumer<Double> onSave) {
         double clampedValue = MathHelper.clamp(value, min, max);
         SliderWidget widget = new SliderWidget(x, y, w, h, Text.literal(labelFormatter.apply(clampedValue)),
                 (clampedValue - min) / (max - min)) {
@@ -230,6 +262,9 @@ public class UniversalMobWarConfigScreen extends Screen {
         this.renderBackground(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 15, 0xFFFFFF);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Category: " + currentCategory.name()), this.width / 2, 65, 0xAAAAAA);
+        if (!categoryDescription.getString().isEmpty()) {
+            context.drawCenteredTextWithShadow(this.textRenderer, categoryDescription, this.width / 2, 78, 0x77C0FF);
+        }
         super.render(context, mouseX, mouseY, delta);
     }
 }
