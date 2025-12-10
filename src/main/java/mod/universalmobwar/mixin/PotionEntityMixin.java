@@ -10,6 +10,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.projectile.thrown.PotionEntity;
 import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.World;
 
 import java.util.List;
@@ -28,9 +29,13 @@ public abstract class PotionEntityMixin extends ThrownItemEntity {
         super(entityType, world);
     }
 
-    @Inject(method = "onEntityHit(Lnet/minecraft/util/hit/EntityHitResult;)V", at = @At("TAIL"))
-    private void universalmobwar$applyRangedPotionEffects(EntityHitResult hitResult, CallbackInfo ci) {
+    @Inject(method = "onCollision", at = @At("TAIL"))
+    private void universalmobwar$applyRangedPotionEffects(HitResult hitResult, CallbackInfo ci) {
         if (this.getWorld().isClient()) {
+            return;
+        }
+
+        if (!(hitResult instanceof EntityHitResult entityHitResult)) {
             return;
         }
 
@@ -39,7 +44,7 @@ public abstract class PotionEntityMixin extends ThrownItemEntity {
             return;
         }
 
-        Entity hit = hitResult.getEntity();
+        Entity hit = entityHitResult.getEntity();
         if (!(hit instanceof LivingEntity livingTarget)) {
             return;
         }
