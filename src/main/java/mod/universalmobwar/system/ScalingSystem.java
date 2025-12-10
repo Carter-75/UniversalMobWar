@@ -309,7 +309,7 @@ public class ScalingSystem {
         while (budget > 0 && iterations < 50) { // Cap iterations to prevent infinite loop
             iterations++;
             
-            List<UpgradeOption> affordable = getAffordableUpgrades(config, mobType, skillData, budget);
+            List<UpgradeOption> affordable = getAffordableUpgrades(mob, config, mobType, skillData, budget);
             
             if (affordable.isEmpty()) break;
             
@@ -331,7 +331,7 @@ public class ScalingSystem {
     /**
      * Get list of affordable upgrades from the mob's JSON config
      */
-    private static List<UpgradeOption> getAffordableUpgrades(JsonObject config, String mobType, 
+    private static List<UpgradeOption> getAffordableUpgrades(MobEntity mob, JsonObject config, String mobType, 
             NbtCompound skillData, int budget) {
         
         List<UpgradeOption> affordable = new ArrayList<>();
@@ -355,7 +355,16 @@ public class ScalingSystem {
         
         // Check weapon upgrades
         if (tree.has("weapon")) {
-            JsonObject weapon = tree.getAsJsonObject("weapon");
+            JsonElement weaponElement = tree.get("weapon");
+            JsonObject weapon;
+            
+            if (weaponElement.isJsonArray()) {
+                JsonArray weapons = weaponElement.getAsJsonArray();
+                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
+                weapon = weapons.get(index).getAsJsonObject();
+            } else {
+                weapon = weaponElement.getAsJsonObject();
+            }
             
             // Weapon enchants
             if (weapon.has("enchants")) {
@@ -580,7 +589,18 @@ public class ScalingSystem {
         
         // Apply weapon
         if (tree.has("weapon")) {
-            applyWeapon(mob, skillData, tree.getAsJsonObject("weapon"), world);
+            JsonElement weaponElement = tree.get("weapon");
+            JsonObject weapon;
+            
+            if (weaponElement.isJsonArray()) {
+                JsonArray weapons = weaponElement.getAsJsonArray();
+                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
+                weapon = weapons.get(index).getAsJsonObject();
+            } else {
+                weapon = weaponElement.getAsJsonObject();
+            }
+            
+            applyWeapon(mob, skillData, weapon, world);
         }
         
         // Apply shield
@@ -618,6 +638,20 @@ public class ScalingSystem {
             }
             if (hasAnyBowUpgrade) {
                 weapon = new ItemStack(Items.BOW);
+            }
+        } else if (weaponType.equals("crossbow")) {
+            boolean hasAnyUpgrade = false;
+            if (weaponConfig.has("enchants")) {
+                JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
+                for (String enchantName : enchants.keySet()) {
+                    if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
+                        hasAnyUpgrade = true;
+                        break;
+                    }
+                }
+            }
+            if (hasAnyUpgrade) {
+                weapon = new ItemStack(Items.CROSSBOW);
             }
         } else {
             // Sword tiers

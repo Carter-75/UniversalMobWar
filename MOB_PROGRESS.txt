@@ -51,10 +51,10 @@ PROGRESS: 41 / 80 mobs completed
 39. [X] Mule            - DONE
 40. [X] Ocelot
 41. [X] Panda
-42. [ ] Parrot
-43. [ ] Phantom
-44. [ ] Pig
-45. [ ] Piglin
+42. [X] Parrot
+43. [X] Phantom
+44. [X] Pig
+45. [X] Piglin
 46. [ ] Piglin_Brute
 47. [ ] Pillager
 48. [ ] Polar_Bear
