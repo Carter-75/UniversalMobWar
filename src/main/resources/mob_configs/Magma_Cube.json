@@ -64,7 +64,7 @@
         { "level": 5, "cost": 25, "chance": 0.8, "duration": 20, "cooldown": 60 }
       ]
     },
-    "weapon": {},
+    "weapon": [],
     "shield": {},
     "helmet": {},
     "chestplate": {},
