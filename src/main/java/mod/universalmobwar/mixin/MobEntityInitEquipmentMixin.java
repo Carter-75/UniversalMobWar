@@ -4,8 +4,8 @@ import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.LocalDifficulty;
-import net.minecraft.world.WorldAccess;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,7 +29,7 @@ public abstract class MobEntityInitEquipmentMixin {
     );
 
     @Inject(method = "initEquipment", at = @At("HEAD"), cancellable = true)
-    private void universalmobwar$disableVanillaEquipment(WorldAccess world, LocalDifficulty difficulty, CallbackInfo ci) {
+    private void universalmobwar$disableVanillaEquipment(Random random, LocalDifficulty difficulty, CallbackInfo ci) {
         if (!ModConfig.getInstance().modEnabled) {
             return;
         }
