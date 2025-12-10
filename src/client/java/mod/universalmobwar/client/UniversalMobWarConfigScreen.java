@@ -1,16 +1,19 @@
 package mod.universalmobwar.client;
 
+import mod.universalmobwar.config.ModConfig;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
-import mod.universalmobwar.config.ModConfig;
-import net.minecraft.client.gui.tooltip.Tooltip;
+import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class UniversalMobWarConfigScreen extends Screen {
     private final Screen parent;
@@ -18,6 +21,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     
     // Category buttons
     private ButtonWidget btnGeneral;
+    private ButtonWidget btnTargeting;
     private ButtonWidget btnScaling;
     private ButtonWidget btnPerformance;
     private ButtonWidget btnVisuals;
@@ -26,7 +30,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     private final List<Object> activeWidgets = new ArrayList<>();
 
     private enum Category {
-        GENERAL, SCALING, PERFORMANCE, VISUALS
+        GENERAL, TARGETING, SCALING, PERFORMANCE, VISUALS
     }
 
     public UniversalMobWarConfigScreen(Screen parent) {
@@ -38,24 +42,28 @@ public class UniversalMobWarConfigScreen extends Screen {
     @Override
     protected void init() {
         int y = 40;
-        int buttonWidth = 70;
-        int spacing = 5;
-        int startX = (this.width - (buttonWidth * 4 + spacing * 3)) / 2;
+        int buttonWidth = 80;
+        int spacing = 4;
+        int startX = (this.width - (buttonWidth * 5 + spacing * 4)) / 2;
 
         // Category Buttons
         btnGeneral = ButtonWidget.builder(Text.literal("General"), button -> setCategory(Category.GENERAL))
                 .dimensions(startX, y, buttonWidth, 20).build();
         
+        btnTargeting = ButtonWidget.builder(Text.literal("Targeting"), button -> setCategory(Category.TARGETING))
+            .dimensions(startX + buttonWidth + spacing, y, buttonWidth, 20).build();
+        
         btnScaling = ButtonWidget.builder(Text.literal("Scaling"), button -> setCategory(Category.SCALING))
-                .dimensions(startX + buttonWidth + spacing, y, buttonWidth, 20).build();
+            .dimensions(startX + (buttonWidth + spacing) * 2, y, buttonWidth, 20).build();
         
         btnPerformance = ButtonWidget.builder(Text.literal("Performance"), button -> setCategory(Category.PERFORMANCE))
-                .dimensions(startX + (buttonWidth + spacing) * 2, y, buttonWidth, 20).build();
+            .dimensions(startX + (buttonWidth + spacing) * 3, y, buttonWidth, 20).build();
         
         btnVisuals = ButtonWidget.builder(Text.literal("Visuals"), button -> setCategory(Category.VISUALS))
-                .dimensions(startX + (buttonWidth + spacing) * 3, y, buttonWidth, 20).build();
+            .dimensions(startX + (buttonWidth + spacing) * 4, y, buttonWidth, 20).build();
 
         this.addDrawableChild(btnGeneral);
+        this.addDrawableChild(btnTargeting);
         this.addDrawableChild(btnScaling);
         this.addDrawableChild(btnPerformance);
         this.addDrawableChild(btnVisuals);
@@ -86,9 +94,10 @@ public class UniversalMobWarConfigScreen extends Screen {
         // Update button states
         btnGeneral.active = currentCategory != Category.GENERAL;
         btnScaling.active = currentCategory != Category.SCALING;
+        btnTargeting.active = currentCategory != Category.TARGETING;
+        btnScaling.active = currentCategory != Category.SCALING;
         btnPerformance.active = currentCategory != Category.PERFORMANCE;
         btnVisuals.active = currentCategory != Category.VISUALS;
-
         int y = 80;
         int x = this.width / 2 - 100;
         int w = 200;
@@ -98,40 +107,68 @@ public class UniversalMobWarConfigScreen extends Screen {
         switch (currentCategory) {
             case GENERAL:
                 addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for the entire mod.");
+                addCheckbox(x, y, "Enable Mod", config.modEnabled, val -> config.modEnabled = val, "Master switch for every system in Universal Mob War.");
                 y += gap;
-                addCheckbox(x, y, "Enable Evolution System", config.evolutionSystemEnabled, val -> config.evolutionSystemEnabled = val, "Mobs gain levels, equipment, and skills based on kills and time.");
+                addCheckbox(x, y, "Targeting System", config.targetingEnabled, val -> config.targetingEnabled = val, "Controls mob-vs-mob combat behavior.");
                 y += gap;
-                addCheckbox(x, y, "Enable Alliances", config.allianceSystemEnabled, val -> config.allianceSystemEnabled = val, "Mobs form temporary alliances.");
+                addCheckbox(x, y, "Alliance System", config.allianceEnabled, val -> {
+                    config.allianceEnabled = val;
+                    config.allianceSystemEnabled = val;
+                }, "Allow mobs to form temporary alliances when fighting a mutual enemy.");
                 y += gap;
-                addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val, "If true, zombies won't attack zombies.");
+                addCheckbox(x, y, "Scaling System", config.scalingEnabled, val -> {
+                    config.scalingEnabled = val;
+                    config.evolutionSystemEnabled = val;
+                }, "Let mobs earn points, buy upgrades, and equip gear dynamically.");
                 y += gap;
-                addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val, "If false, mobs ignore players (spectator mode).");
-                y += gap;
-                addCheckbox(x, y, "Neutral Mobs Hostile", config.neutralMobsAlwaysAggressive, val -> config.neutralMobsAlwaysAggressive = val, "Make iron golems, wolves, etc. always aggressive.");
-                y += gap;
-                addCheckbox(x, y, "Disable Natural Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Prevents all natural mob spawns.");
-                y += gap;
-                addSlider(x, y, w, h, "Detection Range: ", config.rangeMultiplier, 0.1, 5.0, val -> config.rangeMultiplier = val);
-                break;
+                addCheckbox(x, y, "Warlord System", config.warlordEnabled, val -> {
+                    config.warlordEnabled = val;
+                    config.enableMobWarlord = val;
+                }, "Unlock the Mob Warlord raid boss and its minion army.");
+                    config.rangeMultiplier = val;
 
-            case SCALING:
+            case TARGETING:
+                addCheckbox(x, y, "Target Players", config.targetPlayers, val -> config.targetPlayers = val, "If disabled, mobs focus entirely on other mobs.");
+                y += gap;
+                addCheckbox(x, y, "Ignore Same Species", config.ignoreSameSpecies, val -> config.ignoreSameSpecies = val, "Prevents zombies from fighting other zombies, etc.");
+                y += gap;
+                addCheckbox(x, y, "Neutral Mobs Always Aggressive", config.neutralMobsAlwaysAggressive, val -> config.neutralMobsAlwaysAggressive = val, "Forces golems, wolves, and other neutrals into the war.");
+                y += gap;
+                addCheckbox(x, y, "Disable Natural Spawns", config.disableNaturalMobSpawns, val -> config.disableNaturalMobSpawns = val, "Completely blocks passive and hostile natural spawns.");
+                y += gap;
+                addSlider(x, y, w, h, config.getRangeMultiplier(), 0.1, 5.0,
+                        val -> String.format("Detection Range: %.1fx", val),
+                        val -> {
+                            config.rangeMultiplierPercent = (int)Math.round(val * 100.0);
+                            config.rangeMultiplier = val;
+                        });
+                break;
+                });
+                break;
                 addCheckbox(x, y, "Enable Scaling", config.scalingEnabled, val -> config.scalingEnabled = val, "Mobs get stronger over time and with kills.");
                 y += gap;
                 addCheckbox(x, y, "Boss Scaling", config.allowBossScaling, val -> config.allowBossScaling = val, "Allow bosses to scale.");
                 y += gap;
-                addCheckbox(x, y, "Modded Scaling", config.allowModdedScaling, val -> config.allowModdedScaling = val, "Allow modded mobs to scale.");
+                addSlider(x, y, w, h, config.getDayScalingMultiplier(), 0.0, 10.0,
+                        val -> String.format("Day Multiplier: %.2fx", val),
+                        val -> {
+                            config.dayScalingMultiplierPercent = (int)Math.round(val * 100.0);
+                            config.dayScalingMultiplier = val;
+                        });
                 y += gap;
-                addSlider(x, y, w, h, "Day Multiplier: ", config.dayScalingMultiplier, 0.0, 10.0, val -> config.dayScalingMultiplier = val);
-                y += gap;
-                addSlider(x, y, w, h, "Kill Multiplier: ", config.killScalingMultiplier, 0.0, 10.0, val -> config.killScalingMultiplier = val);
-                break;
-
-            case PERFORMANCE:
-                addCheckbox(x, y, "Performance Mode", config.performanceMode, val -> config.performanceMode = val, "Optimizes settings for low-end PCs (Recommended).");
-                y += gap;
-                addCheckbox(x, y, "Enable Batching", config.enableBatching, val -> config.enableBatching = val, "Process mobs in batches to reduce lag.");
-                y += gap;
-                addCheckbox(x, y, "Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val, "Use background threads for heavy calculations.");
+                addSlider(x, y, w, h, config.getKillScalingMultiplier(), 0.0, 10.0,
+                        val -> String.format("Kill Multiplier: %.2fx", val),
+                        val -> {
+                            config.killScalingMultiplierPercent = (int)Math.round(val * 100.0);
+                            config.killScalingMultiplier = val;
+                        });
+                    config.dayScalingMultiplierPercent = (int)Math.round(val * 100.0);
+                    config.dayScalingMultiplier = val;
+                });
+                double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
+                addSlider(x, y, w, h, windowSeconds, 1.0, 30.0,
+                        val -> String.format("Upgrade Window: %.1fs", val),
+                        val -> config.upgradeProcessingTimeMs = (int)MathHelper.clamp(Math.round(val * 1000.0), 1000, 30000));
                 y += gap;
                 addCheckbox(x, y, "Debug Logging", config.debugLogging, val -> config.debugLogging = val, "Enable detailed system logging for debugging.");
                 y += gap;
@@ -167,21 +204,20 @@ public class UniversalMobWarConfigScreen extends Screen {
         activeWidgets.add(widget);
     }
 
-    private void addSlider(int x, int y, int w, int h, String prefix, double value, double min, double max, java.util.function.Consumer<Double> onSave) {
-        SliderWidget widget = new SliderWidget(x, y, w, h, Text.literal(prefix + String.format("%.2f", value)), (value - min) / (max - min)) {
+    private void addSlider(int x, int y, int w, int h, double value, double min, double max,
+                           Function<Double, String> labelFormatter, Consumer<Double> onSave) {
+        double clampedValue = MathHelper.clamp(value, min, max);
+        SliderWidget widget = new SliderWidget(x, y, w, h, Text.literal(labelFormatter.apply(clampedValue)),
+                (clampedValue - min) / (max - min)) {
             @Override
             protected void updateMessage() {
-                double val = min + (max - min) * this.value;
-                if (max > 10) { // Integer slider
-                     setMessage(Text.literal(prefix + (int)val));
-                } else {
-                     setMessage(Text.literal(prefix + String.format("%.2f", val)));
-                }
+                double val = MathHelper.lerp(this.value, min, max);
+                setMessage(Text.literal(labelFormatter.apply(val)));
             }
 
             @Override
             protected void applyValue() {
-                double val = min + (max - min) * this.value;
+                double val = MathHelper.lerp(this.value, min, max);
                 onSave.accept(val);
             }
         };

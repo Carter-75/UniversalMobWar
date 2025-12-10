@@ -17,9 +17,11 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 import java.io.InputStream;
@@ -58,6 +60,13 @@ public class ScalingSystem {
     
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
+    
+    private static final Set<String> KNOWN_BOSS_IDS = Set.of(
+        "minecraft:ender_dragon",
+        "minecraft:wither",
+        "minecraft:warden",
+        "minecraft:elder_guardian"
+    );
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -205,7 +214,15 @@ public class ScalingSystem {
         if (world.isClient()) return;
         
         // Check if scaling is enabled
-        if (!ModConfig.getInstance().isScalingActive()) return;
+        ModConfig modConfig = ModConfig.getInstance();
+        if (!modConfig.isScalingActive()) return;
+        
+        Identifier entityId = resolveEntityId(mob);
+        String entityIdStr = entityId != null ? entityId.toString() : mob.getType().toString();
+        
+        if (modConfig.isMobExcluded(entityIdStr)) return;
+        if (!modConfig.allowModdedScaling && isModdedEntity(entityId)) return;
+        if (!modConfig.allowBossScaling && isBossEntity(entityId)) return;
         
         // Get config for this mob
         JsonObject config = getConfigForMob(mob);
@@ -215,17 +232,19 @@ public class ScalingSystem {
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         
         // Calculate total points from world age
-        int totalPoints = calculateWorldAgePoints(world, config);
+        double totalPoints = calculateWorldAgePoints(world, config, modConfig);
         
         // Add kill points (stored in MobWarData)
-        totalPoints += data.getKillCount(); // 1 point per kill
+        double killScaling = getKillScalingFactor(config);
+        double killPoints = data.getKillCount() * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
+        totalPoints += killPoints;
         
         // Store total for reference
         data.setSkillPoints(totalPoints);
         
         // Get current spent points
-        int spentPoints = (int) data.getSpentPoints();
-        int budget = totalPoints - spentPoints;
+        double spentPoints = data.getSpentPoints();
+        int budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
         
         // Only process upgrades when:
         // 1. Mob just spawned (lastUpdate == 0)
@@ -266,18 +285,15 @@ public class ScalingSystem {
     /**
      * Calculate points from world age based on JSON daily_scaling config
      */
-    private static int calculateWorldAgePoints(World world, JsonObject config) {
+    private static double calculateWorldAgePoints(World world, JsonObject config, ModConfig modConfig) {
         int worldDays = (int) (world.getTime() / 24000L);
         double totalPoints = 0.0;
         
         // Get daily_scaling from config
-        JsonArray dailyScaling = null;
-        if (config.has("point_system")) {
-            JsonObject pointSystem = config.getAsJsonObject("point_system");
-            if (pointSystem.has("daily_scaling")) {
-                dailyScaling = pointSystem.getAsJsonArray("daily_scaling");
-            }
-        }
+        JsonObject pointSystem = getPointSystem(config);
+        JsonArray dailyScaling = pointSystem != null && pointSystem.has("daily_scaling")
+            ? pointSystem.getAsJsonArray("daily_scaling")
+            : null;
         
         // Default scaling if not in config
         if (dailyScaling == null) {
@@ -312,7 +328,37 @@ public class ScalingSystem {
             totalPoints += pointsForDay;
         }
         
-        return (int) totalPoints;
+        double dayMultiplier = Math.max(0.0, modConfig.getDayScalingMultiplier());
+        return totalPoints * dayMultiplier;
+    }
+
+    private static JsonObject getPointSystem(JsonObject config) {
+        if (config == null || !config.has("point_system")) return null;
+        return config.getAsJsonObject("point_system");
+    }
+
+    private static double getKillScalingFactor(JsonObject config) {
+        JsonObject pointSystem = getPointSystem(config);
+        if (pointSystem != null && pointSystem.has("kill_scaling")) {
+            try {
+                return Math.max(0.0, pointSystem.get("kill_scaling").getAsDouble());
+            } catch (Exception ignored) {
+                return 1.0;
+            }
+        }
+        return 1.0;
+    }
+
+    private static Identifier resolveEntityId(MobEntity mob) {
+        return Registries.ENTITY_TYPE.getId(mob.getType());
+    }
+
+    private static boolean isModdedEntity(Identifier entityId) {
+        return entityId != null && !"minecraft".equals(entityId.getNamespace());
+    }
+
+    private static boolean isBossEntity(Identifier entityId) {
+        return entityId != null && KNOWN_BOSS_IDS.contains(entityId.toString());
     }
     
     // ==========================================================================

@@ -8,6 +8,7 @@
 		"GameRulesAccessor$IntRuleInvoker",
 		"GameRulesAccessor$GameRulesInvoker",
 		"MobEntityAccessor",
+		"MobEntityInitEquipmentMixin",
 		"PersistentProjectileEntityAccessor",
 		"MobDataMixin",
 		"PotionEntityMixin",
