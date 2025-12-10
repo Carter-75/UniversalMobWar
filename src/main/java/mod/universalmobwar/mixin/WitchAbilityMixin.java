@@ -28,7 +28,7 @@ public abstract class WitchAbilityMixin extends MobEntity {
         super(entityType, world);
     }
 
-    @Redirect(method = "attack(Lnet/minecraft/entity/LivingEntity;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
+    @Redirect(method = "shootAt(Lnet/minecraft/entity/LivingEntity;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
     private boolean universalmobwar$augmentPotionThrows(World world, Entity entity, LivingEntity target, float pullProgress) {
         if (!(world instanceof ServerWorld serverWorld) || !(entity instanceof PotionEntity potion)) {
             return world.spawnEntity(entity);
