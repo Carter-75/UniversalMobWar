@@ -11,6 +11,7 @@
 		"MobEntityInitEquipmentMixin",
 		"PersistentProjectileEntityAccessor",
 		"MobDataMixin",
+		"LivingEntityDamageMixin",
 		"PotionEntityMixin",
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
