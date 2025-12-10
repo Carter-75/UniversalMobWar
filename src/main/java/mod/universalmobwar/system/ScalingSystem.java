@@ -222,7 +222,10 @@ public class ScalingSystem {
         String entityIdStr = entityId != null ? entityId.toString() : mob.getType().toString();
         
         if (modConfig.isMobExcluded(entityIdStr)) return;
-        if (!modConfig.allowModdedScaling && isModdedEntity(entityId)) return;
+        if (isModdedEntity(entityId)) {
+            // TODO: add opt-in support for modded mobs when custom config schema exists
+            return;
+        }
         if (!modConfig.allowBossScaling && isBossEntity(entityId)) return;
         
         // Get config for this mob

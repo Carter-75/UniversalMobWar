@@ -167,9 +167,6 @@ public class UniversalMobWarConfigScreen extends Screen {
             addCheckbox(x, y, "Allow Boss Scaling", config.allowBossScaling, val -> config.allowBossScaling = val,
                 "Bosses obey the same progression rules.");
             y += gap;
-            addCheckbox(x, y, "Allow Modded Scaling", config.allowModdedScaling, val -> config.allowModdedScaling = val,
-                "Extend progression to non-vanilla mobs.");
-            y += gap;
             addSlider(x, y, w, h, config.getDayScalingMultiplier(), 0.0, 10.0,
                 val -> String.format("Day Multiplier: %.2fx", val),
                 val -> {

@@ -109,9 +109,6 @@ public class ModConfig implements ConfigData {
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
-    
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    public boolean allowModdedScaling = true;
 
     // ==========================================================================
     //                       SECTION 4: MOB WARLORD SYSTEM

@@ -285,7 +285,6 @@ A legendary boss that spawns during raids:
 - `dayScalingMultiplier`: Speed of daily point gain (0× to 10×, default 1.0×)
 - `killScalingMultiplier`: Points per player kill (0× to 10×, default 1.0×)
 - `allowBossScaling`: Enable boss mob evolution
-- `allowModdedScaling`: Enable modded mob evolution
 
 ### Warlord Settings
 - `enableMobWarlord`: Enable boss spawning

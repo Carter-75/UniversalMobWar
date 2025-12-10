@@ -4,7 +4,6 @@
   "killScalingMultiplier": 1.0,
   "maxTier": 20,
   "allowBossScaling": true,
-  "allowModdedScaling": true,
   "restrictEffectsToMobTheme": true,
   "debugUpgradeLog": true,
   "disableNaturalMobSpawns": false,
