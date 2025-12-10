@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 68 / 80 mobs completed
+PROGRESS: 69 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -121,7 +121,7 @@ PROGRESS: 68 / 80 mobs completed
 66. [X] Trader_Llama
 67. [X] Tropical_Fish
 68. [X] Turtle
-69. [ ] Vex
+69. [X] Vex
 70. [ ] Villager
 71. [ ] Vindicator
 72. [ ] Wandering_Trader
