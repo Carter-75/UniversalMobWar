@@ -1,8 +1,8 @@
 {
-  "mob_name": "Iron_Golem",
-  "entity_class": "net.minecraft.entity.passive.IronGolemEntity",
-  "mob_type": "neutral",
-  "tree_name": "Village Protector",
+  "mob_name": "Magma_Cube",
+  "entity_class": "net.minecraft.entity.monster.MagmaCubeEntity",
+  "mob_type": "hostile",
+  "tree_name": "Molten Bouncer",
   "point_system": {
     "daily_scaling": [
       {
@@ -249,6 +249,110 @@
     "chestplate": {},
     "leggings": {},
     "boots": {},
-    "special_abilities": {}
+    "special_abilities": {
+      "creeper_power": [
+        {
+          "level": 1,
+          "cost": 10,
+          "explosion_radius": 4.25
+        },
+        {
+          "level": 2,
+          "cost": 15,
+          "explosion_radius": 5.5
+        },
+        {
+          "level": 3,
+          "cost": 20,
+          "explosion_radius": 6.75
+        },
+        {
+          "level": 4,
+          "cost": 25,
+          "explosion_radius": 8.0
+        },
+        {
+          "level": 5,
+          "cost": 30,
+          "explosion_radius": 10.0
+        }
+      ],
+      "creeper_potion_cloud": [
+        {
+          "level": 1,
+          "cost": 12,
+          "effects": [
+            {
+              "type": "slowness",
+              "level": 1,
+              "duration": 10
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "cost": 18,
+          "effects": [
+            {
+              "type": "slowness",
+              "level": 1,
+              "duration": 15
+            },
+            {
+              "type": "weakness",
+              "level": 1,
+              "duration": 10
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "cost": 24,
+          "effects": [
+            {
+              "type": "slowness",
+              "level": 2,
+              "duration": 20
+            },
+            {
+              "type": "weakness",
+              "level": 1,
+              "duration": 15
+            },
+            {
+              "type": "poison",
+              "level": 1,
+              "duration": 10
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "cost": 30,
+          "effects": [
+            {
+              "type": "slowness",
+              "level": 2,
+              "duration": 20
+            },
+            {
+              "type": "weakness",
+              "level": 1,
+              "duration": 15
+            },
+            {
+              "type": "poison",
+              "level": 1,
+              "duration": 10
+            },
+            {
+              "type": "wither",
+              "level": 1,
+              "duration": 15
+            }
+          ]
+        }
+      ]
+    }
   }
 }

@@ -2,7 +2,9 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 35 / 80 mobs completed
+- DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
+
+PROGRESS: 40 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -43,11 +45,11 @@ PROGRESS: 35 / 80 mobs completed
 33. [X] Husk            - DONE
 34. [X] Illusioner      - DONE
 35. [X] Iron_Golem      - DONE
-36. [ ] Llama
-37. [ ] Magma_Cube
-38. [ ] Mooshroom
-39. [ ] Mule
-40. [ ] Ocelot
+36. [X] Llama           - DONE
+37. [X] Magma_Cube      - DONE
+38. [X] Mooshroom       - DONE
+39. [X] Mule            - DONE
+40. [X] Ocelot
 41. [ ] Panda
 42. [ ] Parrot
 43. [ ] Phantom
