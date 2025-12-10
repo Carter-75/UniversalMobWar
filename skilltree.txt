@@ -351,7 +351,7 @@
       "Pig": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Piglin": { "type": "neutral", "weapon": "gold_sword_or_crossbow_50%", "armor": "full_gold", "shield": true, "trees": ["r_if_crossbow"] },
       "Piglin_Brute": { "type": "hostile", "weapon": "gold_axe", "armor": "full_gold", "shield": true, "trees": [] },
-      "Pillager": { "type": "hostile", "weapon": "crossbow", "armor": "none", "shield": true, "trees": ["r"] },
+      "Pillager": { "type": "hostile", "weapon": "crossbow", "armor": "full_normal", "shield": true, "trees": ["r"] },
       "Polar_Bear": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Pufferfish": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Rabbit": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },

@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 43 / 80 mobs completed
+PROGRESS: 49 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -94,12 +94,12 @@ PROGRESS: 43 / 80 mobs completed
 44. [X] Pig
 45. [X] Piglin
 46. [X] Piglin_Brute
-47. [ ] Pillager
-48. [ ] Polar_Bear
-49. [ ] Pufferfish
-50. [ ] Rabbit
-51. [ ] Ravager
-52. [ ] Salmon
+47. [X] Pillager
+48. [X] Polar_Bear
+49. [X] Pufferfish
+50. [X] Rabbit
+51. [X] Ravager
+52. [X] Salmon
 53. [ ] Sheep
 54. [ ] Shulker
 55. [ ] Silverfish
@@ -181,7 +181,7 @@ Phantom:         type=hostile,  weapon=none,         armor=none,        shield=f
 Pig:             type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
 Piglin:          type=neutral,  weapon=gold_sword_or_crossbow, armor=full_gold, shield=true, trees=[ranged_if_crossbow]
 Piglin_Brute:    type=hostile,  weapon=gold_axe,     armor=full_gold,   shield=true,  trees=[]
-Pillager:        type=hostile,  weapon=crossbow,     armor=none,        shield=true,  trees=[ranged]
+Pillager:        type=hostile,  weapon=crossbow,     armor=full_normal, shield=true,  trees=[ranged]
 Polar_Bear:      type=neutral,  weapon=none,         armor=none,        shield=false, trees=[]
 Pufferfish:      type=neutral,  weapon=none,         armor=none,        shield=false, trees=[]
 Rabbit:          type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
