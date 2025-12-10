@@ -59,19 +59,47 @@ public class ScalingSystem {
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
     
-    // List of all available mob config files
-    private static final String[] IMPLEMENTED_MOBS = {
-        "allay", "armadillo", "axolotl", "bat", "bee",
-        "blaze", "bogged", "breeze", "camel", "cat",
-        "cave_spider", "chicken", "cod", "cow", "creeper",
-        "creaking", "dolphin", "donkey", "drowned", "elder_guardian",
-        "ender_dragon", "enderman", "endermite", "evoker", "fox", "frog",
-        "giant", "glow_squid", "goat", "guardian", "hoglin", "horse",
-        "husk", "illusioner", "iron_golem", "llama", "magma_cube", "mooshroom",
-        "mule", "ocelot", "panda", "parrot", "phantom", "pig", "piglin",
-        "piglin_brute", "pillager", "polar_bear", "pufferfish", "rabbit",
-        "ravager", "salmon", "sheep", "shulker", "silverfish"
-    };
+    // List of all available mob config files (loaded dynamically)
+    private static String[] IMPLEMENTED_MOBS = null;
+        /**
+         * Dynamically load all mob config names from the mob_configs resource directory
+         */
+        private static String[] getImplementedMobs() {
+            if (IMPLEMENTED_MOBS != null) return IMPLEMENTED_MOBS;
+            try {
+                // Path to mob_configs directory in resources
+                String resourcePath = "/mob_configs";
+                java.net.URL dirURL = ScalingSystem.class.getResource(resourcePath);
+                if (dirURL != null && dirURL.getProtocol().equals("file")) {
+                    java.io.File dir = new java.io.File(dirURL.toURI());
+                    String[] files = dir.list((d, name) -> name.endsWith(".json"));
+                    if (files != null) {
+                        IMPLEMENTED_MOBS = java.util.Arrays.stream(files)
+                            .map(f -> f.substring(0, f.length() - 5).toLowerCase())
+                            .toArray(String[]::new);
+                    }
+                } else if (dirURL != null && dirURL.getProtocol().equals("jar")) {
+                    // Running from JAR: scan entries
+                    String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
+                    try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarPath)) {
+                        java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+                        java.util.List<String> mobList = new java.util.ArrayList<>();
+                        while (entries.hasMoreElements()) {
+                            String entry = entries.nextElement().getName();
+                            if (entry.startsWith("mob_configs/") && entry.endsWith(".json")) {
+                                String mobName = entry.substring("mob_configs/".length(), entry.length() - 5).toLowerCase();
+                                mobList.add(mobName);
+                            }
+                        }
+                        IMPLEMENTED_MOBS = mobList.toArray(new String[0]);
+                    }
+                }
+            } catch (Exception e) {
+                UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to load mob config list: {}", e.getMessage());
+                IMPLEMENTED_MOBS = new String[0];
+            }
+            return IMPLEMENTED_MOBS;
+        }
     
     private static boolean configsLoaded = false;
     
@@ -87,7 +115,7 @@ public class ScalingSystem {
         
         UniversalMobWarMod.LOGGER.info("[ScalingSystem] Loading mob configurations...");
         
-        for (String mobName : IMPLEMENTED_MOBS) {
+        for (String mobName : getImplementedMobs()) {
             loadMobConfig(mobName);
         }
         
@@ -146,7 +174,7 @@ public class ScalingSystem {
         if (configName == null) {
             // Try registry name
             String registryName = mob.getType().toString().toLowerCase();
-            for (String implemented : IMPLEMENTED_MOBS) {
+            for (String implemented : getImplementedMobs()) {
                 if (registryName.contains(implemented)) {
                     configName = implemented;
                     break;
