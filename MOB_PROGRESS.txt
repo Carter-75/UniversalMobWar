@@ -7,6 +7,44 @@
 PROGRESS: 43 / 80 mobs completed
 
 ================================================================================
+                              RECENT SYSTEM UPDATES
+================================================================================
+
+✅ WEAPON ARRAY SYSTEM:
+   - Weapons now use array format: "weapon": [{ ... }, { ... }]
+   - UUID-based locking: Each mob instance locks to ONE weapon deterministically
+   - Lottery shows ALL weapons at tier 0 (base_cost for acquisition)
+   - After acquiring weapon, only that weapon's tiers/enchants/masteries appear
+   - Empty tiers [] means weapon acquired at base_cost with no tier progression
+
+✅ SPECIAL ABILITIES FILTERING:
+   - Abilities auto-filter based on attack capability (ranged/melee/both)
+   - Mobs WITH weapons: Capability from weapon type (bow/crossbow=ranged, sword/axe=melee)
+   - Mobs WITHOUT weapons: Capability from abilities in JSON config
+   - Ranged abilities: piercing_shot, multishot, ranged_potion_mastery
+   - Melee abilities: hunger_attack, cleave, life_steal
+   - Universal: horde_summon (available to all)
+
+✅ ALL ABILITY HANDLERS IMPLEMENTED (10 total):
+   1. hunger_attack - Melee hit applies hunger (Bogged, Drowned, Giant, Husk)
+   2. horde_summon - On damage taken, spawn reinforcements (Bogged, Drowned, Giant, Husk)
+   3. piercing_shot - Projectile pierces entities (Blaze, Bogged, Breeze, Drowned, Ender Dragon, Illusioner, Llama, Piglin)
+   4. multishot - Fire extra projectiles (same mobs as piercing_shot)
+   5. ranged_potion_mastery - Projectile applies potion effects (same mobs)
+   6. shadow_step - Enderman teleport leaves blindness area (Enderman)
+   7. void_grasp - Periodic range check applies weakness+levitation (Enderman)
+   8. poison_mastery - Melee hit applies poison/wither/slowness (Cave Spider)
+   9. creeper_power - Increases explosion radius (Creeper)
+   10. creeper_potion_cloud - Explosion spawns area effects (Creeper)
+   11. void_bombardment - Enhanced dragon fireballs (Ender Dragon)
+
+✅ PERFORMANCE OPTIMIZATIONS:
+   - Potion effects use StatusEffectInstance.INFINITE duration
+   - Effects applied only during upgrade cycles (not every tick)
+   - Upgrades trigger: on spawn OR every 24000 ticks (1 Minecraft day)
+   - All mob calculations target 5-second completion time (configurable)
+
+================================================================================
                               ALL MOBS (A-Z ORDER)
 ================================================================================
 

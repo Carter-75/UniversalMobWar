@@ -1467,6 +1467,232 @@ public class ScalingSystem {
     }
     
     // ==========================================================================
+    //                    CAVE SPIDER SPECIAL ABILITIES
+    // ==========================================================================
+    
+    /**
+     * Get poison mastery data for Cave Spider melee attacks
+     * Call this when Cave Spider deals melee damage to apply poison/wither/slowness
+     */
+    public static void applyCaveSpiderPoison(MobEntity mob, MobWarData data, 
+            net.minecraft.entity.LivingEntity target) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int poisonLevel = skillData.getInt("ability_poison_mastery");
+        if (poisonLevel > 0 && abilities.has("poison_mastery")) {
+            JsonArray levels = abilities.getAsJsonArray("poison_mastery");
+            if (poisonLevel <= levels.size()) {
+                JsonObject levelData = levels.get(poisonLevel - 1).getAsJsonObject();
+                
+                int poisonEffectLevel = levelData.has("poison_level") ? levelData.get("poison_level").getAsInt() : 1;
+                int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 7;
+                
+                // Apply poison
+                target.addStatusEffect(new StatusEffectInstance(
+                    StatusEffects.POISON, duration * 20, poisonEffectLevel - 1, false, true, true));
+                
+                // Apply wither if level 5+
+                if (levelData.has("wither_level")) {
+                    int witherLevel = levelData.get("wither_level").getAsInt();
+                    int witherDuration = levelData.has("wither_duration") ? levelData.get("wither_duration").getAsInt() : 10;
+                    target.addStatusEffect(new StatusEffectInstance(
+                        StatusEffects.WITHER, witherDuration * 20, witherLevel - 1, false, true, true));
+                }
+                
+                // Apply slowness if level 6
+                if (levelData.has("slowness_level")) {
+                    int slownessLevel = levelData.get("slowness_level").getAsInt();
+                    int slownessDuration = levelData.has("slowness_duration") ? levelData.get("slowness_duration").getAsInt() : 15;
+                    target.addStatusEffect(new StatusEffectInstance(
+                        StatusEffects.SLOWNESS, slownessDuration * 20, slownessLevel - 1, false, true, true));
+                }
+            }
+        }
+    }
+    
+    // ==========================================================================
+    //                    CREEPER SPECIAL ABILITIES
+    // ==========================================================================
+    
+    /**
+     * Get Creeper explosion power multiplier
+     * Call this when Creeper is about to explode
+     */
+    public static float getCreeperExplosionRadius(MobEntity mob, MobWarData data) {
+        if (!ModConfig.getInstance().isScalingActive()) return 3.0f; // Default creeper explosion
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return 3.0f;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return 3.0f;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return 3.0f;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int powerLevel = skillData.getInt("ability_creeper_power");
+        if (powerLevel > 0 && abilities.has("creeper_power")) {
+            JsonArray levels = abilities.getAsJsonArray("creeper_power");
+            if (powerLevel <= levels.size()) {
+                JsonObject levelData = levels.get(powerLevel - 1).getAsJsonObject();
+                if (levelData.has("explosion_radius")) {
+                    return levelData.get("explosion_radius").getAsFloat();
+                }
+            }
+        }
+        
+        return 3.0f; // Default
+    }
+    
+    /**
+     * Spawn potion cloud effects at Creeper explosion location
+     * Call this when Creeper explodes
+     */
+    public static void spawnCreeperPotionCloud(MobEntity mob, MobWarData data, ServerWorld world, 
+            net.minecraft.util.math.BlockPos pos) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int cloudLevel = skillData.getInt("ability_creeper_potion_cloud");
+        if (cloudLevel > 0 && abilities.has("creeper_potion_cloud")) {
+            JsonArray levels = abilities.getAsJsonArray("creeper_potion_cloud");
+            if (cloudLevel <= levels.size()) {
+                JsonObject levelData = levels.get(cloudLevel - 1).getAsJsonObject();
+                
+                if (levelData.has("effects")) {
+                    JsonArray effectsArray = levelData.getAsJsonArray("effects");
+                    
+                    // Apply effects to all entities in 5 block radius
+                    world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class,
+                        new net.minecraft.util.math.Box(pos).expand(5.0),
+                        entity -> entity != mob && entity instanceof net.minecraft.entity.player.PlayerEntity)
+                        .forEach(entity -> {
+                            for (JsonElement effectEl : effectsArray) {
+                                JsonObject effect = effectEl.getAsJsonObject();
+                                String type = effect.get("type").getAsString();
+                                int level = effect.has("level") ? effect.get("level").getAsInt() : 1;
+                                int duration = effect.has("duration") ? effect.get("duration").getAsInt() : 10;
+                                
+                                var statusEffect = getPotionEffectByName(type);
+                                if (statusEffect != null) {
+                                    entity.addStatusEffect(new StatusEffectInstance(
+                                        statusEffect, duration * 20, level - 1, false, true, true));
+                                }
+                            }
+                        });
+                }
+            }
+        }
+    }
+    
+    // ==========================================================================
+    //                    ENDER DRAGON SPECIAL ABILITIES
+    // ==========================================================================
+    
+    /**
+     * Handle Ender Dragon void bombardment - enhanced dragon fireballs
+     * Call this when dragon shoots fireball projectile
+     */
+    public static void handleVoidBombardment(MobEntity mob, MobWarData data, ServerWorld world,
+            net.minecraft.entity.projectile.DragonFireballEntity fireball, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int bombardLevel = skillData.getInt("ability_void_bombardment");
+        if (bombardLevel > 0 && abilities.has("void_bombardment")) {
+            JsonArray levels = abilities.getAsJsonArray("void_bombardment");
+            if (bombardLevel <= levels.size()) {
+                JsonObject levelData = levels.get(bombardLevel - 1).getAsJsonObject();
+                
+                // Store damage and wither data in fireball NBT for use on impact
+                NbtCompound fireballData = new NbtCompound();
+                if (levelData.has("projectile_damage")) {
+                    fireballData.putDouble("void_damage", levelData.get("projectile_damage").getAsDouble());
+                }
+                if (levelData.has("wither_duration")) {
+                    fireballData.putInt("void_wither", levelData.get("wither_duration").getAsInt());
+                }
+                
+                // Note: You'll need to handle this data when the fireball impacts
+                // Store in projectile custom data or similar mechanism
+            }
+        }
+    }
+    
+    /**
+     * Apply void bombardment effects on dragon fireball impact
+     * Call this when dragon fireball hits target or ground
+     */
+    public static void applyVoidBombardmentEffects(MobEntity mob, MobWarData data, ServerWorld world,
+            net.minecraft.util.math.Vec3d impactPos, net.minecraft.entity.LivingEntity directHit) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int bombardLevel = skillData.getInt("ability_void_bombardment");
+        if (bombardLevel > 0 && abilities.has("void_bombardment")) {
+            JsonArray levels = abilities.getAsJsonArray("void_bombardment");
+            if (bombardLevel <= levels.size()) {
+                JsonObject levelData = levels.get(bombardLevel - 1).getAsJsonObject();
+                
+                double damage = levelData.has("projectile_damage") ? levelData.get("projectile_damage").getAsDouble() : 6.0;
+                double radius = levelData.has("radius") ? levelData.get("radius").getAsDouble() : 3.0;
+                int witherDuration = levelData.has("wither_duration") ? levelData.get("wither_duration").getAsInt() : 1;
+                
+                // Apply damage and wither to all entities in radius
+                world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class,
+                    net.minecraft.util.math.Box.of(impactPos, radius * 2, radius * 2, radius * 2),
+                    entity -> entity != mob)
+                    .forEach(entity -> {
+                        // Apply extra damage
+                        entity.damage(world.getDamageSources().dragonBreath(), (float) damage);
+                        
+                        // Apply wither
+                        entity.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.WITHER, witherDuration * 20, 0, false, true, true));
+                    });
+            }
+        }
+    }
+    
+    // ==========================================================================
     //                           UTILITY METHODS
     // ==========================================================================
     
