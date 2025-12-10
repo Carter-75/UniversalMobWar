@@ -126,13 +126,13 @@ PROGRESS: 70 / 80 mobs completed
 71. [X] Vindicator
 72. [X] Wandering_Trader
 73. [X] Warden
-74. [ ] Witch
-75. [ ] Wither
-76. [ ] Wither_Skeleton
-77. [ ] Wolf
-78. [ ] Zoglin
-79. [ ] Zombie
-80. [ ] Zombie_Villager
+74. [X] Witch
+75. [X] Wither
+76. [X] Wither_Skeleton
+77. [X] Wolf
+78. [X] Zoglin
+79. [X] Zombie
+80. [X] Zombie_Villager
 
 ================================================================================
                               MOB DEFINITIONS
