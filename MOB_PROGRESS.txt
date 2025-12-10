@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 55 / 80 mobs completed
+PROGRESS: 56 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -53,62 +53,62 @@ PROGRESS: 55 / 80 mobs completed
                               ALL MOBS (A-Z ORDER)
 ================================================================================
 
-1.  [X] Allay              - DONE
-2.  [X] Armadillo          - DONE
-3.  [X] Axolotl            - DONE
-4.  [X] Bat                - DONE
-5.  [X] Bee                - DONE
-6.  [X] Blaze              - DONE
-7.  [X] Bogged             - DONE
-8.  [X] Breeze             - DONE
-9.  [X] Camel              - DONE
-10. [X] Cat               - DONE
-11. [X] Cave_Spider       - DONE
-12. [X] Chicken           - DONE
-13. [X] Cod               - DONE
-14. [X] Cow               - DONE
-15. [X] Creaking          - DONE
-16. [X] Creeper           - DONE
-17. [X] Dolphin           - DONE
-18. [X] Donkey            - DONE
-19. [X] Drowned           - DONE
-20. [X] Elder_Guardian    - DONE
-21. [X] Ender_Dragon     - DONE
-22. [X] Enderman         - DONE
-23. [X] Endermite        - DONE
-24. [X] Evoker           - DONE
-25. [X] Fox              - DONE
-26. [X] Frog             - DONE
-27. [X] Giant            - DONE
-28. [X] Glow_Squid      - DONE
-29. [X] Goat             - DONE
-30. [X] Guardian        - DONE
-31. [X] Hoglin          - DONE
-32. [X] Horse           - DONE
-33. [X] Husk            - DONE
-34. [X] Illusioner      - DONE
-35. [X] Iron_Golem      - DONE
-36. [X] Llama           - DONE
-37. [X] Magma_Cube      - DONE
-38. [X] Mooshroom       - DONE
-39. [X] Mule            - DONE
-40. [X] Ocelot          - DONE
-41. [X] Panda           - DONE
-42. [X] Parrot          - DONE
-43. [X] Phantom         - DONE
-44. [X] Pig             - DONE
-45. [X] Piglin          - DONE
-46. [X] Piglin_Brute    - DONE
-47. [X] Pillager        - DONE
-48. [X] Polar_Bear      - DONE
-49. [X] Pufferfish      - DONE
-50. [X] Rabbit          - DONE
-51. [X] Ravager         - DONE
-52. [X] Salmon          - DONE
+1.  [X] Allay              
+2.  [X] Armadillo          
+3.  [X] Axolotl            
+4.  [X] Bat                
+5.  [X] Bee                
+6.  [X] Blaze              
+7.  [X] Bogged             
+8.  [X] Breeze             
+9.  [X] Camel              
+10. [X] Cat               
+11. [X] Cave_Spider       
+12. [X] Chicken           
+13. [X] Cod               
+14. [X] Cow               
+15. [X] Creaking          
+16. [X] Creeper           
+17. [X] Dolphin           
+18. [X] Donkey            
+19. [X] Drowned           
+20. [X] Elder_Guardian    
+21. [X] Ender_Dragon     
+22. [X] Enderman         
+23. [X] Endermite        
+24. [X] Evoker           
+25. [X] Fox              
+26. [X] Frog             
+27. [X] Giant            
+28. [X] Glow_Squid      
+29. [X] Goat             
+30. [X] Guardian        
+31. [X] Hoglin          
+32. [X] Horse           
+33. [X] Husk            
+34. [X] Illusioner      
+35. [X] Iron_Golem      
+36. [X] Llama           
+37. [X] Magma_Cube      
+38. [X] Mooshroom       
+39. [X] Mule            
+40. [X] Ocelot          
+41. [X] Panda           
+42. [X] Parrot          
+43. [X] Phantom         
+44. [X] Pig             
+45. [X] Piglin          
+46. [X] Piglin_Brute    
+47. [X] Pillager        
+48. [X] Polar_Bear      
+49. [X] Pufferfish      
+50. [X] Rabbit          
+51. [X] Ravager         
+52. [X] Salmon          
 53. [X] Sheep
 54. [X] Shulker
 55. [X] Silverfish
-56. [ ] Skeleton
+56. [X] Skeleton
 57. [ ] Skeleton_Horse
 58. [ ] Slime
 59. [ ] Sniffer
