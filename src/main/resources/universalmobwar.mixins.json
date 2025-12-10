@@ -10,13 +10,15 @@
 		"MobEntityAccessor",
 		"PersistentProjectileEntityAccessor",
 		"MobDataMixin",
+		"PotionEntityMixin",
 		"MobRevengeBlockerMixin",
 		"MobDeathTrackerMixin",
 		"NeutralMobBehaviorMixin",
 		"UniversalSummonerTrackingMixin",
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin",
-		"NaturalMobSpawnBlockerMixin"
+		"NaturalMobSpawnBlockerMixin",
+		"WitchAbilityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

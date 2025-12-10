@@ -334,6 +334,15 @@ public class ScalingSystem {
             if (ps.has("buy_chance")) buyChance = ps.get("buy_chance").getAsDouble();
             if (ps.has("save_chance")) saveChance = ps.get("save_chance").getAsDouble();
         }
+
+        double totalChance = buyChance + saveChance;
+        if (totalChance <= 0) {
+            buyChance = 1.0;
+            saveChance = 0.0;
+        } else if (Math.abs(totalChance - 1.0) > 1e-6) {
+            buyChance /= totalChance;
+            saveChance /= totalChance;
+        }
         
         // Get current upgrade levels from skill data
         NbtCompound skillData = data.getSkillData();
@@ -347,10 +356,11 @@ public class ScalingSystem {
             
             if (affordable.isEmpty()) break;
             
-            // 20% chance to save and stop
-            if (random.nextDouble() < saveChance) break;
+            double roll = random.nextDouble();
+            if (roll < saveChance) break;
+            if (roll >= saveChance + buyChance) continue;
             
-            // 80% chance to buy a random affordable upgrade
+            // Buy a random affordable upgrade
             UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
             
             // Apply the upgrade

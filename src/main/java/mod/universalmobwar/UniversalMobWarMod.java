@@ -322,7 +322,7 @@ public class UniversalMobWarMod implements ModInitializer {
 			
 			// MEMORY LEAK FIX: Clean up dead mob UUIDs from AllianceSystem (every 60 seconds)
 			if (server.getTicks() % 1200 == 0) {
-				for (net.minecraft.server.world.ServerWorld world : server.getWorlds()) {
+				for (ServerWorld world : server.getWorlds()) {
 					AllianceSystem.cleanupDeadMobs(world);
 				}
 			}

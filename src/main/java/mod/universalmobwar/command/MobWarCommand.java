@@ -251,8 +251,8 @@ public class MobWarCommand {
     private static int executeReload(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
         
-        ModConfig config = ModConfig.getInstance();
-        config.save(); // This will create a new config if it doesn't exist
+        ModConfig.getInstance(); // Ensure holder initialized
+        ModConfig.save(); // This will create a new config if it doesn't exist
         
         source.sendFeedback(() -> 
             Text.literal("Configuration reloaded successfully!")

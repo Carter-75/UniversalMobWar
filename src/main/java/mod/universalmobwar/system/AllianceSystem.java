@@ -7,7 +7,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.border.WorldBorder;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Box;
 import java.util.*;
 import java.util.concurrent.Executors;

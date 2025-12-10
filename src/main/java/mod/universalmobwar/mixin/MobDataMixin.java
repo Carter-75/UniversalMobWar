@@ -3,16 +3,20 @@ package mod.universalmobwar.mixin;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Core mixin that handles MobWarData persistence for ALL mobs.
@@ -76,6 +80,38 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
     private void universalmobwar$onMobTick(CallbackInfo ci) {
         MobEntity self = (MobEntity)(Object)this;
         ScalingSystem.processMobTick(self, self.getWorld(), universalMobWarData);
+    }
+
+    @Inject(method = "damage(Lnet/minecraft/entity/damage/DamageSource;F)Z", at = @At("TAIL"))
+    private void universalmobwar$handleDamageAbilities(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (!cir.getReturnValueZ()) {
+            return;
+        }
+
+        MobEntity self = (MobEntity)(Object)this;
+        if (universalMobWarData == null) {
+            return;
+        }
+
+        long currentTick = self.getWorld().getTime();
+        ScalingSystem.handleDamageAbilities(self, universalMobWarData, currentTick);
+        if (self.getWorld() instanceof ServerWorld serverWorld) {
+            ScalingSystem.handleHordeSummon(self, universalMobWarData, serverWorld, currentTick);
+        }
+    }
+
+    @Inject(method = "tryAttack(Lnet/minecraft/entity/Entity;)Z", at = @At("TAIL"))
+    private void universalmobwar$handleMeleeAbilities(Entity target, CallbackInfoReturnable<Boolean> cir) {
+        if (!cir.getReturnValueZ() || !(target instanceof LivingEntity livingTarget)) {
+            return;
+        }
+
+        MobEntity self = (MobEntity)(Object)this;
+        if (universalMobWarData == null) {
+            return;
+        }
+
+        ScalingSystem.handleMeleeAttackAbilities(self, universalMobWarData, livingTarget, self.getWorld().getTime());
     }
     
     // Strip ALL equipment from every mob immediately on spawn (AFTER vanilla equipment)
