@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 56 / 80 mobs completed
+PROGRESS: 59 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -109,9 +109,9 @@ PROGRESS: 56 / 80 mobs completed
 54. [X] Shulker
 55. [X] Silverfish
 56. [X] Skeleton
-57. [ ] Skeleton_Horse
-58. [ ] Slime
-59. [ ] Sniffer
+57. [X] Skeleton_Horse
+58. [X] Slime
+59. [X] Sniffer
 60. [ ] Snow_Golem
 61. [ ] Spider
 62. [ ] Squid
