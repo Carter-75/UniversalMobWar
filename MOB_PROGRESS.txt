@@ -44,6 +44,11 @@ PROGRESS: 55 / 80 mobs completed
    - Upgrades trigger: on spawn OR every 24000 ticks (1 Minecraft day)
    - All mob calculations target 5-second completion time (configurable)
 
+✅ UNIVERSAL MIXIN & DYNAMIC SCALING:
+  - MobDataMixin injects into every MobEntity; no per-mob mixins exist anymore
+  - ScalingSystem scans mob_configs/* on startup and auto-loads new mobs
+  - Adding a mob now only requires the JSON config + progress update
+
 ================================================================================
                               ALL MOBS (A-Z ORDER)
 ================================================================================
@@ -778,9 +783,9 @@ Each mob JSON must be COMPLETELY STANDALONE. Structure:
 ================================================================================
 
 ScalingSystem: src/main/java/mod/universalmobwar/system/ScalingSystem.java
-Mixin files:   src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
+Mixin hook:    src/main/java/mod/universalmobwar/mixin/MobDataMixin.java (handles every mob)
 JSON configs:  src/main/resources/mob_configs/[mobname].json (lowercase)
-Mixin config:  src/main/resources/universalmobwar.mixins.json
+Mixin config:  src/main/resources/universalmobwar.mixins.json (already registers MobDataMixin)
 
 ================================================================================
                            ARCHITECTURE
@@ -794,10 +799,10 @@ The scaling system uses a CENTRALIZED architecture:
      - Spends points on upgrades (80% buy / 20% save from JSON)
      - Applies effects (potion effects, equipment, special abilities)
 
-  2. Mob Mixins (simple - just call ScalingSystem)
-     - Each mixin just calls: ScalingSystem.processMobTick(mob, world, data)
-     - NO upgrade logic in mixins - all handled by ScalingSystem
-     - ScalingSystem reads upgrade costs from the mob's JSON config
+    2. MobDataMixin (universal hook)
+      - Injects into every MobEntity, persists MobWarData, and calls ScalingSystem
+      - No per-mob mixins exist anymore; new mobs only need JSON data
+      - Mobs without a JSON file are skipped automatically
 
   3. JSON Configs (define ALL upgrade data)
      - Each mob has its own JSON file with upgrade costs and effects
@@ -814,47 +819,17 @@ STEP 1: Create JSON config file
   Template: Copy from existing mob (allay.json, bee.json, bogged.json, blaze.json)
   Content: All upgrade costs and effects for this mob type
 
-STEP 2: Create Mixin file
-  Location: src/main/java/mod/universalmobwar/mixin/mob/[MobName]Mixin.java
-  
-  TEMPLATE (copy this exactly, change class names):
-  ```java
-  package mod.universalmobwar.mixin.mob;
+STEP 2: No mixin file needed
+  MobDataMixin already injects into every MobEntity, persists MobWarData, and calls ScalingSystem.
+  Do NOT add files under src/main/java/mod/universalmobwar/mixin/mob anymore.
 
-  import mod.universalmobwar.data.MobWarData;
-  import mod.universalmobwar.system.ScalingSystem;
-  import net.minecraft.entity.mob.[MobName]Entity;
-  import net.minecraft.entity.mob.MobEntity;
-  import net.minecraft.world.World;
-  import org.spongepowered.asm.mixin.Mixin;
-  import org.spongepowered.asm.mixin.injection.At;
-  import org.spongepowered.asm.mixin.injection.Inject;
-  import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+STEP 3: No mixin registration needed
+  src/main/resources/universalmobwar.mixins.json already lists MobDataMixin.
+  Leave it alone unless the universal hook itself changes.
 
-  @Mixin([MobName]Entity.class)
-  public abstract class [MobName]Mixin {
-
-      @Inject(method = "mobTick", at = @At("HEAD"))
-      private void onMobTick(CallbackInfo ci) {
-          [MobName]Entity self = ([MobName]Entity) (Object) this;
-          World world = self.getWorld();
-          if (world.isClient()) return;
-          
-          MobWarData data = MobWarData.get((MobEntity) self);
-          ScalingSystem.processMobTick((MobEntity) self, world, data);
-      }
-  }
-  ```
-
-STEP 3: Register mixin
-  Add to src/main/resources/universalmobwar.mixins.json:
-  "mob.[MobName]Mixin"
-
-STEP 4: Add to ScalingSystem
-  Add mob name to IMPLEMENTED_MOBS array in ScalingSystem.java:
-  private static final String[] IMPLEMENTED_MOBS = {
-      "allay", "armadillo", ..., "[mobname]"
-  };
+STEP 4: ScalingSystem loads mobs dynamically
+  The system scans src/main/resources/mob_configs on startup and populates IMPLEMENTED_MOBS automatically.
+  As soon as a JSON exists, the mob is recognized—no manual array edits or registrations.
 
 STEP 5: Mark as complete
   Update this file: change [ ] to [X] for the mob
