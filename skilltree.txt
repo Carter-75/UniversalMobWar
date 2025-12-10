@@ -129,12 +129,12 @@
     "weapon_progression": {
       "normal_sword": { "base_cost": 3, "upgrade_costs": [4,5,6,7], "tiers": ["wood","stone","iron","diamond","netherite"] },
       "stone_sword":  { "base_cost": 0, "upgrade_costs": [5,6,7], "tiers": ["stone","iron","diamond","netherite"] },
-      "gold_sword":   { "base_cost": 0, "upgrade_costs": [10], "tiers": ["gold","netherite"] },
+      "gold_sword":   { "base_cost": 3, "upgrade_costs": [10], "tiers": ["gold","netherite"] },
       "iron_axe":     { "base_cost": 0, "upgrade_costs": [5,7], "tiers": ["iron","diamond","netherite"] },
       "gold_axe":     { "base_cost": 0, "upgrade_costs": [10], "tiers": ["gold","netherite"] },
       "bow":          { "base_cost": 0, "tiers": [] },
       "crossbow":     { "base_cost": 0, "tiers": [] },
-      "trident":      { "base_cost": 0, "tiers": [] }
+      "trident":      { "base_cost": 5, "tiers": [] }
     },
 
     "armor_progression": {
