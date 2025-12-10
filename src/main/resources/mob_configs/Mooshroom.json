@@ -46,51 +46,54 @@
         {
           "level": 1,
           "cost": 3,
-          "effect": "Permanent Regeneration I"
+          "regen_level": 1
         },
         {
           "level": 2,
           "cost": 4,
-          "effect": "Permanent Regeneration II"
+          "regen_level": 2
         },
         {
           "level": 3,
           "cost": 5,
-          "effect": "Permanent Regeneration III"
+          "regen_level": 3
         }
       ],
       "resistance": [
         {
           "level": 1,
           "cost": 5,
-          "effect": "Permanent Resistance I"
+          "resistance_level": 1
         }
       ],
       "health_boost": [
         {
           "level": 1,
           "cost": 4,
-          "effect": "+2 max HP (total +2)"
+          "hp_bonus": 2,
+          "hp_total": 2
         },
         {
           "level": 2,
           "cost": 5,
-          "effect": "+2 max HP (total +4)"
+          "hp_bonus": 2,
+          "hp_total": 4
         },
         {
           "level": 3,
           "cost": 6,
-          "effect": "+2 max HP (total +6)"
+          "hp_bonus": 2,
+          "hp_total": 6
         }
       ]
     },
     "hostile_neutral_potion_effects": {},
-    "special_abilities": {},
     "weapon": {},
     "shield": {},
     "helmet": {},
     "chestplate": {},
     "leggings": {},
-    "boots": {}
+    "boots": {},
+    "special_abilities": {}
   }
 }

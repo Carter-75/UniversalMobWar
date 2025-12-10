@@ -65,7 +65,7 @@ public class ScalingSystem {
         "blaze", "bogged", "breeze", "camel", "cat",
         "cave_spider", "chicken", "cod", "cow", "creeper",
         "creaking", "dolphin", "donkey", "drowned", "elder_guardian",
-        "ender_dragon", "enderman", "endermite", "evoker", "fox", "frog", "giant", "glow_squid", "goat", "guardian", "hoglin", "horse", "husk", "illusioner", "iron_golem", "llama", "magma_cube", "mooshroom", "mule", "ocelot"
+        "ender_dragon", "enderman", "endermite", "evoker", "fox", "frog", "giant", "glow_squid", "goat", "guardian", "hoglin", "horse", "husk", "illusioner", "iron_golem", "llama", "magma_cube", "mooshroom", "mule", "ocelot", "panda"
     };
     
     private static boolean configsLoaded = false;

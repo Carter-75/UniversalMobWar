@@ -1,8 +1,8 @@
 {
-  "mob_name": "Fox",
-  "entity_class": "net.minecraft.entity.passive.FoxEntity",
+  "mob_name": "Panda",
+  "entity_class": "net.minecraft.entity.passive.PandaEntity",
   "mob_type": "passive",
-  "tree_name": "Silent Prowler",
+  "tree_name": "Bamboo Guardian",
   "point_system": {
     "daily_scaling": [
       {
