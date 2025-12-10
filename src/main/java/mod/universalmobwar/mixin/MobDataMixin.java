@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -78,6 +79,9 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
      */
     @Inject(method = "mobTick", at = @At("HEAD"))
     private void universalmobwar$onMobTick(CallbackInfo ci) {
+        if (!ModConfig.getInstance().modEnabled) {
+            return;
+        }
         MobEntity self = (MobEntity)(Object)this;
         ScalingSystem.processMobTick(self, self.getWorld(), universalMobWarData);
     }
