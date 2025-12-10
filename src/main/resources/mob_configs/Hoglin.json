@@ -1,8 +1,8 @@
 {
-  "mob_name": "Enderman",
-  "entity_class": "net.minecraft.entity.mob.EndermanEntity",
+  "mob_name": "Hoglin",
+  "entity_class": "net.minecraft.entity.mob.HoglinEntity",
   "mob_type": "hostile",
-  "tree_name": "Void Stalker",
+  "tree_name": "Crimson Charger",
 
   "point_system": {
     "daily_scaling": [
@@ -72,20 +72,6 @@
     "chestplate": {},
     "leggings": {},
     "boots": {},
-
-    "special_abilities": {
-      "shadow_step": [
-        { "level": 1, "cost": 8,  "chance": 0.20, "teleport_range": 10, "cooldown": 12, "blind_duration": 2 },
-        { "level": 2, "cost": 12, "chance": 0.35, "teleport_range": 16, "cooldown": 10, "blind_duration": 3 },
-        { "level": 3, "cost": 16, "chance": 0.50, "teleport_range": 22, "cooldown": 8,  "blind_duration": 4 },
-        { "level": 4, "cost": 22, "chance": 0.65, "teleport_range": 28, "cooldown": 6,  "blind_duration": 5 }
-      ],
-      "void_grasp": [
-        { "level": 1, "cost": 10, "chance": 0.25, "range": 10, "weakness_level": 1, "weakness_duration": 6,  "levitation_duration": 0 },
-        { "level": 2, "cost": 15, "chance": 0.35, "range": 12, "weakness_level": 2, "weakness_duration": 8,  "levitation_duration": 0 },
-        { "level": 3, "cost": 20, "chance": 0.45, "range": 14, "weakness_level": 2, "weakness_duration": 10, "levitation_duration": 2 },
-        { "level": 4, "cost": 26, "chance": 0.55, "range": 16, "weakness_level": 3, "weakness_duration": 12, "levitation_duration": 4 }
-      ]
-    }
+    "special_abilities": {}
   }
 }

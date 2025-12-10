@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 26 / 80 mobs completed
+PROGRESS: 34 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -34,14 +34,14 @@ PROGRESS: 26 / 80 mobs completed
 24. [X] Evoker           - DONE
 25. [X] Fox              - DONE
 26. [X] Frog             - DONE
-27. [ ] Giant
-28. [ ] Glow_Squid
-29. [ ] Goat
-30. [ ] Guardian
-31. [ ] Hoglin
-32. [ ] Horse
-33. [ ] Husk
-34. [ ] Illusioner
+27. [X] Giant            - DONE
+28. [X] Glow_Squid      - DONE
+29. [X] Goat             - DONE
+30. [X] Guardian        - DONE
+31. [X] Hoglin          - DONE
+32. [X] Horse           - DONE
+33. [X] Husk            - DONE
+34. [X] Illusioner      - DONE
 35. [ ] Iron_Golem
 36. [ ] Llama
 37. [ ] Magma_Cube
@@ -595,6 +595,25 @@ CAVE_SPIDER TREE (only for Cave_Spider):
     level 4: cost=16, effect="Poison II for 15s on bite"
     level 5: cost=20, effect="Poison II for 20s + Wither I for 10s on bite"
     level 6: cost=24, effect="Poison II for 20s + Wither I for 10s + Slowness II for 15s on bite"
+
+ENDER_DRAGON TREE (only for Ender_Dragon):
+  void_bombardment:
+    level 1: cost=18, effect="Projectile damage 6, radius 3.0 blocks, cooldown 16 ticks, applies Wither I for 1s"
+    level 2: cost=26, effect="Projectile damage 9, radius 3.5 blocks, cooldown 14 ticks, applies Wither I for 3s"
+    level 3: cost=34, effect="Projectile damage 12, radius 4.0 blocks, cooldown 12 ticks, applies Wither I for 5s"
+
+ENDERMAN TREE (only for Enderman):
+  shadow_step:
+    level 1: cost=8,  effect="20% chance to teleport up to 10 blocks, blinds attacker for 2s (12s cooldown)"
+    level 2: cost=12, effect="35% chance to teleport up to 16 blocks, blinds attacker for 3s (10s cooldown)"
+    level 3: cost=16, effect="50% chance to teleport up to 22 blocks, blinds attacker for 4s (8s cooldown)"
+    level 4: cost=22, effect="65% chance to teleport up to 28 blocks, blinds attacker for 5s (6s cooldown)"
+
+  void_grasp:
+    level 1: cost=10, effect="25% chance to apply Weakness I for 6s (range 10 blocks)"
+    level 2: cost=15, effect="35% chance to apply Weakness II for 8s (range 12 blocks)"
+    level 3: cost=20, effect="45% chance to apply Weakness II for 10s + Levitation 2s (range 14 blocks)"
+    level 4: cost=26, effect="55% chance to apply Weakness III for 12s + Levitation 4s (range 16 blocks)"
 
 ================================================================================
                            TREE NAMING BY MOB
