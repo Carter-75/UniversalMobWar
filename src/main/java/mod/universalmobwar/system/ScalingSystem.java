@@ -348,10 +348,57 @@ public class ScalingSystem {
             addUpgradesFromSection(effects, skillData, budget, affordable, "effect_");
         }
         
-        // Check special abilities
+        // Determine locked weapon type or attack capability (needed for special abilities filtering)
+        String attackCapability = null; // "ranged", "melee", or "both"
+        
+        if (tree.has("weapon")) {
+            JsonElement weaponElement = tree.get("weapon");
+            if (weaponElement.isJsonArray()) {
+                JsonArray weapons = weaponElement.getAsJsonArray();
+                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
+                JsonObject lockedWeapon = weapons.get(index).getAsJsonObject();
+                if (lockedWeapon.has("weapon_type")) {
+                    String weaponType = lockedWeapon.get("weapon_type").getAsString();
+                    attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
+                }
+            } else {
+                JsonObject weapon = weaponElement.getAsJsonObject();
+                if (weapon.has("weapon_type")) {
+                    String weaponType = weapon.get("weapon_type").getAsString();
+                    attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
+                }
+            }
+        }
+        
+        // If no weapon defined but has special_abilities, check mob's natural attack type
+        if (attackCapability == null && tree.has("special_abilities")) {
+            JsonObject abilities = tree.getAsJsonObject("special_abilities");
+            
+            // If mob has ranged abilities defined, it's a ranged attacker (blaze, ghast, shulker, etc.)
+            boolean hasRangedAbilities = abilities.has("piercing_shot") || 
+                                         abilities.has("multishot") || 
+                                         abilities.has("ranged_potion_mastery");
+            
+            // If mob has melee abilities defined, it's a melee attacker
+            boolean hasMeleeAbilities = abilities.has("hunger_attack") || 
+                                       abilities.has("cleave") || 
+                                       abilities.has("life_steal");
+            
+            if (hasRangedAbilities && hasMeleeAbilities) {
+                attackCapability = "both"; // Can use all abilities
+            } else if (hasRangedAbilities) {
+                attackCapability = "ranged";
+            } else if (hasMeleeAbilities) {
+                attackCapability = "melee";
+            } else {
+                attackCapability = "both"; // Unknown, allow all
+            }
+        }
+        
+        // Check special abilities (filtered by attack capability)
         if (tree.has("special_abilities")) {
             JsonObject abilities = tree.getAsJsonObject("special_abilities");
-            addUpgradesFromSection(abilities, skillData, budget, affordable, "ability_");
+            addUpgradesFromSection(abilities, skillData, budget, affordable, "ability_", attackCapability);
         }
         
         // Check weapon upgrades
@@ -480,10 +527,35 @@ public class ScalingSystem {
      */
     private static void addUpgradesFromSection(JsonObject section, NbtCompound skillData, 
             int budget, List<UpgradeOption> affordable, String prefix) {
+        addUpgradesFromSection(section, skillData, budget, affordable, prefix, null);
+    }
+    
+    /**
+     * Helper to add upgrades from a section with levels (with attack capability filtering)
+     */
+    private static void addUpgradesFromSection(JsonObject section, NbtCompound skillData, 
+            int budget, List<UpgradeOption> affordable, String prefix, String attackCapability) {
         
         for (String key : section.keySet()) {
             JsonElement element = section.get(key);
             if (!element.isJsonArray()) continue;
+            
+            // Filter special abilities based on attack capability
+            if (prefix.equals("ability_") && attackCapability != null && !attackCapability.equals("both")) {
+                // Ranged abilities
+                boolean isRangedAbility = key.equals("piercing_shot") || 
+                                          key.equals("multishot") || 
+                                          key.equals("ranged_potion_mastery");
+                
+                // Melee abilities
+                boolean isMeleeAbility = key.equals("hunger_attack") || 
+                                        key.equals("cleave") || 
+                                        key.equals("life_steal");
+                
+                // Skip if ability doesn't match attack capability
+                if (isRangedAbility && attackCapability.equals("melee")) continue;
+                if (isMeleeAbility && attackCapability.equals("ranged")) continue;
+            }
             
             JsonArray levels = element.getAsJsonArray();
             String fullKey = prefix + key;
@@ -928,6 +1000,15 @@ public class ScalingSystem {
     }
     
     /**
+     * Check if a weapon type is ranged
+     */
+    private static boolean isRangedWeaponType(String weaponType) {
+        if (weaponType == null) return false;
+        String type = weaponType.toLowerCase();
+        return type.equals("bow") || type.equals("crossbow") || type.equals("trident");
+    }
+    
+    /**
      * Get enchantment registry entry by name
      */
     private static RegistryEntry<Enchantment> getEnchantmentByName(String name, 
@@ -1260,8 +1341,129 @@ public class ScalingSystem {
             case "nausea" -> StatusEffects.NAUSEA;
             case "hunger" -> StatusEffects.HUNGER;
             case "mining_fatigue" -> StatusEffects.MINING_FATIGUE;
+            case "levitation" -> StatusEffects.LEVITATION;
             default -> null;
         };
+    }
+    
+    // ==========================================================================
+    //                    ENDERMAN SPECIAL ABILITIES
+    // ==========================================================================
+    
+    /**
+     * Handle Enderman shadow_step ability - teleport and leave blindness area
+     * Call this when Enderman teleports (in teleport event handler)
+     */
+    public static void handleShadowStep(MobEntity mob, MobWarData data, ServerWorld world, 
+            net.minecraft.util.math.BlockPos fromPos, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int shadowStepLevel = skillData.getInt("ability_shadow_step");
+        if (shadowStepLevel > 0 && abilities.has("shadow_step")) {
+            JsonArray levels = abilities.getAsJsonArray("shadow_step");
+            if (shadowStepLevel <= levels.size()) {
+                JsonObject levelData = levels.get(shadowStepLevel - 1).getAsJsonObject();
+                
+                double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.2;
+                int blindDuration = levelData.has("blind_duration") ? levelData.get("blind_duration").getAsInt() : 2;
+                int cooldown = levelData.has("cooldown") ? levelData.get("cooldown").getAsInt() : 12;
+                
+                // Check cooldown
+                UUID mobUuid = mob.getUuid();
+                Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+                long lastUse = cooldowns.getOrDefault("shadow_step", 0L);
+                
+                if (currentTick - lastUse >= cooldown * 20L) {
+                    if (mob.getRandom().nextDouble() < chance) {
+                        // Apply blindness to all entities in 3 block radius of where Enderman teleported FROM
+                        double radius = 3.0;
+                        world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, 
+                            new net.minecraft.util.math.Box(fromPos).expand(radius),
+                            entity -> entity != mob && entity instanceof net.minecraft.entity.player.PlayerEntity)
+                            .forEach(entity -> {
+                                entity.addStatusEffect(new StatusEffectInstance(
+                                    StatusEffects.BLINDNESS, blindDuration * 20, 0, false, true, true));
+                            });
+                        
+                        cooldowns.put("shadow_step", currentTick);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle Enderman void_grasp ability - check range, roll chance, apply effects
+     * Call this periodically (every few seconds) to check for nearby entities
+     */
+    public static void handleVoidGrasp(MobEntity mob, MobWarData data, ServerWorld world, long currentTick) {
+        if (!ModConfig.getInstance().isScalingActive()) return;
+        
+        JsonObject config = getConfigForMob(mob);
+        if (config == null) return;
+        
+        NbtCompound skillData = data.getSkillData();
+        if (!config.has("tree")) return;
+        JsonObject tree = config.getAsJsonObject("tree");
+        
+        if (!tree.has("special_abilities")) return;
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        
+        int voidGraspLevel = skillData.getInt("ability_void_grasp");
+        if (voidGraspLevel > 0 && abilities.has("void_grasp")) {
+            JsonArray levels = abilities.getAsJsonArray("void_grasp");
+            if (voidGraspLevel <= levels.size()) {
+                JsonObject levelData = levels.get(voidGraspLevel - 1).getAsJsonObject();
+                
+                double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.25;
+                double range = levelData.has("range") ? levelData.get("range").getAsDouble() : 10.0;
+                int weaknessLevel = levelData.has("weakness_level") ? levelData.get("weakness_level").getAsInt() : 1;
+                int weaknessDuration = levelData.has("weakness_duration") ? levelData.get("weakness_duration").getAsInt() : 6;
+                int levitationDuration = levelData.has("levitation_duration") ? levelData.get("levitation_duration").getAsInt() : 0;
+                
+                // Check cooldown (3 seconds)
+                UUID mobUuid = mob.getUuid();
+                Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+                long lastUse = cooldowns.getOrDefault("void_grasp", 0L);
+                
+                if (currentTick - lastUse >= 60L) { // 3 second cooldown
+                    // Find entities in range
+                    var nearbyEntities = world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class,
+                        mob.getBoundingBox().expand(range),
+                        entity -> entity != mob && entity instanceof net.minecraft.entity.player.PlayerEntity);
+                    
+                    if (!nearbyEntities.isEmpty()) {
+                        // Roll chance
+                        if (mob.getRandom().nextDouble() < chance) {
+                            // Apply effects to all entities in range
+                            nearbyEntities.forEach(entity -> {
+                                // Always apply weakness
+                                entity.addStatusEffect(new StatusEffectInstance(
+                                    StatusEffects.WEAKNESS, weaknessDuration * 20, weaknessLevel - 1, false, true, true));
+                                
+                                // Apply levitation if duration > 0
+                                if (levitationDuration > 0) {
+                                    entity.addStatusEffect(new StatusEffectInstance(
+                                        StatusEffects.LEVITATION, levitationDuration * 20, 0, false, true, true));
+                                }
+                            });
+                            
+                            cooldowns.put("void_grasp", currentTick);
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // ==========================================================================
