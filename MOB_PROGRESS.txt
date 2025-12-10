@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 51 / 80 mobs completed
+PROGRESS: 52 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -87,19 +87,19 @@ PROGRESS: 51 / 80 mobs completed
 37. [X] Magma_Cube      - DONE
 38. [X] Mooshroom       - DONE
 39. [X] Mule            - DONE
-40. [X] Ocelot
-41. [X] Panda
-42. [X] Parrot
-43. [X] Phantom
-44. [X] Pig
-45. [X] Piglin
-46. [X] Piglin_Brute
-47. [X] Pillager
-48. [X] Polar_Bear
-49. [X] Pufferfish
-50. [X] Rabbit
-51. [X] Ravager
-52. [X] Salmon
+40. [X] Ocelot          - DONE
+41. [X] Panda           - DONE
+42. [X] Parrot          - DONE
+43. [X] Phantom         - DONE
+44. [X] Pig             - DONE
+45. [X] Piglin          - DONE
+46. [X] Piglin_Brute    - DONE
+47. [X] Pillager        - DONE
+48. [X] Polar_Bear      - DONE
+49. [X] Pufferfish      - DONE
+50. [X] Rabbit          - DONE
+51. [X] Ravager         - DONE
+52. [X] Salmon          - DONE
 53. [ ] Sheep
 54. [ ] Shulker
 55. [ ] Silverfish
