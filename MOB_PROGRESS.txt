@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 41 / 80 mobs completed
+PROGRESS: 42 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -54,7 +54,7 @@ PROGRESS: 41 / 80 mobs completed
 42. [X] Parrot
 43. [X] Phantom
 44. [X] Pig
-45. [ ] Piglin
+45. [X] Piglin
 46. [ ] Piglin_Brute
 47. [ ] Pillager
 48. [ ] Polar_Bear
