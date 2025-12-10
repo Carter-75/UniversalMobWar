@@ -64,7 +64,8 @@ public class ScalingSystem {
         "allay", "armadillo", "axolotl", "bat", "bee",
         "blaze", "bogged", "breeze", "camel", "cat",
         "cave_spider", "chicken", "cod", "cow", "creeper",
-        "dolphin", "donkey", "drowned", "elder_guardian"
+        "dolphin", "donkey", "drowned", "elder_guardian",
+        "ender_dragon"
     };
     
     private static boolean configsLoaded = false;
