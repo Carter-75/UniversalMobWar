@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 62 / 80 mobs completed
+PROGRESS: 63 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -115,7 +115,7 @@ PROGRESS: 62 / 80 mobs completed
 60. [X] Snow_Golem
 61. [X] Spider
 62. [X] Squid
-63. [ ] Stray
+63. [X] Stray
 64. [ ] Strider
 65. [ ] Tadpole
 66. [ ] Trader_Llama
