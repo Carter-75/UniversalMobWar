@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 34 / 80 mobs completed
+PROGRESS: 35 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -42,7 +42,7 @@ PROGRESS: 34 / 80 mobs completed
 32. [X] Horse           - DONE
 33. [X] Husk            - DONE
 34. [X] Illusioner      - DONE
-35. [ ] Iron_Golem
+35. [X] Iron_Golem      - DONE
 36. [ ] Llama
 37. [ ] Magma_Cube
 38. [ ] Mooshroom
