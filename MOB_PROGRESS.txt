@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 10 / 80 mobs completed
+PROGRESS: 19 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -18,16 +18,16 @@ PROGRESS: 10 / 80 mobs completed
 8.  [X] Breeze             - DONE
 9.  [X] Camel              - DONE
 10. [X] Cat               - DONE
-11. [ ] Cave_Spider
-12. [ ] Chicken
-13. [ ] Cod
-14. [ ] Cow
+11. [X] Cave_Spider       - DONE
+12. [X] Chicken           - DONE
+13. [X] Cod               - DONE
+14. [X] Cow               - DONE
 15. [ ] Creaking
-16. [ ] Creeper
-17. [ ] Dolphin
-18. [ ] Donkey
-19. [ ] Drowned
-20. [ ] Elder_Guardian
+16. [X] Creeper           - DONE
+17. [X] Dolphin           - DONE
+18. [X] Donkey            - DONE
+19. [X] Drowned           - DONE
+20. [X] Elder_Guardian    - DONE
 21. [ ] Ender_Dragon
 22. [ ] Enderman
 23. [ ] Endermite
