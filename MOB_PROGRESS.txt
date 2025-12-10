@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 49 / 80 mobs completed
+PROGRESS: 51 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
