@@ -194,33 +194,34 @@ public class ScalingSystem {
         int spentPoints = (int) data.getSpentPoints();
         int budget = totalPoints - spentPoints;
         
-        // Only process upgrades every 100 ticks (5 seconds)
+        // Only process upgrades when:
+        // 1. Mob just spawned (lastUpdate == 0)
+        // 2. Mob hasn't been upgraded in 1+ day (24000 ticks)
         long currentTick = world.getTime();
         long lastUpdate = data.getSkillData().contains("lastUpdateTick") ? 
             data.getSkillData().getLong("lastUpdateTick") : 0;
         
-        boolean shouldProcessUpgrades = (currentTick - lastUpdate >= 100) || lastUpdate == 0;
+        long ticksSinceLastUpdate = currentTick - lastUpdate;
+        boolean shouldProcessUpgrades = (lastUpdate == 0) || (ticksSinceLastUpdate >= 24000);
         
         if (shouldProcessUpgrades) {
             // Update timestamp
             data.getSkillData().putLong("lastUpdateTick", currentTick);
             
-            // Spend points on upgrades
+            // Spend points on upgrades (with save chance logic loop)
             if (budget > 0) {
                 spendPoints(mob, data, config, mobType, budget);
             }
+            
+            // Apply permanent effects only when upgrades change
+            applyEffects(mob, data, config, mobType, currentTick);
             
             // Apply equipment (only when processing upgrades to avoid constant re-equipping)
             if (world instanceof ServerWorld serverWorld) {
                 applyEquipment(mob, data, config, serverWorld);
             }
-        }
-        
-        // Apply effects every tick (potion effects need refreshing)
-        applyEffects(mob, data, config, mobType, currentTick);
-        
-        // Save data periodically
-        if (shouldProcessUpgrades) {
+            
+            // Save data after upgrade
             MobWarData.save(mob, data);
         }
     }
@@ -356,38 +357,67 @@ public class ScalingSystem {
         // Check weapon upgrades
         if (tree.has("weapon")) {
             JsonElement weaponElement = tree.get("weapon");
-            JsonObject weapon;
+            JsonObject lockedWeapon;
             
             if (weaponElement.isJsonArray()) {
+                // Determine which weapon is locked for this mob
                 JsonArray weapons = weaponElement.getAsJsonArray();
                 int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
-                weapon = weapons.get(index).getAsJsonObject();
+                lockedWeapon = weapons.get(index).getAsJsonObject();
+                
+                // Check tier upgrades for ALL weapons in array (lottery includes all weapons)
+                for (int i = 0; i < weapons.size(); i++) {
+                    JsonObject weaponOption = weapons.get(i).getAsJsonObject();
+                    
+                    // Get base cost of this weapon
+                    int baseCost = weaponOption.has("base_cost") ? weaponOption.get("base_cost").getAsInt() : 0;
+                    int currentTier = skillData.getInt("weapon_tier");
+                    
+                    if (currentTier == 0) {
+                        // No weapon yet: show base cost to acquire weapon
+                        if (baseCost <= budget) {
+                            affordable.add(new UpgradeOption("weapon_tier", 1, baseCost));
+                        }
+                    } else if (weaponOption.has("tiers")) {
+                        // Already have a weapon: show tier upgrades if available
+                        JsonArray tiers = weaponOption.getAsJsonArray("tiers");
+                        if (tiers.size() > 0 && currentTier < tiers.size()) {
+                            JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
+                            int tierCost = nextTier.get("cost").getAsInt();
+                            if (tierCost <= budget) {
+                                affordable.add(new UpgradeOption("weapon_tier", currentTier + 1, tierCost));
+                            }
+                        }
+                    }
+                }
             } else {
-                weapon = weaponElement.getAsJsonObject();
-            }
-            
-            // Weapon enchants
-            if (weapon.has("enchants")) {
-                JsonObject enchants = weapon.getAsJsonObject("enchants");
-                addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
-            }
-            
-            // Weapon tiers
-            if (weapon.has("tiers")) {
-                JsonArray tiers = weapon.getAsJsonArray("tiers");
-                int currentTier = skillData.getInt("weapon_tier");
-                if (currentTier < tiers.size()) {
-                    JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
-                    int cost = nextTier.get("cost").getAsInt();
-                    if (cost <= budget) {
-                        affordable.add(new UpgradeOption("weapon_tier", currentTier + 1, cost));
+                lockedWeapon = weaponElement.getAsJsonObject();
+                
+                // Single weapon: check its tiers
+                if (lockedWeapon.has("tiers")) {
+                    JsonArray tiers = lockedWeapon.getAsJsonArray("tiers");
+                    int currentTier = skillData.getInt("weapon_tier");
+                    if (currentTier < tiers.size()) {
+                        JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
+                        int cost = nextTier.get("cost").getAsInt();
+                        if (cost <= budget) {
+                            affordable.add(new UpgradeOption("weapon_tier", currentTier + 1, cost));
+                        }
                     }
                 }
             }
             
+            // Only upgrade the locked weapon's enchants and masteries
+            
+            // Weapon enchants
+            if (lockedWeapon.has("enchants")) {
+                JsonObject enchants = lockedWeapon.getAsJsonObject("enchants");
+                addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
+            }
+            
             // Drop mastery
-            addMasteryUpgrades(weapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
-            addMasteryUpgrades(weapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
+            addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
+            addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
         }
         
         // Check shield upgrades
@@ -519,8 +549,9 @@ public class ScalingSystem {
             // Apply resistance
             int resistanceLevel = skillData.getInt("effect_resistance");
             if (resistanceLevel > 0) {
+                // Permanent effect (infinite duration)
                 mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.RESISTANCE, 220, Math.min(resistanceLevel - 1, 1), false, false, true));
+                    StatusEffects.RESISTANCE, StatusEffectInstance.INFINITE, Math.min(resistanceLevel - 1, 1), false, false, true));
                 
                 // Check for fire resistance at level 3
                 if (effects.has("resistance")) {
@@ -529,7 +560,7 @@ public class ScalingSystem {
                         JsonObject levelData = resistanceLevels.get(resistanceLevel - 1).getAsJsonObject();
                         if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
                             mob.addStatusEffect(new StatusEffectInstance(
-                                StatusEffects.FIRE_RESISTANCE, 220, 0, false, false, true));
+                                StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, false, true));
                         }
                     }
                 }
@@ -571,7 +602,8 @@ public class ScalingSystem {
             }
         }
         
-        mob.addStatusEffect(new StatusEffectInstance(effect, 220, Math.max(0, amplifier), false, false, true));
+        // Apply permanent effect (infinite duration) - only called when upgrades change
+        mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, false, true));
     }
     
     // ==========================================================================
