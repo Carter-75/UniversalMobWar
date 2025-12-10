@@ -244,9 +244,29 @@
       },
       "ender_dragon": {
         "Void_Bombardment": [
-          { "level": 1, "cost": 18, "damage": 6,  "radius": 3.0, "cooldown": 16, "wither": "none" },
-          { "level": 2, "cost": 26, "damage": 9,  "radius": 3.5, "cooldown": 14, "wither": "none" },
+          { "level": 1, "cost": 18, "damage": 6,  "radius": 3.0, "cooldown": 16, "wither": "Wither I 1s" },
+          { "level": 2, "cost": 26, "damage": 9,  "radius": 3.5, "cooldown": 14, "wither": "Wither I 3s" },
           { "level": 3, "cost": 34, "damage": 12, "radius": 4.0, "cooldown": 12, "wither": "Wither I 5s" }
+        ]
+      },
+      "enderman": {
+        "Shadow_Step": [
+          { "level": 1, "cost": 8,  "chance": "20%", "range": 10, "cooldown": 12, "blind": "2s" },
+          { "level": 2, "cost": 12, "chance": "35%", "range": 16, "cooldown": 10, "blind": "3s" },
+          { "level": 3, "cost": 16, "chance": "50%", "range": 22, "cooldown": 8,  "blind": "4s" },
+          { "level": 4, "cost": 22, "chance": "65%", "range": 28, "cooldown": 6,  "blind": "5s" }
+        ],
+        "Void_Grasp": [
+          { "level": 1, "cost": 10, "chance": "25%", "range": 10, "weakness": "I 6s" },
+          { "level": 2, "cost": 15, "chance": "35%", "range": 12, "weakness": "II 8s" },
+          { "level": 3, "cost": 20, "chance": "45%", "range": 14, "weakness": "II 10s + Levitation 2s" },
+          { "level": 4, "cost": 26, "chance": "55%", "range": 16, "weakness": "III 12s + Levitation 4s" }
+        ],
+        "Projectile_Phase": [
+          { "level": 1, "cost": 12, "reduction": "20%", "duration": "5s",  "cooldown": "20s" },
+          { "level": 2, "cost": 18, "reduction": "35%", "duration": "7s",  "cooldown": "18s" },
+          { "level": 3, "cost": 24, "reduction": "50%", "duration": "9s",  "cooldown": "16s" },
+          { "level": 4, "cost": 30, "reduction": "65%", "duration": "12s", "cooldown": "14s" }
         ]
       }
     },
@@ -273,7 +293,7 @@
       "Drowned": { "type": "hostile", "weapon": "trident", "armor": "full_normal", "shield": true, "trees": ["z","r"] },
       "Elder_Guardian": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Ender_Dragon": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
-      "Enderman": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Enderman": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": ["enderman"] },
       "Endermite": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Evoker": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Fox": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },

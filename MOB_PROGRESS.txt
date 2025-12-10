@@ -2,7 +2,7 @@
                         UNIVERSAL MOB WAR - MOB PROGRESS TRACKER
 ================================================================================
 
-PROGRESS: 20 / 80 mobs completed
+PROGRESS: 23 / 80 mobs completed
 
 ================================================================================
                               ALL MOBS (A-Z ORDER)
@@ -22,15 +22,15 @@ PROGRESS: 20 / 80 mobs completed
 12. [X] Chicken           - DONE
 13. [X] Cod               - DONE
 14. [X] Cow               - DONE
-15. [ ] Creaking
+15. [X] Creaking          - DONE
 16. [X] Creeper           - DONE
 17. [X] Dolphin           - DONE
 18. [X] Donkey            - DONE
 19. [X] Drowned           - DONE
 20. [X] Elder_Guardian    - DONE
 21. [X] Ender_Dragon     - DONE
-22. [ ] Enderman
-23. [ ] Endermite
+22. [X] Enderman         - DONE
+23. [X] Endermite        - DONE
 24. [ ] Evoker
 25. [ ] Fox
 26. [ ] Frog
@@ -115,8 +115,8 @@ Dolphin:         type=neutral,  weapon=none,         armor=none,        shield=f
 Donkey:          type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
 Drowned:         type=hostile,  weapon=trident,      armor=full_normal, shield=true,  trees=[zombie,ranged]
 Elder_Guardian:  type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
-Ender_Dragon:    type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
-Enderman:        type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
+Ender_Dragon:    type=hostile,  weapon=none,         armor=none,        shield=false, trees=[ranged]
+Enderman:        type=hostile,  weapon=none,         armor=none,        shield=false, trees=[enderman]
 Endermite:       type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
 Evoker:          type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
 Fox:             type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
