@@ -144,6 +144,7 @@
       "bow":          { "base_cost": 0, "tiers": [] },
       "crossbow":     { "base_cost": 0, "tiers": [] },
       "trident":      { "base_cost": 5, "tiers": [] },
+      "vex_sword":   { "base_cost": 0, "upgrade_costs": [6,12], "tiers": ["iron","diamond","netherite"], "note": "Starts at iron tier to mirror Vex melee progression" },
       "weapon_array_example": {
         "format": "For mobs with multiple weapon options (e.g., Piglin with sword OR crossbow)",
         "json_structure": [
@@ -373,7 +374,7 @@
       "Trader_Llama": { "type": "neutral", "weapon": "none", "armor": "none", "shield": false, "trees": ["r"] },
       "Tropical_Fish": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
       "Turtle": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
-      "Vex": { "type": "hostile", "weapon": "none", "armor": "none", "shield": false, "trees": [] },
+      "Vex": { "type": "hostile", "weapon": "vex_sword", "armor": "full_normal", "shield": true, "trees": [] },
       "Villager": { "type": "passive", "weapon": "none", "armor": "full_normal", "shield": false, "trees": [] },
       "Vindicator": { "type": "hostile", "weapon": "iron_axe", "armor": "full_normal", "shield": true, "trees": [] },
       "Wandering_Trader": { "type": "passive", "weapon": "none", "armor": "none", "shield": false, "trees": [] },

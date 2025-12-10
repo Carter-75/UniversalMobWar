@@ -4,7 +4,7 @@
 
 - DO NOT CREATE EXTRA ABILITIES BESIDE THE ONES ALREADY LISTED, AND READ THE JSON FILE THAT WAS CREATED TO UNDERSTAND THE FORMAT AND REVIEW THE FULL SKILL TREE.
 
-PROGRESS: 69 / 80 mobs completed
+PROGRESS: 70 / 80 mobs completed
 
 ================================================================================
                               RECENT SYSTEM UPDATES
@@ -122,7 +122,7 @@ PROGRESS: 69 / 80 mobs completed
 67. [X] Tropical_Fish
 68. [X] Turtle
 69. [X] Vex
-70. [ ] Villager
+70. [X] Villager
 71. [ ] Vindicator
 72. [ ] Wandering_Trader
 73. [ ] Warden
@@ -208,7 +208,7 @@ Tadpole:         type=passive,  weapon=none,         armor=none,        shield=f
 Trader_Llama:    type=neutral,  weapon=none,         armor=none,        shield=false, trees=[ranged]
 Tropical_Fish:   type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
 Turtle:          type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
-Vex:             type=hostile,  weapon=none,         armor=none,        shield=false, trees=[]
+Vex:             type=hostile,  weapon=iron_sword,         armor=normal,        shield=true, trees=[]
 Villager:        type=passive,  weapon=none,         armor=full_normal, shield=false, trees=[]
 Vindicator:      type=hostile,  weapon=iron_axe,     armor=full_normal, shield=true,  trees=[]
 Wandering_Trader:type=passive,  weapon=none,         armor=none,        shield=false, trees=[]
