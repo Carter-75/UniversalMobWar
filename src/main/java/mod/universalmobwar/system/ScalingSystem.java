@@ -356,8 +356,11 @@ public class ScalingSystem {
         JsonObject config = getConfigForMob(mob);
         if (config == null) return; // No config = no scaling for this mob
         
+        NbtCompound skillData = data.getSkillData();
+        
         // Get mob type for different upgrade paths
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
+        refreshMissingEffects(mob, skillData, config, mobType);
         
         // Calculate total points from world age
         double totalPoints = calculateWorldAgePoints(world, config, modConfig);
@@ -383,23 +386,28 @@ public class ScalingSystem {
         
         long ticksSinceLastUpdate = currentTick - lastUpdate;
         boolean shouldProcessUpgrades = (lastUpdate == 0) || (ticksSinceLastUpdate >= 24000);
+        boolean needsEquipmentSync = !shouldProcessUpgrades && requiresEquipmentSync(mob, skillData);
         
         if (shouldProcessUpgrades) {
             // Update timestamp
-            data.getSkillData().putLong("lastUpdateTick", currentTick);
+            skillData.putLong("lastUpdateTick", currentTick);
             
             // Spend points on upgrades (with save chance logic loop)
             spendPoints(mob, data, config, mobType, budget, totalPoints);
             
             // Apply permanent effects only when upgrades change
             applyEffects(mob, data, config, mobType, currentTick);
-            
-            // Apply equipment (only when processing upgrades to avoid constant re-equipping)
-            if (world instanceof ServerWorld serverWorld) {
+        }
+
+        boolean appliedEquipment = false;
+        if (world instanceof ServerWorld serverWorld) {
+            if (shouldProcessUpgrades || needsEquipmentSync) {
                 applyEquipment(mob, data, config, serverWorld);
+                appliedEquipment = true;
             }
-            
-            // Save data after upgrade
+        }
+
+        if (shouldProcessUpgrades || appliedEquipment) {
             MobWarData.save(mob, data);
         }
     }
@@ -576,7 +584,9 @@ public class ScalingSystem {
             UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
 
             // Apply the upgrade
+            int previousLevel = skillData.getInt(chosen.key);
             skillData.putInt(chosen.key, chosen.newLevel);
+            handleTierPromotion(skillData, chosen.key, previousLevel, chosen.newLevel);
             data.setSpentPoints(data.getSpentPoints() + chosen.cost);
             budget -= chosen.cost;
             purchasedUpgrade = true;
@@ -938,6 +948,59 @@ public class ScalingSystem {
         // Apply permanent effect (infinite duration) - only called when upgrades change
         mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, false, true));
     }
+
+    private static void refreshMissingEffects(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType) {
+        if (skillData == null || mob == null || config == null || !config.has("tree")) {
+            return;
+        }
+        JsonObject tree = config.getAsJsonObject("tree");
+        String effectsKey = mobType.equals("passive") ? "passive_potion_effects" : "hostile_neutral_potion_effects";
+        if (!tree.has(effectsKey)) {
+            return;
+        }
+        JsonObject effects = tree.getAsJsonObject(effectsKey);
+        ensureEffectPresent(mob, skillData, effects, "healing", StatusEffects.REGENERATION, "effect_healing", "regen_level");
+        ensureEffectPresent(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
+        ensureEffectPresent(mob, skillData, effects, "strength", StatusEffects.STRENGTH, "effect_strength", "strength_level");
+        ensureEffectPresent(mob, skillData, effects, "speed", StatusEffects.SPEED, "effect_speed", "speed_level");
+        ensureEffectPresent(mob, skillData, effects, "resistance", StatusEffects.RESISTANCE, "effect_resistance", null);
+        if (mobType.equals("passive")) {
+            ensureEffectPresent(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", null);
+        }
+        ensureFireResistanceFromResistance(mob, skillData, effects);
+    }
+
+    private static void ensureEffectPresent(MobEntity mob, NbtCompound skillData, JsonObject effects,
+            String effectName, RegistryEntry<net.minecraft.entity.effect.StatusEffect> effect,
+            String skillKey, String levelKey) {
+        if (skillData.getInt(skillKey) <= 0) {
+            return;
+        }
+        if (mob.hasStatusEffect(effect)) {
+            return;
+        }
+        applyPotionEffect(mob, skillData, effects, effectName, effect, skillKey, levelKey);
+    }
+
+    private static void ensureFireResistanceFromResistance(MobEntity mob, NbtCompound skillData, JsonObject effects) {
+        int resistanceLevel = skillData.getInt("effect_resistance");
+        if (resistanceLevel <= 0 || effects == null || !effects.has("resistance")) {
+            return;
+        }
+        var fireResistEffect = StatusEffects.FIRE_RESISTANCE;
+        JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
+        int clampedLevel = Math.min(resistanceLevel, resistanceLevels.size());
+        if (clampedLevel <= 0) {
+            return;
+        }
+        JsonObject levelData = resistanceLevels.get(clampedLevel - 1).getAsJsonObject();
+        if (!levelData.has("fire_resistance") || !levelData.get("fire_resistance").getAsBoolean()) {
+            return;
+        }
+        if (!mob.hasStatusEffect(fireResistEffect)) {
+            mob.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, false, true));
+        }
+    }
     
     // ==========================================================================
     //                           EQUIPMENT APPLICATION
@@ -1144,6 +1207,27 @@ public class ScalingSystem {
         mob.equipStack(slot, armor);
         skillData.putBoolean(slotName + "_equipped", true);
         applyDropChance(mob, slot, skillData.getInt(slotName + "_drop_mastery"));
+    }
+
+    private static boolean requiresEquipmentSync(MobEntity mob, NbtCompound skillData) {
+        if (mob == null || skillData == null) {
+            return false;
+        }
+        if (skillData.getInt("weapon_tier") > 0 && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
+            return true;
+        }
+        if (skillData.getInt("has_shield") > 0 && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
+            return true;
+        }
+        if (isArmorSlotMissing(mob, skillData, EquipmentSlot.HEAD, "helmet")) return true;
+        if (isArmorSlotMissing(mob, skillData, EquipmentSlot.CHEST, "chestplate")) return true;
+        if (isArmorSlotMissing(mob, skillData, EquipmentSlot.LEGS, "leggings")) return true;
+        if (isArmorSlotMissing(mob, skillData, EquipmentSlot.FEET, "boots")) return true;
+        return false;
+    }
+
+    private static boolean isArmorSlotMissing(MobEntity mob, NbtCompound skillData, EquipmentSlot slot, String slotPrefix) {
+        return skillData.getInt(slotPrefix + "_tier") > 0 && mob.getEquippedStack(slot).isEmpty();
     }
 
     private static void logEquipmentDebug(MobEntity mob, String slotLabel, String message) {
@@ -2300,6 +2384,56 @@ public class ScalingSystem {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private static void handleTierPromotion(NbtCompound skillData, String key, int previousLevel, int newLevel) {
+        if (skillData == null || newLevel <= previousLevel) {
+            return;
+        }
+        if ("weapon_tier".equals(key)) {
+            resetWeaponProgress(skillData);
+            return;
+        }
+        if (key.endsWith("_tier")) {
+            String slotPrefix = key.substring(0, key.length() - 5);
+            if (isArmorSlotPrefix(slotPrefix)) {
+                resetEquipmentProgress(skillData, slotPrefix);
+            }
+        }
+    }
+
+    private static boolean isArmorSlotPrefix(String slotPrefix) {
+        return "helmet".equals(slotPrefix) ||
+            "chestplate".equals(slotPrefix) ||
+            "leggings".equals(slotPrefix) ||
+            "boots".equals(slotPrefix);
+    }
+
+    private static void resetWeaponProgress(NbtCompound skillData) {
+        clearEnchantsWithPrefix(skillData, "weapon_enchant_");
+        resetNumericKeysWithPrefix(skillData, "weapon_drop_mastery");
+        resetNumericKeysWithPrefix(skillData, "weapon_durability_mastery");
+        skillData.putBoolean("weapon_equipped", false);
+        skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
+        skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
+    }
+
+    private static void resetEquipmentProgress(NbtCompound skillData, String slotPrefix) {
+        clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
+        resetMasteries(skillData, slotPrefix);
+        skillData.putBoolean(slotPrefix + "_equipped", false);
+    }
+
+    private static void resetNumericKeysWithPrefix(NbtCompound skillData, String prefix) {
+        if (skillData == null || prefix == null) {
+            return;
+        }
+        Set<String> keys = new HashSet<>(skillData.getKeys());
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                skillData.putInt(key, 0);
+            }
+        }
     }
 
     private static class UpgradeLogger {
