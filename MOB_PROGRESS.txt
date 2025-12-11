@@ -666,7 +666,7 @@ ENDERMAN TREE (only for Enderman):
 
 horde_summon: Chance-based reinforcement call that spawns allied mobs of the same type when the caster is under pressure.
 hunger_attack: Melee strikes infect targets with escalating Hunger levels, draining saturation and slowing natural regen.
-piercing_shot: Arrows, bolts, or spit ignore additional entities, letting one projectile pass through multiple targets.
+piercing_shot: Any projectile fired keeps traveling through extra targets, with pierce level dictating how many bodies it can pass through.
 ranged_potion_mastery: Ranged attacks inherit potion payloads, layering slowness, weakness, poison, instant damage, or wither on impact.
 multishot: Every ranged attack clones itself into supplemental projectiles, widening spread and damage output.
 creeper_power: Supercharges the blast radius of Creeper detonations, scaling from mild bumps to siege-level explosions.
