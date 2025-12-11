@@ -71,6 +71,8 @@ class UniversalBuildSystem:
     def __init__(self):
         self.errors = []
         self.warnings = []
+        self.build_requested = False
+        self.build_succeeded = None
         self.root = Path(__file__).parent.resolve()
         self.log_file = self.root / "universal_build.log"
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -569,6 +571,8 @@ class UniversalBuildSystem:
         self.log_to_file("\n" + "=" * 80)
         self.log_to_file("GRADLE BUILD")
         self.log_to_file("=" * 80)
+        self.build_requested = True
+        self.build_succeeded = False
         
         # Check Java version first
         try:
@@ -636,6 +640,7 @@ class UniversalBuildSystem:
                     msg = f"JAR created: {jar_file.name} ({jar_size:.2f} MB)"
                     success(msg)
                     self.log_to_file(f"✅ {msg}")
+                    self.build_succeeded = True
                     return True
                 else:
                     error("No JAR file found!")
@@ -825,15 +830,21 @@ class UniversalBuildSystem:
             f.write("• Special abilities: Horde summon, piercing shot, etc. not yet implemented\n")
             f.write("\n")
         
-        if not self.errors:
+        all_checks_passed = (not self.errors) and (not self.build_requested or self.build_succeeded)
+        if all_checks_passed:
             success("✅ ALL CHECKS PASSED!")
             self.log_to_file("✅ ALL CHECKS PASSED!")
         else:
-            error(f"❌ {len(self.errors)} ERROR(S) FOUND:")
-            self.log_to_file(f"❌ {len(self.errors)} ERROR(S) FOUND:")
-            for i, err in enumerate(self.errors, 1):
-                msg = f"  {i}. {err}"
-                print(msg)
+            if self.errors:
+                error(f"❌ {len(self.errors)} ERROR(S) FOUND:")
+                self.log_to_file(f"❌ {len(self.errors)} ERROR(S) FOUND:")
+                for i, err in enumerate(self.errors, 1):
+                    msg = f"  {i}. {err}"
+                    print(msg)
+                    self.log_to_file(msg)
+            if self.build_requested and not self.build_succeeded:
+                msg = "❌ Build failed in addition to validation errors" if self.errors else "❌ Build failed – see Gradle output above"
+                error(msg)
                 self.log_to_file(msg)
         
         if self.warnings:
