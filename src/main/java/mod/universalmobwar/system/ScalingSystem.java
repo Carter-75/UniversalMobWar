@@ -1002,18 +1002,43 @@ public class ScalingSystem {
         } else {
             // Sword/Axe tiers
             int tier = weaponTierLevel;
-            if (tier > 0 && weaponConfig.has("tiers")) {
-                JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
-                if (tier <= tiers.size()) {
-                    JsonObject tierData = tiers.get(tier - 1).getAsJsonObject();
-                    String tierName = tierData.get("tier").getAsString();
-                    weapon = getWeaponByTier(tierName, weaponType);
+            if (tier > 0) {
+                if (!weaponConfig.has("tiers")) {
+                    logEquipmentDebug(mob, "weapon", "Tier " + tier + " purchased but config lacks tiers block");
+                } else {
+                    JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
+                    if (tiers.isEmpty()) {
+                        logEquipmentDebug(mob, "weapon", "Tiers array is empty for weapon config");
+                    } else {
+                        if (tier > tiers.size()) {
+                            logEquipmentDebug(
+                                mob,
+                                "weapon",
+                                "Tier " + tier + " exceeds defined tiers (" + tiers.size() + "); clamping"
+                            );
+                            tier = tiers.size();
+                            skillData.putInt("weapon_tier", tier);
+                            weaponTierLevel = tier;
+                        }
+                        JsonObject tierData = tiers.get(Math.max(0, tier - 1)).getAsJsonObject();
+                        if (!tierData.has("tier")) {
+                            logEquipmentDebug(mob, "weapon", "Tier entry missing 'tier' field at level " + tier);
+                        } else {
+                            String tierName = tierData.get("tier").getAsString();
+                            weapon = getWeaponByTier(tierName, weaponType);
+                        }
+                    }
                 }
             }
         }
         
         skillData.putBoolean("weapon_equipped", false);
-        if (weapon == null || weapon.isEmpty()) return;
+        if (weapon == null || weapon.isEmpty()) {
+            if (weaponTierLevel > 0) {
+                logEquipmentDebug(mob, "weapon", "Unable to create item for type " + weaponType + " at tier " + weaponTierLevel);
+            }
+            return;
+        }
         
         // Apply enchants
         if (weaponConfig.has("enchants")) {
@@ -1061,25 +1086,49 @@ public class ScalingSystem {
     private static void applyArmor(MobEntity mob, NbtCompound skillData, JsonObject tree, 
             String slotName, EquipmentSlot slot, ServerWorld world) {
         
-        if (!tree.has(slotName)) return;
+        if (!tree.has(slotName)) {
+            logEquipmentDebug(mob, slotName, "Config missing entry for this slot");
+            return;
+        }
         JsonObject armorConfig = tree.getAsJsonObject(slotName);
         
         int tier = skillData.getInt(slotName + "_tier");
         skillData.putBoolean(slotName + "_equipped", false);
-        if (tier <= 0) return;
-        
-        ItemStack armor = null;
-        
-        if (armorConfig.has("tiers")) {
-            JsonArray tiers = armorConfig.getAsJsonArray("tiers");
-            if (tier <= tiers.size()) {
-                JsonObject tierData = tiers.get(tier - 1).getAsJsonObject();
-                String tierName = tierData.get("tier").getAsString();
-                armor = getArmorByTierAndSlot(tierName, slot);
-            }
+        if (tier <= 0) {
+            return;
         }
-        
-        if (armor == null || armor.isEmpty()) return;
+
+        ItemStack armor = ItemStack.EMPTY;
+
+        if (!armorConfig.has("tiers")) {
+            logEquipmentDebug(mob, slotName, "Tier data missing in config");
+            return;
+        }
+
+        JsonArray tiers = armorConfig.getAsJsonArray("tiers");
+        if (tiers.isEmpty()) {
+            logEquipmentDebug(mob, slotName, "Tiers array is empty");
+            return;
+        }
+
+        if (tier > tiers.size()) {
+            logEquipmentDebug(mob, slotName, "Tier " + tier + " exceeds defined tiers (" + tiers.size() + "); clamping");
+            tier = tiers.size();
+            skillData.putInt(slotName + "_tier", tier);
+        }
+
+        JsonObject tierData = tiers.get(Math.max(0, tier - 1)).getAsJsonObject();
+        if (!tierData.has("tier")) {
+            logEquipmentDebug(mob, slotName, "Tier entry missing 'tier' field at level " + tier);
+            return;
+        }
+        String tierName = tierData.get("tier").getAsString();
+        armor = getArmorByTierAndSlot(tierName, slot);
+
+        if (armor == null || armor.isEmpty()) {
+            logEquipmentDebug(mob, slotName, "No ItemStack mapping for tier '" + tierName + "'");
+            return;
+        }
         
         // Apply enchants
         if (armorConfig.has("enchants")) {
@@ -1093,6 +1142,26 @@ public class ScalingSystem {
         mob.equipStack(slot, armor);
         skillData.putBoolean(slotName + "_equipped", true);
         applyDropChance(mob, slot, skillData.getInt(slotName + "_drop_mastery"));
+    }
+
+    private static void logEquipmentDebug(MobEntity mob, String slotLabel, String message) {
+        if (mob == null) {
+            return;
+        }
+        ModConfig config = ModConfig.getInstance();
+        if (!config.debugLogging) {
+            return;
+        }
+        String mobName = mob.getDisplayName().getString();
+        String uuid = mob.getUuid().toString();
+        String shortId = uuid.length() > 8 ? uuid.substring(0, 8) : uuid;
+        UniversalMobWarMod.LOGGER.info(
+            "[ScalingSystem][Equipment] {}#{} [{}] {}",
+            mobName,
+            shortId,
+            slotLabel,
+            message
+        );
     }
     
     /**
