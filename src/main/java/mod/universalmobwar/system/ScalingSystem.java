@@ -628,6 +628,8 @@ public class ScalingSystem {
         
         if (!config.has("tree")) return affordable;
         JsonObject tree = config.getAsJsonObject("tree");
+        JsonElement weaponElement = tree.has("weapon") ? tree.get("weapon") : null;
+        JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mob) : null;
         
         // Check potion effects based on mob type
         String effectsKey = mobType.equals("passive") ? "passive_potion_effects" : "hostile_neutral_potion_effects";
@@ -640,23 +642,9 @@ public class ScalingSystem {
         // Determine locked weapon type or attack capability (needed for special abilities filtering)
         String attackCapability = null; // "ranged", "melee", or "both"
         
-        if (tree.has("weapon")) {
-            JsonElement weaponElement = tree.get("weapon");
-            if (weaponElement.isJsonArray()) {
-                JsonArray weapons = weaponElement.getAsJsonArray();
-                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
-                JsonObject lockedWeapon = weapons.get(index).getAsJsonObject();
-                if (lockedWeapon.has("weapon_type")) {
-                    String weaponType = lockedWeapon.get("weapon_type").getAsString();
-                    attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
-                }
-            } else {
-                JsonObject weapon = weaponElement.getAsJsonObject();
-                if (weapon.has("weapon_type")) {
-                    String weaponType = weapon.get("weapon_type").getAsString();
-                    attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
-                }
-            }
+        if (lockedWeapon != null && lockedWeapon.has("weapon_type")) {
+            String weaponType = lockedWeapon.get("weapon_type").getAsString();
+            attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
         }
         
         // If no weapon defined but has special_abilities, check mob's natural attack type
@@ -691,9 +679,7 @@ public class ScalingSystem {
         }
         
         // Check weapon upgrades
-        if (tree.has("weapon")) {
-            JsonElement weaponElement = tree.get("weapon");
-            JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
+        if (weaponElement != null) {
             int currentTier = skillData.getInt("weapon_tier");
             boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
             String weaponScopeKey = scopedWeapon && lockedWeapon != null ? getWeaponScopeIdentifier(lockedWeapon) : "";

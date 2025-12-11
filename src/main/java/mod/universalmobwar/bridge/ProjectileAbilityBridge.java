@@ -1,4 +1,4 @@
-package mod.universalmobwar.mixin;
+package mod.universalmobwar.bridge;
 
 /**
  * Bridge interface implemented by projectile mixins so we can mark
