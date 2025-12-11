@@ -58,6 +58,9 @@ public class ScalingSystem {
     
     // Cache of loaded mob configs: mob_name -> JsonObject
     private static final Map<String, JsonObject> MOB_CONFIGS = new ConcurrentHashMap<>();
+
+    // Map normalized config name -> actual resource file name (preserves case)
+    private static final Map<String, String> CONFIG_RESOURCE_NAMES = new ConcurrentHashMap<>();
     
     // Entity class name -> mob config name mapping
     private static final Map<String, String> ENTITY_TO_CONFIG = new ConcurrentHashMap<>();
@@ -79,6 +82,7 @@ public class ScalingSystem {
          */
         private static String[] getImplementedMobs() {
             if (IMPLEMENTED_MOBS != null) return IMPLEMENTED_MOBS;
+            java.util.Set<String> normalizedNames = new java.util.LinkedHashSet<>();
             try {
                 // Path to mob_configs directory in resources
                 String resourcePath = "/mob_configs";
@@ -87,30 +91,34 @@ public class ScalingSystem {
                     java.io.File dir = new java.io.File(dirURL.toURI());
                     String[] files = dir.list((d, name) -> name.endsWith(".json"));
                     if (files != null) {
-                        IMPLEMENTED_MOBS = java.util.Arrays.stream(files)
-                            .map(f -> f.substring(0, f.length() - 5).toLowerCase())
-                            .toArray(String[]::new);
+                        for (String fileName : files) {
+                            String withoutExt = fileName.substring(0, fileName.length() - 5);
+                            String normalized = withoutExt.toLowerCase(java.util.Locale.ROOT);
+                            CONFIG_RESOURCE_NAMES.putIfAbsent(normalized, withoutExt);
+                            normalizedNames.add(normalized);
+                        }
                     }
                 } else if (dirURL != null && dirURL.getProtocol().equals("jar")) {
                     // Running from JAR: scan entries
                     String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
                     try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarPath)) {
                         java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
-                        java.util.List<String> mobList = new java.util.ArrayList<>();
                         while (entries.hasMoreElements()) {
                             String entry = entries.nextElement().getName();
                             if (entry.startsWith("mob_configs/") && entry.endsWith(".json")) {
-                                String mobName = entry.substring("mob_configs/".length(), entry.length() - 5).toLowerCase();
-                                mobList.add(mobName);
+                                String withoutExt = entry.substring("mob_configs/".length(), entry.length() - 5);
+                                String normalized = withoutExt.toLowerCase(java.util.Locale.ROOT);
+                                CONFIG_RESOURCE_NAMES.putIfAbsent(normalized, withoutExt);
+                                normalizedNames.add(normalized);
                             }
                         }
-                        IMPLEMENTED_MOBS = mobList.toArray(new String[0]);
                     }
                 }
             } catch (Exception e) {
                 UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to load mob config list: {}", e.getMessage());
-                IMPLEMENTED_MOBS = new String[0];
             }
+
+            IMPLEMENTED_MOBS = normalizedNames.toArray(new String[0]);
             return IMPLEMENTED_MOBS;
         }
     
@@ -140,7 +148,9 @@ public class ScalingSystem {
      * Load a single mob's JSON config
      */
     private static void loadMobConfig(String mobName) {
-        String path = "/mob_configs/" + mobName + ".json";
+        String normalized = mobName.toLowerCase(java.util.Locale.ROOT);
+        String resourceName = CONFIG_RESOURCE_NAMES.getOrDefault(normalized, mobName);
+        String path = "/mob_configs/" + resourceName + ".json";
         
         try (InputStream is = ScalingSystem.class.getResourceAsStream(path)) {
             if (is == null) {
