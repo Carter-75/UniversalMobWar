@@ -1,6 +1,6 @@
 package mod.universalmobwar.mixin;
 
-import mod.universalmobwar.UniversalMobWarMod;
+import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -29,7 +29,7 @@ public abstract class NeutralMobBehaviorMixin {
         // Only affect mobs with anger system (neutral mobs)
         if (!(self instanceof Angerable angerable)) return;
         
-        boolean neutralAggressive = serverWorld.getGameRules().getBoolean(UniversalMobWarMod.NEUTRAL_MOBS_AGGRESSIVE_RULE);
+        boolean neutralAggressive = ModConfig.getInstance().neutralMobsAlwaysAggressive;
         if (!neutralAggressive) return;
         
         // Keep anger high when they have a target

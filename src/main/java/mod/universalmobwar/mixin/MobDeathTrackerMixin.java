@@ -1,6 +1,5 @@
 package mod.universalmobwar.mixin;
 
-import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
@@ -26,10 +25,9 @@ public abstract class MobDeathTrackerMixin {
         if (!(victim instanceof MobEntity)) return;
 
         // Check if any progression system is enabled
-        boolean evolutionEnabled = victim.getWorld().getGameRules().getBoolean(UniversalMobWarMod.EVOLUTION_SYSTEM_RULE);
-        boolean scalingEnabled = ModConfig.getInstance().scalingEnabled;
+        boolean scalingEnabled = ModConfig.getInstance().isScalingActive();
 
-        if (!evolutionEnabled && !scalingEnabled) return;
+        if (!scalingEnabled) return;
 
         // Kill tracking hook - individual mob mixins handle their own progression
         // This provides a central point for future kill-based features

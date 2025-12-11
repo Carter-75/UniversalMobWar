@@ -1,6 +1,5 @@
 package mod.universalmobwar.client;
 
-import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -11,7 +10,6 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.GameRules;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +88,6 @@ public class UniversalMobWarConfigScreen extends Screen {
         // Save & Exit Button
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Save & Exit"), button -> {
             ModConfig.save();
-            syncGamerulesWithConfig();
             if (this.client != null) this.client.setScreen(this.parent);
         }).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build());
 
@@ -373,25 +370,6 @@ public class UniversalMobWarConfigScreen extends Screen {
         double delta = amount * 15;
         scrollOffset = MathHelper.clamp(scrollOffset - delta, 0, contentHeight - visibleHeight);
         updateWidgetPositions();
-    }
-
-    private void syncGamerulesWithConfig() {
-        if (this.client == null || !this.client.isIntegratedServerRunning()) {
-            return;
-        }
-        var server = this.client.getServer();
-        if (server == null) {
-            return;
-        }
-        GameRules gameRules = server.getGameRules();
-        ModConfig cfg = this.config;
-        gameRules.get(UniversalMobWarMod.MOD_ENABLED_RULE).set(cfg.modEnabled, server);
-        gameRules.get(UniversalMobWarMod.IGNORE_SAME_SPECIES_RULE).set(cfg.ignoreSameSpecies, server);
-        gameRules.get(UniversalMobWarMod.TARGET_PLAYERS_RULE).set(cfg.targetPlayers, server);
-        gameRules.get(UniversalMobWarMod.NEUTRAL_MOBS_AGGRESSIVE_RULE).set(cfg.neutralMobsAlwaysAggressive, server);
-        gameRules.get(UniversalMobWarMod.ALLIANCE_SYSTEM_RULE).set(cfg.allianceEnabled, server);
-        gameRules.get(UniversalMobWarMod.EVOLUTION_SYSTEM_RULE).set(cfg.scalingEnabled, server);
-        gameRules.get(UniversalMobWarMod.RANGE_MULTIPLIER_RULE).set(cfg.rangeMultiplierPercent, server);
     }
 
     @Override

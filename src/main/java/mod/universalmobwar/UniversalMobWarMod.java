@@ -5,7 +5,6 @@ import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
-import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
 // Evolution system handled by individual mob mixins
 import mod.universalmobwar.system.AllianceSystem;
@@ -32,7 +31,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,27 +59,6 @@ public class UniversalMobWarMod implements ModInitializer {
 		new SpawnEggItem(MOB_WARLORD, 0x334E4C, 0x51A03E, new Item.Settings())
 	);
 
-	// Gamerule: true = mod is active (default). false = mod is completely disabled.
-	public static GameRules.Key<GameRules.BooleanRule> MOD_ENABLED_RULE;
-	
-	// Gamerule: true = ignore same-species (default). false = chaos (same-species allowed).
-	public static GameRules.Key<GameRules.BooleanRule> IGNORE_SAME_SPECIES_RULE;
-	
-	// Gamerule: true = target players (default). false = mobs ignore players.
-	public static GameRules.Key<GameRules.BooleanRule> TARGET_PLAYERS_RULE;
-	
-	// Gamerule: true = neutral mobs always aggressive. false = normal behavior.
-	public static GameRules.Key<GameRules.BooleanRule> NEUTRAL_MOBS_AGGRESSIVE_RULE;
-	
-	// Gamerule: true = alliance system enabled (default). false = no alliances.
-	public static GameRules.Key<GameRules.BooleanRule> ALLIANCE_SYSTEM_RULE;
-	
-	// Gamerule: true = evolution system enabled (default). false = no leveling.
-	public static GameRules.Key<GameRules.BooleanRule> EVOLUTION_SYSTEM_RULE;
-	
-	// Gamerule: Range multiplier (0.01 to 100.0)
-	public static GameRules.Key<GameRules.IntRule> RANGE_MULTIPLIER_RULE;
-
 	@Override
 	public void onInitialize() {
 		// Register and load config
@@ -98,56 +75,6 @@ public class UniversalMobWarMod implements ModInitializer {
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register(content -> {
 			content.add(MOB_WARLORD_SPAWN_EGG);
 		});
-		
-		// Register gamerule to enable/disable the entire mod (default: ON)
-		MOD_ENABLED_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarEnabled",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.modEnabled, (server, rule) -> {})
-		);
-
-		// Register gamerule for same-species targeting (default: ON = ignore same species)
-		IGNORE_SAME_SPECIES_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarIgnoreSame",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.ignoreSameSpecies, (server, rule) -> {})
-		);
-		
-		// Register gamerule for targeting players
-		TARGET_PLAYERS_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarTargetPlayers",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.targetPlayers, (server, rule) -> {})
-		);
-		
-		// Register gamerule for neutral mob behavior
-		NEUTRAL_MOBS_AGGRESSIVE_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarNeutralAggressive",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.neutralMobsAlwaysAggressive, (server, rule) -> {})
-		);
-		
-		// Register gamerule for alliance system
-		ALLIANCE_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarAlliances",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.allianceEnabled, (server, rule) -> {})
-		);
-		
-		// Register gamerule for evolution/scaling system
-		EVOLUTION_SYSTEM_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarEvolution",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(config.scalingEnabled, (server, rule) -> {})
-		);
-		
-		// Register gamerule for range multiplier (stored as int percent)
-		int defaultRange = config.rangeMultiplierPercent;
-		RANGE_MULTIPLIER_RULE = GameRulesAccessor.GameRulesInvoker.invokeRegister(
-			"universalMobWarRangeMultiplier",
-			GameRules.Category.MOBS,
-			GameRulesAccessor.IntRuleInvoker.invokeCreate(defaultRange, (server, rule) -> {})
-		);
 		
 		// Register commands
 		CommandRegistrationCallback.EVENT.register(MobWarCommand::register);
@@ -284,7 +211,7 @@ public class UniversalMobWarMod implements ModInitializer {
 			// Each mob's mixin contains its own progression logic
 
 			// Check if the mod is enabled
-			if (!world.getGameRules().getBoolean(MOD_ENABLED_RULE)) return;
+			if (!ModConfig.getInstance().isTargetingActive()) return;
 
 			// Check if this mob type is excluded
 			String mobId = mob.getType().getTranslationKey();
@@ -298,14 +225,15 @@ public class UniversalMobWarMod implements ModInitializer {
 				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
 
 			if (!alreadyHasGoal) {
+				var configSupplier = ModConfig::getInstance;
 				// Add targeting goal
 				targetSelector.add(2, new UniversalTargetGoal(
 					mob,
-					() -> world.getGameRules().getBoolean(MOD_ENABLED_RULE),
-					() -> world.getGameRules().getBoolean(IGNORE_SAME_SPECIES_RULE),
-					() -> world.getGameRules().getBoolean(TARGET_PLAYERS_RULE),
-					() -> world.getGameRules().getBoolean(ALLIANCE_SYSTEM_RULE),
-					() -> ((double) world.getGameRules().getInt(RANGE_MULTIPLIER_RULE)) / 100.0
+					() -> configSupplier.get().isTargetingActive(),
+					() -> configSupplier.get().ignoreSameSpecies,
+					() -> configSupplier.get().targetPlayers,
+					() -> configSupplier.get().isAllianceActive(),
+					() -> configSupplier.get().getRangeMultiplier()
 				));
 				
 				// Add stalemate breaker goal (Priority 0 to ensure it always runs)
@@ -331,12 +259,5 @@ public class UniversalMobWarMod implements ModInitializer {
 		LOGGER.info("Universal Mob War initialized successfully!");
 	}
 
-	public static boolean isModEnabled(MinecraftServer server) {
-		return server.getGameRules().getBoolean(MOD_ENABLED_RULE);
-	}
-
-	public static boolean ignoreSameSpecies(MinecraftServer server) {
-		return server.getGameRules().getBoolean(IGNORE_SAME_SPECIES_RULE);
-	}
 }
 

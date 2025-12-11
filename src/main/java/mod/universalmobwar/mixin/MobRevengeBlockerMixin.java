@@ -1,6 +1,6 @@
 package mod.universalmobwar.mixin;
 
-import mod.universalmobwar.UniversalMobWarMod;
+import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -28,7 +28,7 @@ public abstract class MobRevengeBlockerMixin {
 		if (attacker == null) return;
 
 		// Check if ignore same species gamerule is enabled
-		boolean ignoreSame = serverWorld.getServer().getGameRules().getBoolean(UniversalMobWarMod.IGNORE_SAME_SPECIES_RULE);
+		boolean ignoreSame = ModConfig.getInstance().ignoreSameSpecies;
 		if (!ignoreSame) return;
 
 		// If same species, prevent revenge targeting by returning false (don't handle the attack normally)

@@ -1,6 +1,5 @@
 package mod.universalmobwar.system;
 
-import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.util.TargetingUtil;
@@ -57,43 +56,28 @@ public class TargetingSystem {
      */
     public static boolean isEnabled(ServerWorld world) {
         ModConfig config = ModConfig.getInstance();
-        if (!config.isTargetingActive()) return false;
-        
-        // Also check gamerule if available
-        try {
-            return world.getGameRules().getBoolean(UniversalMobWarMod.MOD_ENABLED_RULE);
-        } catch (Exception e) {
-            return config.targetingEnabled;
-        }
+        return config.isTargetingActive();
     }
     
     /**
      * Check if a mob should ignore same-species targets
      */
     public static boolean shouldIgnoreSameSpecies(ServerWorld world) {
-        try {
-            return world.getGameRules().getBoolean(UniversalMobWarMod.IGNORE_SAME_SPECIES_RULE);
-        } catch (Exception e) {
-            return ModConfig.getInstance().ignoreSameSpecies;
-        }
+        return ModConfig.getInstance().ignoreSameSpecies;
     }
     
     /**
      * Check if players should be targeted
      */
     public static boolean shouldTargetPlayers(ServerWorld world) {
-        try {
-            return world.getGameRules().getBoolean(UniversalMobWarMod.TARGET_PLAYERS_RULE);
-        } catch (Exception e) {
-            return ModConfig.getInstance().targetPlayers;
-        }
+        return ModConfig.getInstance().targetPlayers;
     }
     
     /**
      * Get range multiplier for target detection (converts percent to multiplier)
      */
     public static double getRangeMultiplier() {
-        return ModConfig.getInstance().rangeMultiplierPercent / 100.0;
+        return ModConfig.getInstance().getRangeMultiplier();
     }
     
     // ==========================================================================

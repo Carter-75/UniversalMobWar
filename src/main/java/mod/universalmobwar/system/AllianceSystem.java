@@ -48,16 +48,7 @@ public class AllianceSystem {
      */
     public static boolean isEnabled(ServerWorld world) {
         ModConfig config = ModConfig.getInstance();
-        if (!config.isAllianceActive()) return false;
-        
-        // Also check gamerule if available
-        try {
-            return world.getGameRules().getBoolean(
-                mod.universalmobwar.UniversalMobWarMod.ALLIANCE_SYSTEM_RULE
-            );
-        } catch (Exception e) {
-            return config.allianceEnabled;
-        }
+        return config.isAllianceActive();
     }
     
     /**
