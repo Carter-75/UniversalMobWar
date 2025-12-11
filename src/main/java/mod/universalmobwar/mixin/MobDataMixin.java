@@ -83,6 +83,7 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
             return;
         }
         MobEntity self = (MobEntity)(Object)this;
+        ScalingSystem.monitorEquipmentState(self, universalMobWarData);
         ScalingSystem.processMobTick(self, self.getWorld(), universalMobWarData);
     }
 

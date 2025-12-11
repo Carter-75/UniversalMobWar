@@ -214,6 +214,53 @@ public class ScalingSystem {
     public static boolean hasScalingConfig(MobEntity mob) {
         return getConfigForMob(mob) != null;
     }
+
+    // ==========================================================================
+    //                      EQUIPMENT STATE MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * Ensures MobWarData stays in sync with the mob's actual equipment state.
+     * If an item breaks or disappears, downgrade tiers and reset masteries according
+     * to the progression spec so the slot becomes eligible for repurchase.
+     */
+    public static void monitorEquipmentState(MobEntity mob, MobWarData data) {
+        if (mob == null || data == null || mob.getWorld().isClient()) {
+            return;
+        }
+
+        NbtCompound skillData = data.getSkillData();
+        if (skillData == null || skillData.isEmpty()) {
+            return;
+        }
+
+        JsonObject config = getConfigForMob(mob);
+        if (config == null || !config.has("tree")) {
+            return;
+        }
+        JsonObject tree = config.getAsJsonObject("tree");
+        ServerWorld serverWorld = mob.getWorld() instanceof ServerWorld sw ? sw : null;
+
+        if (skillData.getBoolean("weapon_equipped") && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
+            if (handleWeaponBreak(mob, data) && serverWorld != null && tree.has("weapon")) {
+                JsonObject lockedWeapon = getLockedWeaponForMob(tree.get("weapon"), mob);
+                if (lockedWeapon != null) {
+                    applyWeapon(mob, skillData, lockedWeapon, serverWorld);
+                }
+            }
+        }
+
+        if (skillData.getBoolean("shield_equipped") && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
+            if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
+                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
+            }
+        }
+
+        monitorArmorSlot(mob, data, tree, EquipmentSlot.HEAD, "helmet", serverWorld);
+        monitorArmorSlot(mob, data, tree, EquipmentSlot.CHEST, "chestplate", serverWorld);
+        monitorArmorSlot(mob, data, tree, EquipmentSlot.LEGS, "leggings", serverWorld);
+        monitorArmorSlot(mob, data, tree, EquipmentSlot.FEET, "boots", serverWorld);
+    }
     
     // ==========================================================================
     //                           MAIN ENTRY POINT
@@ -576,31 +623,18 @@ public class ScalingSystem {
         // Check weapon upgrades
         if (tree.has("weapon")) {
             JsonElement weaponElement = tree.get("weapon");
-            JsonObject lockedWeapon;
-            
-            if (weaponElement.isJsonArray()) {
-                // Determine which weapon is locked for this mob
-                JsonArray weapons = weaponElement.getAsJsonArray();
-                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
-                lockedWeapon = weapons.get(index).getAsJsonObject();
-                
-                // Check tier upgrades for ALL weapons in array (lottery includes all weapons)
-                for (int i = 0; i < weapons.size(); i++) {
-                    JsonObject weaponOption = weapons.get(i).getAsJsonObject();
-                    
-                    // Get base cost of this weapon
-                    int baseCost = weaponOption.has("base_cost") ? weaponOption.get("base_cost").getAsInt() : 0;
-                    int currentTier = skillData.getInt("weapon_tier");
-                    
-                    if (currentTier == 0) {
-                        // No weapon yet: show base cost to acquire weapon
-                        if (baseCost <= budget) {
-                            affordable.add(new UpgradeOption("weapon_tier", 1, baseCost));
-                        }
-                    } else if (weaponOption.has("tiers")) {
-                        // Already have a weapon: show tier upgrades if available
-                        JsonArray tiers = weaponOption.getAsJsonArray("tiers");
-                        if (tiers.size() > 0 && currentTier < tiers.size()) {
+            JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
+            int currentTier = skillData.getInt("weapon_tier");
+            if (lockedWeapon != null) {
+                int baseCost = lockedWeapon.has("base_cost") ? lockedWeapon.get("base_cost").getAsInt() : 0;
+                if (currentTier == 0) {
+                    if (baseCost <= budget) {
+                        affordable.add(new UpgradeOption("weapon_tier", 1, baseCost));
+                    }
+                } else if (lockedWeapon.has("tiers")) {
+                    JsonArray tiers = lockedWeapon.getAsJsonArray("tiers");
+                    if (tiers.size() > 0 && currentTier < tiers.size()) {
+                        if (meetsTierUpgradePrereqs(skillData, "weapon", lockedWeapon, "weapon_enchant_")) {
                             JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                             int tierCost = nextTier.get("cost").getAsInt();
                             if (tierCost <= budget) {
@@ -609,34 +643,21 @@ public class ScalingSystem {
                         }
                     }
                 }
-            } else {
-                lockedWeapon = weaponElement.getAsJsonObject();
-                
-                // Single weapon: check its tiers
-                if (lockedWeapon.has("tiers")) {
-                    JsonArray tiers = lockedWeapon.getAsJsonArray("tiers");
-                    int currentTier = skillData.getInt("weapon_tier");
-                    if (currentTier < tiers.size()) {
-                        JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
-                        int cost = nextTier.get("cost").getAsInt();
-                        if (cost <= budget) {
-                            affordable.add(new UpgradeOption("weapon_tier", currentTier + 1, cost));
-                        }
-                    }
-                }
             }
             
             // Only upgrade the locked weapon's enchants and masteries
             
             // Weapon enchants
-            if (lockedWeapon.has("enchants")) {
+            if (lockedWeapon != null && lockedWeapon.has("enchants")) {
                 JsonObject enchants = lockedWeapon.getAsJsonObject("enchants");
                 addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
             }
             
             // Drop mastery
-            addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
-            addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
+            if (lockedWeapon != null) {
+                addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
+                addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
+            }
         }
         
         // Check shield upgrades
@@ -674,7 +695,7 @@ public class ScalingSystem {
                     if (currentTier < tiers.size()) {
                         JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                         int cost = nextTier.get("cost").getAsInt();
-                        if (cost <= budget) {
+                        if (cost <= budget && meetsTierUpgradePrereqs(skillData, slot, armor, slot + "_enchant_")) {
                             affordable.add(new UpgradeOption(slot + "_tier", currentTier + 1, cost));
                         }
                     }
@@ -978,6 +999,7 @@ public class ScalingSystem {
             }
         }
         
+        skillData.putBoolean("weapon_equipped", false);
         if (weapon == null || weapon.isEmpty()) return;
         
         // Apply enchants
@@ -990,6 +1012,8 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
+        skillData.putBoolean("weapon_equipped", true);
+        applyDropChance(mob, EquipmentSlot.MAINHAND, skillData.getInt("weapon_drop_mastery"));
     }
     
     /**
@@ -997,6 +1021,7 @@ public class ScalingSystem {
      */
     private static void applyShield(MobEntity mob, NbtCompound skillData, JsonObject shieldConfig, ServerWorld world) {
         int hasShield = skillData.getInt("has_shield");
+        skillData.putBoolean("shield_equipped", false);
         if (hasShield <= 0) return;
         
         ItemStack shield = new ItemStack(Items.SHIELD);
@@ -1011,6 +1036,8 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(EquipmentSlot.OFFHAND, shield);
+        skillData.putBoolean("shield_equipped", true);
+        applyDropChance(mob, EquipmentSlot.OFFHAND, skillData.getInt("shield_drop_mastery"));
     }
     
     /**
@@ -1023,6 +1050,7 @@ public class ScalingSystem {
         JsonObject armorConfig = tree.getAsJsonObject(slotName);
         
         int tier = skillData.getInt(slotName + "_tier");
+        skillData.putBoolean(slotName + "_equipped", false);
         if (tier <= 0) return;
         
         ItemStack armor = null;
@@ -1048,6 +1076,8 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(slot, armor);
+        skillData.putBoolean(slotName + "_equipped", true);
+        applyDropChance(mob, slot, skillData.getInt(slotName + "_drop_mastery"));
     }
     
     /**
@@ -1093,11 +1123,14 @@ public class ScalingSystem {
                 }
             }
         }
+        if (durabilityPercent <= 0.0) {
+            durabilityPercent = getFallbackDurabilityPercent(masteryLevel);
+        }
         
         // Set item damage (inverted - lower damage = more durability)
         int maxDurability = item.getMaxDamage();
         if (maxDurability > 0) {
-            int targetDurability = (int) (maxDurability * durabilityPercent);
+            int targetDurability = (int) Math.round(maxDurability * Math.min(1.0, durabilityPercent));
             int damageToSet = maxDurability - targetDurability;
             item.setDamage(Math.max(0, damageToSet));
         }
@@ -1909,6 +1942,160 @@ public class ScalingSystem {
             builder.append(Character.toUpperCase(part.charAt(0))).append(part.length() > 1 ? part.substring(1) : "");
         }
         return builder.length() > 0 ? builder.toString() : rawKey;
+    }
+
+    private static boolean handleWeaponBreak(MobEntity mob, MobWarData data) {
+        NbtCompound skillData = data.getSkillData();
+        int tier = skillData.getInt("weapon_tier");
+        if (tier <= 0) {
+            skillData.putBoolean("weapon_equipped", false);
+            return false;
+        }
+        if (tier > 1) {
+            skillData.putInt("weapon_tier", tier - 1);
+        } else {
+            skillData.putInt("weapon_tier", 0);
+        }
+        clearEnchantsWithPrefix(skillData, "weapon_enchant_");
+        resetMasteries(skillData, "weapon");
+        skillData.putBoolean("weapon_equipped", false);
+        MobWarData.save(mob, data);
+        return true;
+    }
+
+    private static boolean handleShieldBreak(MobEntity mob, MobWarData data) {
+        NbtCompound skillData = data.getSkillData();
+        if (skillData.getInt("has_shield") <= 0) {
+            skillData.putBoolean("shield_equipped", false);
+            return false;
+        }
+        skillData.putInt("has_shield", 0);
+        clearEnchantsWithPrefix(skillData, "shield_enchant_");
+        resetMasteries(skillData, "shield");
+        skillData.putBoolean("shield_equipped", false);
+        MobWarData.save(mob, data);
+        return true;
+    }
+
+    private static boolean handleArmorBreak(MobEntity mob, MobWarData data, String slotPrefix) {
+        NbtCompound skillData = data.getSkillData();
+        String tierKey = slotPrefix + "_tier";
+        int tier = skillData.getInt(tierKey);
+        if (tier <= 0) {
+            skillData.putBoolean(slotPrefix + "_equipped", false);
+            return false;
+        }
+
+        if (tier > 1) {
+            skillData.putInt(tierKey, tier - 1);
+        } else {
+            skillData.putInt(tierKey, 0);
+        }
+
+        clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
+        resetMasteries(skillData, slotPrefix);
+        skillData.putBoolean(slotPrefix + "_equipped", false);
+        MobWarData.save(mob, data);
+        return true;
+    }
+
+    private static void monitorArmorSlot(MobEntity mob, MobWarData data, JsonObject tree, EquipmentSlot slot, String slotPrefix, ServerWorld world) {
+        NbtCompound skillData = data.getSkillData();
+        if (!skillData.getBoolean(slotPrefix + "_equipped")) {
+            return;
+        }
+        if (!mob.getEquippedStack(slot).isEmpty()) {
+            return;
+        }
+        if (handleArmorBreak(mob, data, slotPrefix) && world != null && tree.has(slotPrefix)) {
+            applyArmor(mob, skillData, tree, slotPrefix, slot, world);
+        }
+    }
+
+    private static void clearEnchantsWithPrefix(NbtCompound skillData, String prefix) {
+        if (skillData == null || prefix == null) return;
+        java.util.Set<String> keys = new java.util.HashSet<>(skillData.getKeys());
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                skillData.remove(key);
+            }
+        }
+    }
+
+    private static void resetMasteries(NbtCompound skillData, String slotPrefix) {
+        skillData.putInt(slotPrefix + "_drop_mastery", 0);
+        skillData.putInt(slotPrefix + "_durability_mastery", 0);
+    }
+
+    private static void applyDropChance(MobEntity mob, EquipmentSlot slot, int masteryLevel) {
+        float chance = getDropChanceForMastery(masteryLevel);
+        mob.setEquipmentDropChance(slot, chance);
+    }
+
+    private static float getDropChanceForMastery(int level) {
+        if (level <= 0) return 1.0f;
+        if (level >= 10) return 0.01f;
+        float reduction = level * 0.1f;
+        return Math.max(0.01f, 1.0f - reduction);
+    }
+
+    private static double getFallbackDurabilityPercent(int masteryLevel) {
+        if (masteryLevel <= 0) {
+            return 0.1; // default 10%
+        }
+        double percent = masteryLevel / 10.0;
+        return Math.min(1.0, Math.max(0.1, percent));
+    }
+
+    private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig, String enchantPrefix) {
+        int currentTier = skillData.getInt(slotPrefix + "_tier");
+        if (currentTier <= 0) {
+            return true; // base acquisition
+        }
+        if (!hasMasteryAtMax(skillData, slotPrefix + "_drop_mastery", slotConfig, "drop_mastery")) {
+            return false;
+        }
+        if (!hasMasteryAtMax(skillData, slotPrefix + "_durability_mastery", slotConfig, "durability_mastery")) {
+            return false;
+        }
+        if (slotConfig != null && slotConfig.has("enchants")) {
+            JsonObject enchants = slotConfig.getAsJsonObject("enchants");
+            for (String key : enchants.keySet()) {
+                JsonArray levels = enchants.getAsJsonArray(key);
+                if (skillData.getInt(enchantPrefix + key) < levels.size()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean hasMasteryAtMax(NbtCompound skillData, String skillKey, JsonObject slotConfig, String jsonKey) {
+        int requiredLevels = 10;
+        if (slotConfig != null && slotConfig.has(jsonKey)) {
+            JsonArray levels = slotConfig.getAsJsonArray(jsonKey);
+            requiredLevels = Math.max(1, levels.size());
+        }
+        return skillData.getInt(skillKey) >= requiredLevels;
+    }
+
+    private static JsonObject getLockedWeaponForMob(JsonElement weaponElement, MobEntity mob) {
+        if (weaponElement == null) {
+            return null;
+        }
+        if (weaponElement.isJsonObject()) {
+            return weaponElement.getAsJsonObject();
+        }
+        if (!weaponElement.isJsonArray()) {
+            return null;
+        }
+        JsonArray weapons = weaponElement.getAsJsonArray();
+        if (weapons.isEmpty()) {
+            return null;
+        }
+        int index = Math.abs(mob.getUuid().hashCode());
+        index = index % weapons.size();
+        return weapons.get(index).getAsJsonObject();
     }
 
     private static class UpgradeLogger {
