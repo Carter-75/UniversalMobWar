@@ -538,6 +538,8 @@ public class ScalingSystem {
                 saveChance = configSave / configTotal;
             }
         }
+
+        int iterationCap = Math.max(1, modConfig.getMaxUpgradeIterations());
         
         // Get current upgrade levels from skill data
         NbtCompound skillData = data.getSkillData();
@@ -547,7 +549,7 @@ public class ScalingSystem {
         int iterations = 0;
         boolean purchasedUpgrade = false;
         String exitReason = "Budget exhausted";
-        while (iterations < 50) { // Cap iterations to prevent infinite loop
+        while (iterations < iterationCap) { // Cap iterations to prevent infinite loop
             iterations++;
 
             List<UpgradeOption> affordable = getAffordableUpgrades(mob, config, mobType, skillData, budget);
@@ -581,7 +583,7 @@ public class ScalingSystem {
             logger.logPurchase(chosen, budget);
         }
         
-        if (iterations >= 50 && "Budget exhausted".equals(exitReason)) {
+        if (iterations >= iterationCap && "Budget exhausted".equals(exitReason)) {
             exitReason = "Iteration cap reached";
         }
 

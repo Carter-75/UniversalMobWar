@@ -106,6 +106,10 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.BoundedDiscrete(min = 0, max = 100)
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int saveChancePercent = 20; // 20% chance to save points
+
+    @ConfigEntry.BoundedDiscrete(min = 10, max = 500)
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public int maxUpgradeIterations = 100; // Hard cap per spend cycle
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
@@ -385,6 +389,10 @@ public class ModConfig implements ConfigData {
     public double getSaveChance() {
         return saveChancePercent / 100.0;
     }
+
+    public int getMaxUpgradeIterations() {
+        return Math.max(10, Math.min(500, maxUpgradeIterations));
+    }
     
     // Section enable checks
     public boolean isTargetingActive() {
@@ -444,5 +452,6 @@ public class ModConfig implements ConfigData {
         warlordHealthMultiplier = getWarlordHealthMultiplier();
         warlordDamageMultiplier = getWarlordDamageMultiplier();
         manualWorldDayOverride = Math.max(-1, Math.min(100000, manualWorldDayOverride));
+        maxUpgradeIterations = getMaxUpgradeIterations();
     }
 }

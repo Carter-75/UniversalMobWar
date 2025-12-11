@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -21,14 +22,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     private final Screen parent;
     private ModConfig config;
     
-    // Category buttons
-    private ButtonWidget btnGeneral;
-    private ButtonWidget btnTargeting;
-    private ButtonWidget btnScaling;
-    private ButtonWidget btnPerformance;
-    private ButtonWidget btnVisuals;
-    private ButtonWidget btnDebug;
-    
+    private final EnumMap<Category, ButtonWidget> categoryButtons = new EnumMap<>(Category.class);
     private Category currentCategory = Category.GENERAL;
     private final List<ClickableWidget> activeWidgets = new ArrayList<>();
     private final List<WidgetPlacement> widgetPlacements = new ArrayList<>();
@@ -39,13 +33,62 @@ public class UniversalMobWarConfigScreen extends Screen {
 
     private static final int CONTENT_TOP = 110;
     private static final int CONTENT_BOTTOM_PADDING = 80;
-    private static final int CONTENT_WIDTH = 260;
+    private static final int CONTENT_WIDTH = 280;
+    private static final int CONTENT_GAP = 30;
     private static final int ROW_GAP = 28;
     private static final int WIDGET_HEIGHT = 20;
     private static final int LABEL_GAP = 14;
+    private static final int NAV_WIDTH = 140;
+    private static final int NAV_BUTTON_HEIGHT = 20;
+    private static final int NAV_BUTTON_GAP = 6;
+    private static final int NAV_TOP = 40;
+
+    private static final Category[] CATEGORY_ORDER = {
+        Category.GENERAL,
+        Category.TARGETING,
+        Category.ALLIANCE,
+        Category.SCALING,
+        Category.WARLORD,
+        Category.PERFORMANCE,
+        Category.VISUALS,
+        Category.DEBUG
+    };
 
     private enum Category {
-        GENERAL, TARGETING, SCALING, PERFORMANCE, VISUALS, DEBUG
+        GENERAL("General"),
+        TARGETING("Targeting"),
+        ALLIANCE("Alliance"),
+        SCALING("Scaling"),
+        WARLORD("Warlord"),
+        PERFORMANCE("Performance"),
+        VISUALS("Visuals"),
+        DEBUG("Debug");
+
+        private final String label;
+
+        Category(String label) {
+            this.label = label;
+        }
+
+        public Text title() {
+            return Text.literal(label);
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
+    private int getLayoutWidth() {
+        return NAV_WIDTH + CONTENT_GAP + CONTENT_WIDTH;
+    }
+
+    private int getNavLeft() {
+        return (this.width - getLayoutWidth()) / 2;
+    }
+
+    private int getContentLeft() {
+        return getNavLeft() + NAV_WIDTH + CONTENT_GAP;
     }
 
     public UniversalMobWarConfigScreen(Screen parent) {
@@ -56,39 +99,22 @@ public class UniversalMobWarConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        int y = 40;
-        int buttonWidth = 80;
-        int spacing = 4;
-        int buttonCount = 6;
-        int totalWidth = buttonWidth * buttonCount + spacing * (buttonCount - 1);
-        int startX = (this.width - totalWidth) / 2;
+        this.config = ModConfig.getInstance();
 
-        // Category Buttons
-        btnGeneral = ButtonWidget.builder(Text.literal("General"), button -> setCategory(Category.GENERAL))
-                .dimensions(startX, y, buttonWidth, 20).build();
-        
-        btnTargeting = ButtonWidget.builder(Text.literal("Targeting"), button -> setCategory(Category.TARGETING))
-            .dimensions(startX + buttonWidth + spacing, y, buttonWidth, 20).build();
-        
-        btnScaling = ButtonWidget.builder(Text.literal("Scaling"), button -> setCategory(Category.SCALING))
-            .dimensions(startX + (buttonWidth + spacing) * 2, y, buttonWidth, 20).build();
-        
-        btnPerformance = ButtonWidget.builder(Text.literal("Performance"), button -> setCategory(Category.PERFORMANCE))
-            .dimensions(startX + (buttonWidth + spacing) * 3, y, buttonWidth, 20).build();
-        
-        btnVisuals = ButtonWidget.builder(Text.literal("Visuals"), button -> setCategory(Category.VISUALS))
-            .dimensions(startX + (buttonWidth + spacing) * 4, y, buttonWidth, 20).build();
-        btnDebug = ButtonWidget.builder(Text.literal("Debug"), button -> setCategory(Category.DEBUG))
-            .dimensions(startX + (buttonWidth + spacing) * 5, y, buttonWidth, 20).build();
+        categoryButtons.values().forEach(this::remove);
+        categoryButtons.clear();
 
-        this.addDrawableChild(btnGeneral);
-        this.addDrawableChild(btnTargeting);
-        this.addDrawableChild(btnScaling);
-        this.addDrawableChild(btnPerformance);
-        this.addDrawableChild(btnVisuals);
-        this.addDrawableChild(btnDebug);
-        
-        // Save & Exit Button
+        int navLeft = getNavLeft();
+        int navY = NAV_TOP;
+        for (Category category : CATEGORY_ORDER) {
+            ButtonWidget button = ButtonWidget.builder(category.title(), btn -> setCategory(category))
+                .dimensions(navLeft, navY, NAV_WIDTH, NAV_BUTTON_HEIGHT)
+                .build();
+            this.addDrawableChild(button);
+            categoryButtons.put(category, button);
+            navY += NAV_BUTTON_HEIGHT + NAV_BUTTON_GAP;
+        }
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Save & Exit"), button -> {
             ModConfig.save();
             if (this.client != null) this.client.setScreen(this.parent);
@@ -115,15 +141,10 @@ public class UniversalMobWarConfigScreen extends Screen {
 
         categoryDescription = Text.empty();
 
-        // Update button states
-        btnGeneral.active = currentCategory != Category.GENERAL;
-        btnTargeting.active = currentCategory != Category.TARGETING;
-        btnScaling.active = currentCategory != Category.SCALING;
-        btnPerformance.active = currentCategory != Category.PERFORMANCE;
-        btnVisuals.active = currentCategory != Category.VISUALS;
-        btnDebug.active = currentCategory != Category.DEBUG;
+        categoryButtons.forEach((category, button) -> button.active = category != currentCategory);
+
         int relativeY = 0;
-        int x = this.width / 2 - CONTENT_WIDTH / 2;
+        int x = getContentLeft();
         int w = CONTENT_WIDTH;
         int h = WIDGET_HEIGHT;
 
@@ -146,9 +167,6 @@ public class UniversalMobWarConfigScreen extends Screen {
                 config.warlordEnabled = val;
                 config.enableMobWarlord = val;
             }, "Enable the Mob Warlord raid boss feature.");
-            relativeY = addSlider(x, relativeY, w, h, config.warlordSpawnChance, 0, 100,
-                val -> String.format("Warlord Spawn Chance: %.0f%%", val),
-                val -> config.warlordSpawnChance = (int)MathHelper.clamp(Math.round(val), 0, 100));
             break;
 
             case TARGETING:
@@ -175,6 +193,28 @@ public class UniversalMobWarConfigScreen extends Screen {
             relativeY = addSlider(x, relativeY, w, h, config.targetingMaxQueriesPerTick, 10, 200,
                 val -> String.format("Queries / Tick: %.0f", val),
                 val -> config.targetingMaxQueriesPerTick = (int) MathHelper.clamp(Math.round(val), 10, 200));
+            break;
+
+            case ALLIANCE:
+            categoryDescription = Text.literal("Let mobs form temporary truces and tune how long they last.");
+            relativeY = addCheckbox(x, relativeY, "Alliance System", config.allianceEnabled, val -> {
+                config.allianceEnabled = val;
+                config.allianceSystemEnabled = val;
+            }, "Let mobs form temporary alliances.");
+            double weakSeconds = config.weakAllianceDurationMs / 1000.0;
+            relativeY = addSlider(x, relativeY, w, h, weakSeconds, 1.0, 60.0,
+                val -> String.format("Weak Alliance Duration: %.1f s", val),
+                val -> config.weakAllianceDurationMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 60000));
+            double strongSeconds = config.strongAllianceDurationMs / 1000.0;
+            relativeY = addSlider(x, relativeY, w, h, strongSeconds, 1.0, 120.0,
+                val -> String.format("Strong Alliance Duration: %.1f s", val),
+                val -> config.strongAllianceDurationMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 120000));
+            relativeY = addSlider(x, relativeY, w, h, config.allianceBreakChancePercent, 0, 100,
+                val -> String.format("Weak Break Chance: %.0f%%", val),
+                val -> config.allianceBreakChancePercent = (int) MathHelper.clamp(Math.round(val), 0, 100));
+            relativeY = addSlider(x, relativeY, w, h, config.strongAllianceBreakChancePercent, 0, 100,
+                val -> String.format("Strong Break Chance: %.0f%%", val),
+                val -> config.strongAllianceBreakChancePercent = (int) MathHelper.clamp(Math.round(val), 0, 100));
             break;
 
             case SCALING:
@@ -207,59 +247,24 @@ public class UniversalMobWarConfigScreen extends Screen {
                     config.saveChancePercent = clamped;
                     config.buyChancePercent = 100 - clamped;
                 });
+            double maxIterations = config.getMaxUpgradeIterations();
+            relativeY = addSlider(x, relativeY, w, h, maxIterations, 10, 500,
+                val -> String.format("Max Upgrades / Cycle: %.0f", val),
+                val -> config.maxUpgradeIterations = (int) MathHelper.clamp(Math.round(val), 10, 500));
             break;
 
-            case PERFORMANCE:
-            categoryDescription = Text.literal("Keep upgrade processing near the 5 second budget from skilltree.txt.");
-            double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
-            relativeY = addSlider(x, relativeY, w, h, windowSeconds, 1.0, 30.0,
-                val -> String.format("Upgrade Window: %.1fs", val),
-                val -> config.upgradeProcessingTimeMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 30000));
-            break;
-
-            case VISUALS:
-            categoryDescription = Text.literal("Client-side overlays that make the mob war readable.");
-            relativeY = addCheckbox(x, relativeY, "Disable Particles", config.disableParticles, val -> config.disableParticles = val,
-                "Removes most particles for better FPS.");
-            relativeY = addCheckbox(x, relativeY, "Show Target Lines", config.showTargetLines, val -> config.showTargetLines = val,
-                "Draw lines between mobs and their targets.");
-            relativeY = addCheckbox(x, relativeY, "Level Up Particles", config.showLevelParticles, val -> config.showLevelParticles = val,
-                "Play particles when mobs level up.");
-            relativeY = addSlider(x, relativeY, w, h, config.minFpsForVisuals, 0, 144,
-                val -> String.format("Minimum FPS: %.0f", val),
-                val -> config.minFpsForVisuals = (int) MathHelper.clamp(Math.round(val), 0, 144));
-            break;
-
-            case DEBUG:
-            categoryDescription = Text.literal("Advanced tuning knobs, logging, and all the extras so you never edit JSON.");
-            relativeY = addCheckbox(x, relativeY, "Performance Mode", config.performanceMode, val -> config.performanceMode = val,
-                "Cuts visuals and batching for weaker machines.");
-            relativeY = addCheckbox(x, relativeY, "Enable Batching", config.enableBatching, val -> config.enableBatching = val,
-                "Batch upgrade tasks to reduce tick spikes.");
-            relativeY = addCheckbox(x, relativeY, "Enable Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val,
-                "Move heavy calculations off the main thread.");
-            relativeY = addSlider(x, relativeY, w, h, config.mobDataSaveDebounceMs, 50, 1000,
-                val -> String.format("Mob Save Debounce: %.0f ms", val),
-                val -> config.mobDataSaveDebounceMs = (int) MathHelper.clamp(Math.round(val), 50, 1000));
-
-            double weakSeconds = config.weakAllianceDurationMs / 1000.0;
-            relativeY = addSlider(x, relativeY, w, h, weakSeconds, 1.0, 60.0,
-                val -> String.format("Weak Alliance Duration: %.1f s", val),
-                val -> config.weakAllianceDurationMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 60000));
-            double strongSeconds = config.strongAllianceDurationMs / 1000.0;
-            relativeY = addSlider(x, relativeY, w, h, strongSeconds, 1.0, 120.0,
-                val -> String.format("Strong Alliance Duration: %.1f s", val),
-                val -> config.strongAllianceDurationMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 120000));
-            relativeY = addSlider(x, relativeY, w, h, config.allianceBreakChancePercent, 0, 100,
-                val -> String.format("Weak Break Chance: %.0f%%", val),
-                val -> config.allianceBreakChancePercent = (int) MathHelper.clamp(Math.round(val), 0, 100));
-            relativeY = addSlider(x, relativeY, w, h, config.strongAllianceBreakChancePercent, 0, 100,
-                val -> String.format("Strong Break Chance: %.0f%%", val),
-                val -> config.strongAllianceBreakChancePercent = (int) MathHelper.clamp(Math.round(val), 0, 100));
-
-            relativeY = addCheckbox(x, relativeY, "Always Spawn Warlord", config.alwaysSpawnWarlordOnFinalWave,
+            case WARLORD:
+            categoryDescription = Text.literal("Configure when the raid boss appears and how scary it should be.");
+            relativeY = addCheckbox(x, relativeY, "Warlord System", config.warlordEnabled, val -> {
+                config.warlordEnabled = val;
+                config.enableMobWarlord = val;
+            }, "Enable the Mob Warlord raid boss feature.");
+            relativeY = addCheckbox(x, relativeY, "Always Spawn Final Wave", config.alwaysSpawnWarlordOnFinalWave,
                 val -> config.alwaysSpawnWarlordOnFinalWave = val,
                 "Forces every final raid wave to include the Warlord.");
+            relativeY = addSlider(x, relativeY, w, h, config.warlordSpawnChance, 0, 100,
+                val -> String.format("Spawn Chance: %.0f%%", val),
+                val -> config.warlordSpawnChance = (int) MathHelper.clamp(Math.round(val), 0, 100));
             relativeY = addSlider(x, relativeY, w, h, config.warlordMinRaidLevel, 1, 20,
                 val -> String.format("Min Raid Level: %.0f", val),
                 val -> config.warlordMinRaidLevel = (int) MathHelper.clamp(Math.round(val), 1, 20));
@@ -282,14 +287,46 @@ public class UniversalMobWarConfigScreen extends Screen {
                     config.warlordDamageMultiplierPercent = percent;
                     config.warlordDamageMultiplier = val;
                 });
+            break;
 
+            case PERFORMANCE:
+            categoryDescription = Text.literal("Keep upgrade processing near the 5 second budget from skilltree.txt.");
+            relativeY = addCheckbox(x, relativeY, "Performance Mode", config.performanceMode, val -> config.performanceMode = val,
+                "Cuts visuals and batching for weaker machines.");
+            relativeY = addCheckbox(x, relativeY, "Enable Batching", config.enableBatching, val -> config.enableBatching = val,
+                "Batch upgrade tasks to reduce tick spikes.");
+            relativeY = addCheckbox(x, relativeY, "Enable Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val,
+                "Move heavy calculations off the main thread.");
+            double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
+            relativeY = addSlider(x, relativeY, w, h, windowSeconds, 1.0, 30.0,
+                val -> String.format("Upgrade Window: %.1fs", val),
+                val -> config.upgradeProcessingTimeMs = (int) MathHelper.clamp(Math.round(val * 1000.0), 1000, 30000));
+            relativeY = addSlider(x, relativeY, w, h, config.mobDataSaveDebounceMs, 50, 1000,
+                val -> String.format("Mob Save Debounce: %.0f ms", val),
+                val -> config.mobDataSaveDebounceMs = (int) MathHelper.clamp(Math.round(val), 50, 1000));
+            break;
+
+            case VISUALS:
+            categoryDescription = Text.literal("Client-side overlays that make the mob war readable.");
+            relativeY = addCheckbox(x, relativeY, "Disable Particles", config.disableParticles, val -> config.disableParticles = val,
+                "Removes most particles for better FPS.");
+            relativeY = addCheckbox(x, relativeY, "Show Target Lines", config.showTargetLines, val -> config.showTargetLines = val,
+                "Draw lines between mobs and their targets.");
+            relativeY = addCheckbox(x, relativeY, "Level Up Particles", config.showLevelParticles, val -> config.showLevelParticles = val,
+                "Play particles when mobs level up.");
+            relativeY = addSlider(x, relativeY, w, h, config.minFpsForVisuals, 0, 144,
+                val -> String.format("Minimum FPS: %.0f", val),
+                val -> config.minFpsForVisuals = (int) MathHelper.clamp(Math.round(val), 0, 144));
             relativeY = addSlider(x, relativeY, w, h, config.maxParticlesPerConnection, 1, 50,
                 val -> String.format("Particles / Connection: %.0f", val),
                 val -> config.maxParticlesPerConnection = (int) MathHelper.clamp(Math.round(val), 1, 50));
             relativeY = addSlider(x, relativeY, w, h, config.maxDrawnMinionConnections, 1, 100,
                 val -> String.format("Minion Connections Drawn: %.0f", val),
                 val -> config.maxDrawnMinionConnections = (int) MathHelper.clamp(Math.round(val), 1, 100));
+            break;
 
+            case DEBUG:
+            categoryDescription = Text.literal("Advanced logging, chat spam, and anything meant just for testing.");
             relativeY = addCheckbox(x, relativeY, "Upgrade Chat Log", config.debugUpgradeLog, val -> config.debugUpgradeLog = val,
                 "Print every upgrade decision in chat while testing.");
             relativeY = addCheckbox(x, relativeY, "Verbose Console Logging", config.debugLogging, val -> config.debugLogging = val,
@@ -380,7 +417,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     }
 
     private void updateWidgetPositions() {
-        int x = this.width / 2 - CONTENT_WIDTH / 2;
+        int x = getContentLeft();
         int visibleHeight = getVisibleHeight();
         int maxScroll = Math.max(0, contentHeight - visibleHeight);
         scrollOffset = MathHelper.clamp(scrollOffset, 0, maxScroll);
@@ -403,7 +440,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     }
 
     private boolean isInContentArea(double mouseX, double mouseY) {
-        int x = this.width / 2 - CONTENT_WIDTH / 2;
+        int x = getContentLeft();
         return mouseX >= x && mouseX <= x + CONTENT_WIDTH + 10 && mouseY >= CONTENT_TOP - 10 && mouseY <= this.height - CONTENT_BOTTOM_PADDING + 10;
     }
 
@@ -429,18 +466,29 @@ public class UniversalMobWarConfigScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
-        int contentLeft = this.width / 2 - CONTENT_WIDTH / 2;
+        int contentLeft = getContentLeft();
+        int navLeft = getNavLeft();
         int visibleHeight = getVisibleHeight();
 
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 15, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Category: " + currentCategory.name()), this.width / 2, 60, 0xAAAAAA);
+
+        int navPanelBottom = CONTENT_TOP + visibleHeight + 10;
+        context.fill(navLeft - 6, NAV_TOP - 10, navLeft + NAV_WIDTH + 6, navPanelBottom, 0x33000000);
+        context.drawTextWithShadow(this.textRenderer, Text.literal("Sections"), navLeft, NAV_TOP - 16, 0xAAAAAA);
+        context.drawTextWithShadow(this.textRenderer, currentCategory.title(), contentLeft, 60, 0xFFFFFF);
         if (!categoryDescription.getString().isEmpty()) {
-            context.drawCenteredTextWithShadow(this.textRenderer, categoryDescription, this.width / 2, 78, 0x77C0FF);
+            context.drawTextWithShadow(this.textRenderer, categoryDescription, contentLeft, 78, 0x77C0FF);
         }
 
         context.fill(contentLeft - 6, CONTENT_TOP - 10, contentLeft + CONTENT_WIDTH + 6, CONTENT_TOP + visibleHeight + 10, 0x44000000);
         renderLabels(context);
         super.render(context, mouseX, mouseY, delta);
+
+        ButtonWidget selected = categoryButtons.get(currentCategory);
+        if (selected != null) {
+            context.drawBorder(selected.getX() - 2, selected.getY() - 2, selected.getWidth() + 4,
+                selected.getHeight() + 4, 0xFF77C0FF);
+        }
 
         if (contentHeight > visibleHeight) {
             int scrollbarX0 = contentLeft + CONTENT_WIDTH + 2;
@@ -457,7 +505,7 @@ public class UniversalMobWarConfigScreen extends Screen {
 
     private void renderLabels(DrawContext context) {
         if (labelPlacements.isEmpty()) return;
-        int x = this.width / 2 - CONTENT_WIDTH / 2;
+        int x = getContentLeft();
         int visibleHeight = getVisibleHeight();
         for (LabelPlacement label : labelPlacements) {
             int drawY = CONTENT_TOP + label.relativeY - (int) scrollOffset;
