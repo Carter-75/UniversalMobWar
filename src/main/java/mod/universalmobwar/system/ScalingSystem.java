@@ -325,9 +325,7 @@ public class ScalingSystem {
             data.getSkillData().putLong("lastUpdateTick", currentTick);
             
             // Spend points on upgrades (with save chance logic loop)
-            if (budget > 0) {
-                spendPoints(mob, data, config, mobType, budget, totalPoints);
-            }
+            spendPoints(mob, data, config, mobType, budget, totalPoints);
             
             // Apply permanent effects only when upgrades change
             applyEffects(mob, data, config, mobType, currentTick);
@@ -477,32 +475,42 @@ public class ScalingSystem {
         int iterations = 0;
         boolean purchasedUpgrade = false;
         String exitReason = "Budget exhausted";
-        while (budget > 0 && iterations < 50) { // Cap iterations to prevent infinite loop
+        while (iterations < 50) { // Cap iterations to prevent infinite loop
             iterations++;
-            
+
             List<UpgradeOption> affordable = getAffordableUpgrades(mob, config, mobType, skillData, budget);
-            
+
             if (affordable.isEmpty()) {
                 exitReason = "No affordable upgrades remaining";
                 logger.logIteration(iterations, 0.0, affordable.size(), exitReason);
                 break;
             }
-            
-            double roll = random.nextDouble();
-            logger.logIteration(iterations, roll, affordable.size(), null);
-            if (roll < saveChance) {
-                exitReason = "Save roll triggered";
-                logger.log(exitReason + " (carrying " + budget + " points)");
-                break;
+
+            List<UpgradeOption> zeroCostOptions = affordable.stream()
+                .filter(option -> option.cost == 0)
+                .toList();
+
+            UpgradeOption chosen;
+            if (!zeroCostOptions.isEmpty()) {
+                chosen = zeroCostOptions.get(random.nextInt(zeroCostOptions.size()));
+                logger.logIteration(iterations, 0.0, affordable.size(), "Auto-buying zero cost upgrade");
+            } else {
+                double roll = random.nextDouble();
+                logger.logIteration(iterations, roll, affordable.size(), null);
+                if (roll < saveChance) {
+                    exitReason = "Save roll triggered";
+                    logger.log(exitReason + " (carrying " + budget + " points)");
+                    break;
+                }
+                if (roll >= saveChance + buyChance) {
+                    logger.log("Roll outside buy/save window; retrying next iteration");
+                    continue;
+                }
+
+                // Buy a random affordable upgrade
+                chosen = affordable.get(random.nextInt(affordable.size()));
             }
-            if (roll >= saveChance + buyChance) {
-                logger.log("Roll outside buy/save window; retrying next iteration");
-                continue;
-            }
-            
-            // Buy a random affordable upgrade
-            UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
-            
+
             // Apply the upgrade
             skillData.putInt(chosen.key, chosen.newLevel);
             data.setSpentPoints(data.getSpentPoints() + chosen.cost);
@@ -511,7 +519,7 @@ public class ScalingSystem {
             logger.logPurchase(chosen, budget);
         }
         
-        if (iterations >= 50 && budget > 0 && "Budget exhausted".equals(exitReason)) {
+        if (iterations >= 50 && "Budget exhausted".equals(exitReason)) {
             exitReason = "Iteration cap reached";
         }
 
@@ -647,14 +655,14 @@ public class ScalingSystem {
             
             // Only upgrade the locked weapon's enchants and masteries
             
-            // Weapon enchants
-            if (lockedWeapon != null && lockedWeapon.has("enchants")) {
+            // Weapon enchants (only after the mob owns the weapon)
+            if (lockedWeapon != null && currentTier > 0 && lockedWeapon.has("enchants")) {
                 JsonObject enchants = lockedWeapon.getAsJsonObject("enchants");
                 addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
             }
             
-            // Drop mastery
-            if (lockedWeapon != null) {
+            // Weapon masteries require an equipped weapon
+            if (lockedWeapon != null && currentTier > 0) {
                 addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
                 addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
             }
@@ -679,8 +687,10 @@ public class ScalingSystem {
                 addUpgradesFromSection(enchants, skillData, budget, affordable, "shield_enchant_");
             }
             
-            addMasteryUpgrades(shield, "drop_mastery", skillData, budget, affordable, "shield_drop_mastery");
-            addMasteryUpgrades(shield, "durability_mastery", skillData, budget, affordable, "shield_durability_mastery");
+            if (hasShield > 0) {
+                addMasteryUpgrades(shield, "drop_mastery", skillData, budget, affordable, "shield_drop_mastery");
+                addMasteryUpgrades(shield, "durability_mastery", skillData, budget, affordable, "shield_durability_mastery");
+            }
         }
         
         // Check armor upgrades
@@ -689,9 +699,10 @@ public class ScalingSystem {
                 JsonObject armor = tree.getAsJsonObject(slot);
                 
                 // Armor tiers
+                int currentTier = skillData.getInt(slot + "_tier");
+
                 if (armor.has("tiers")) {
                     JsonArray tiers = armor.getAsJsonArray("tiers");
-                    int currentTier = skillData.getInt(slot + "_tier");
                     if (currentTier < tiers.size()) {
                         JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                         int cost = nextTier.get("cost").getAsInt();
@@ -700,15 +711,17 @@ public class ScalingSystem {
                         }
                     }
                 }
-                
+
                 // Armor enchants
-                if (armor.has("enchants")) {
+                if (currentTier > 0 && armor.has("enchants")) {
                     JsonObject enchants = armor.getAsJsonObject("enchants");
                     addUpgradesFromSection(enchants, skillData, budget, affordable, slot + "_enchant_");
                 }
                 
-                addMasteryUpgrades(armor, "drop_mastery", skillData, budget, affordable, slot + "_drop_mastery");
-                addMasteryUpgrades(armor, "durability_mastery", skillData, budget, affordable, slot + "_durability_mastery");
+                if (currentTier > 0) {
+                    addMasteryUpgrades(armor, "drop_mastery", skillData, budget, affordable, slot + "_drop_mastery");
+                    addMasteryUpgrades(armor, "durability_mastery", skillData, budget, affordable, slot + "_durability_mastery");
+                }
             }
         }
         
@@ -917,78 +930,26 @@ public class ScalingSystem {
      */
     private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig, ServerWorld world) {
         String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
+        int weaponTierLevel = skillData.getInt("weapon_tier");
         
         // Determine weapon item based on type and tier
         ItemStack weapon = null;
         
         if (weaponType.equals("bow")) {
-            // Bows don't have material tiers - base_cost 0 means mob spawns with it
-            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
-            if (baseCost == 0) {
-                // Mob spawns with bow
+            if (weaponTierLevel > 0) {
                 weapon = new ItemStack(Items.BOW);
-            } else {
-                // Mob must purchase bow - check if any enchants purchased
-                boolean hasAnyBowUpgrade = false;
-                if (weaponConfig.has("enchants")) {
-                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
-                    for (String enchantName : enchants.keySet()) {
-                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
-                            hasAnyBowUpgrade = true;
-                            break;
-                        }
-                    }
-                }
-                if (hasAnyBowUpgrade) {
-                    weapon = new ItemStack(Items.BOW);
-                }
             }
         } else if (weaponType.equals("crossbow")) {
-            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
-            if (baseCost == 0) {
-                // Mob spawns with crossbow
+            if (weaponTierLevel > 0) {
                 weapon = new ItemStack(Items.CROSSBOW);
-            } else {
-                // Mob must purchase crossbow
-                boolean hasAnyUpgrade = false;
-                if (weaponConfig.has("enchants")) {
-                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
-                    for (String enchantName : enchants.keySet()) {
-                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
-                            hasAnyUpgrade = true;
-                            break;
-                        }
-                    }
-                }
-                if (hasAnyUpgrade) {
-                    weapon = new ItemStack(Items.CROSSBOW);
-                }
             }
         } else if (weaponType.equals("trident")) {
-            // Tridents - base_cost 0 means mob spawns with it
-            int baseCost = weaponConfig.has("base_cost") ? weaponConfig.get("base_cost").getAsInt() : 0;
-            if (baseCost == 0) {
-                // Mob spawns with trident
+            if (weaponTierLevel > 0) {
                 weapon = new ItemStack(Items.TRIDENT);
-            } else {
-                // Mob must purchase trident - check if any enchants purchased
-                boolean hasAnyUpgrade = false;
-                if (weaponConfig.has("enchants")) {
-                    JsonObject enchants = weaponConfig.getAsJsonObject("enchants");
-                    for (String enchantName : enchants.keySet()) {
-                        if (skillData.getInt("weapon_enchant_" + enchantName) > 0) {
-                            hasAnyUpgrade = true;
-                            break;
-                        }
-                    }
-                }
-                if (hasAnyUpgrade) {
-                    weapon = new ItemStack(Items.TRIDENT);
-                }
             }
         } else {
             // Sword/Axe tiers
-            int tier = skillData.getInt("weapon_tier");
+            int tier = weaponTierLevel;
             if (tier > 0 && weaponConfig.has("tiers")) {
                 JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
                 if (tier <= tiers.size()) {
