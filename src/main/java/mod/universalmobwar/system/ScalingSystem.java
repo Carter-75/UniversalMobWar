@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.MobWarData;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
@@ -28,9 +29,12 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -85,43 +89,83 @@ public class ScalingSystem {
         private static String[] getImplementedMobs() {
             if (IMPLEMENTED_MOBS != null) return IMPLEMENTED_MOBS;
             java.util.Set<String> normalizedNames = new java.util.LinkedHashSet<>();
+
+            // Primary strategy: leverage Fabric's mod container roots so jar bundles work
+            collectConfigsFromModRoots(normalizedNames);
+
+            // Fallback for dev/runtime environments where direct resource access is available
+            if (normalizedNames.isEmpty()) {
+                collectConfigsFromClasspath(normalizedNames);
+            }
+
+            IMPLEMENTED_MOBS = normalizedNames.toArray(new String[0]);
+            return IMPLEMENTED_MOBS;
+        }
+
+        private static void collectConfigsFromModRoots(Set<String> normalizedNames) {
+            Optional<net.fabricmc.loader.api.ModContainer> container = FabricLoader.getInstance().getModContainer(UniversalMobWarMod.MODID);
+            if (container.isEmpty()) {
+                UniversalMobWarMod.LOGGER.warn("[ScalingSystem] Mod container missing; falling back to classpath scan");
+                return;
+            }
+
+            container.get().findPath("mob_configs").ifPresentOrElse(
+                path -> scanMobConfigDirectory(path, normalizedNames),
+                () -> UniversalMobWarMod.LOGGER.warn("[ScalingSystem] No mob_configs directory bundled; falling back to classpath scan")
+            );
+        }
+
+        private static void scanMobConfigDirectory(Path mobConfigDir, Set<String> normalizedNames) {
+            if (!Files.exists(mobConfigDir)) {
+                return;
+            }
+
+            try (java.util.stream.Stream<Path> stream = Files.walk(mobConfigDir, 1)) {
+                stream.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".json"))
+                    .forEach(path -> registerMobConfigName(mobConfigDir.relativize(path), normalizedNames));
+            } catch (IOException ex) {
+                UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to inspect {}: {}", mobConfigDir, ex.getMessage());
+            }
+        }
+
+        private static void collectConfigsFromClasspath(Set<String> normalizedNames) {
             try {
-                // Path to mob_configs directory in resources
                 String resourcePath = "/mob_configs";
                 java.net.URL dirURL = ScalingSystem.class.getResource(resourcePath);
-                if (dirURL != null && dirURL.getProtocol().equals("file")) {
+                if (dirURL != null && "file".equals(dirURL.getProtocol())) {
                     java.io.File dir = new java.io.File(dirURL.toURI());
                     String[] files = dir.list((d, name) -> name.endsWith(".json"));
                     if (files != null) {
                         for (String fileName : files) {
-                            String withoutExt = fileName.substring(0, fileName.length() - 5);
-                            String normalized = withoutExt.toLowerCase(java.util.Locale.ROOT);
-                            CONFIG_RESOURCE_NAMES.putIfAbsent(normalized, withoutExt);
-                            normalizedNames.add(normalized);
+                            registerMobConfigName(Path.of(fileName), normalizedNames);
                         }
                     }
-                } else if (dirURL != null && dirURL.getProtocol().equals("jar")) {
-                    // Running from JAR: scan entries
+                } else if (dirURL != null && "jar".equals(dirURL.getProtocol())) {
                     String jarPath = dirURL.getPath().substring(5, dirURL.getPath().indexOf("!"));
                     try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarPath)) {
                         java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
                         while (entries.hasMoreElements()) {
                             String entry = entries.nextElement().getName();
                             if (entry.startsWith("mob_configs/") && entry.endsWith(".json")) {
-                                String withoutExt = entry.substring("mob_configs/".length(), entry.length() - 5);
-                                String normalized = withoutExt.toLowerCase(java.util.Locale.ROOT);
-                                CONFIG_RESOURCE_NAMES.putIfAbsent(normalized, withoutExt);
-                                normalizedNames.add(normalized);
+                                registerMobConfigName(Path.of(entry.substring("mob_configs/".length())), normalizedNames);
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to load mob config list: {}", e.getMessage());
+                UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to load mob config list from classpath: {}", e.getMessage());
             }
+        }
 
-            IMPLEMENTED_MOBS = normalizedNames.toArray(new String[0]);
-            return IMPLEMENTED_MOBS;
+        private static void registerMobConfigName(Path relativePath, Set<String> normalizedNames) {
+            if (relativePath == null) return;
+            String sanitized = relativePath.toString().replace('\\', '/');
+            if (!sanitized.endsWith(".json")) return;
+            String withoutExt = sanitized.substring(0, sanitized.length() - 5);
+            String normalized = withoutExt.toLowerCase(java.util.Locale.ROOT);
+            CONFIG_RESOURCE_NAMES.putIfAbsent(normalized, withoutExt);
+            normalizedNames.add(normalized);
         }
     
     private static boolean configsLoaded = false;

@@ -1,9 +1,11 @@
 package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.config.ModConfig;
+import mod.universalmobwar.data.MobWarData;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -31,10 +33,19 @@ public abstract class MobDeathTrackerMixin {
 
         // Kill tracking hook - individual mob mixins handle their own progression
         // This provides a central point for future kill-based features
-        if (damageSource.getAttacker() instanceof MobEntity) {
-            // Future: Could notify a central system here
-            // Currently each mob mixin handles its own point calculation based on world time
+        if (!(damageSource.getAttacker() instanceof MobEntity killer)) {
+            return;
         }
+
+        // Count kills for player targets and mob targets alike
+        boolean countsTowardKills = victim instanceof PlayerEntity || victim instanceof MobEntity;
+        if (!countsTowardKills || killer == victim) {
+            return;
+        }
+
+        MobWarData killerData = MobWarData.get(killer);
+        killerData.addKill();
+        MobWarData.save(killer, killerData);
     }
 }
 
