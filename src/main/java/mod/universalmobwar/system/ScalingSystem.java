@@ -12,6 +12,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
@@ -287,7 +288,9 @@ public class ScalingSystem {
         JsonObject tree = config.getAsJsonObject("tree");
         ServerWorld serverWorld = mob.getWorld() instanceof ServerWorld sw ? sw : null;
 
-        if (skillData.getBoolean("weapon_equipped") && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
+        boolean hasWeaponEquipped = skillData.getBoolean("weapon_equipped");
+        boolean shouldHaveWeapon = skillData.getInt("weapon_tier") > 0;
+        if (hasWeaponEquipped && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
             if (handleWeaponBreak(mob, data) && serverWorld != null && tree.has("weapon")) {
                 JsonElement weaponElement = tree.get("weapon");
                 JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
@@ -297,12 +300,24 @@ public class ScalingSystem {
                     applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponKey);
                 }
             }
+        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && tree.has("weapon")) {
+            JsonElement weaponElement = tree.get("weapon");
+            JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
+            if (lockedWeapon != null) {
+                boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
+                String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
+                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponKey);
+            }
         }
 
-        if (skillData.getBoolean("shield_equipped") && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
+        boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
+        boolean shouldHaveShield = skillData.getInt("has_shield") > 0;
+        if (hasShieldEquipped && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
             if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
                 applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
             }
+        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield")) {
+            applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
         }
 
         monitorArmorSlot(mob, data, tree, EquipmentSlot.HEAD, "helmet", serverWorld);
@@ -397,7 +412,7 @@ public class ScalingSystem {
      * Calculate points from world age based on JSON daily_scaling config
      */
     private static double calculateWorldAgePoints(World world, JsonObject config, ModConfig modConfig) {
-        int worldDays = (int) (world.getTime() / 24000L);
+        int worldDays = resolveConfiguredWorldDays(world, modConfig);
         double totalPoints = 0.0;
         
         // Get daily_scaling from config
@@ -441,6 +456,14 @@ public class ScalingSystem {
         
         double dayMultiplier = Math.max(0.0, modConfig.getDayScalingMultiplier());
         return totalPoints * dayMultiplier;
+    }
+
+    private static int resolveConfiguredWorldDays(World world, ModConfig modConfig) {
+        if (modConfig.manualWorldDayOverride >= 0) {
+            return modConfig.manualWorldDayOverride;
+        }
+        long worldTicks = Math.max(0L, world.getTime());
+        return (int) (worldTicks / 24000L);
     }
 
     private static JsonObject getPointSystem(JsonObject config) {
@@ -1371,6 +1394,8 @@ public class ScalingSystem {
                     StatusEffects.HUNGER, duration * 20, effectLevel - 1, false, true, true));
             }
         }
+
+        applyCaveSpiderPoisonFromAbilities(skillData, abilities, target);
     }
     
     /**
@@ -1401,9 +1426,10 @@ public class ScalingSystem {
                 // Check cooldown (60 seconds)
                 UUID mobUuid = mob.getUuid();
                 Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
-                long lastUse = cooldowns.getOrDefault("horde_summon", 0L);
-                
-                if (currentTick - lastUse >= 1200L) { // 60 seconds cooldown
+                long cooldownTicks = 1200L;
+                long lastUse = cooldowns.getOrDefault("horde_summon", currentTick - cooldownTicks);
+
+                if (currentTick - lastUse >= cooldownTicks) { // 60 seconds cooldown
                     if (mob.getRandom().nextDouble() < chance) {
                         // Spawn a copy of this mob type nearby
                         try {
@@ -1414,6 +1440,12 @@ public class ScalingSystem {
                                 reinforcement.refreshPositionAndAngles(
                                     mob.getX() + offsetX, mob.getY(), mob.getZ() + offsetZ,
                                     mob.getRandom().nextFloat() * 360, 0);
+                                reinforcement.initialize(
+                                    world,
+                                    world.getLocalDifficulty(reinforcement.getBlockPos()),
+                                    SpawnReason.EVENT,
+                                    null
+                                );
                                 world.spawnEntity(reinforcement);
                                 cooldowns.put("horde_summon", currentTick);
                             }
@@ -1698,36 +1730,45 @@ public class ScalingSystem {
         
         if (!tree.has("special_abilities")) return;
         JsonObject abilities = tree.getAsJsonObject("special_abilities");
-        
+
+        applyCaveSpiderPoisonFromAbilities(skillData, abilities, target);
+    }
+
+    private static void applyCaveSpiderPoisonFromAbilities(NbtCompound skillData, JsonObject abilities, net.minecraft.entity.LivingEntity target) {
+        if (skillData == null || abilities == null || target == null) {
+            return;
+        }
+
         int poisonLevel = skillData.getInt("ability_poison_mastery");
-        if (poisonLevel > 0 && abilities.has("poison_mastery")) {
-            JsonArray levels = abilities.getAsJsonArray("poison_mastery");
-            if (poisonLevel <= levels.size()) {
-                JsonObject levelData = levels.get(poisonLevel - 1).getAsJsonObject();
-                
-                int poisonEffectLevel = levelData.has("poison_level") ? levelData.get("poison_level").getAsInt() : 1;
-                int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 7;
-                
-                // Apply poison
-                target.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.POISON, duration * 20, poisonEffectLevel - 1, false, true, true));
-                
-                // Apply wither if level 5+
-                if (levelData.has("wither_level")) {
-                    int witherLevel = levelData.get("wither_level").getAsInt();
-                    int witherDuration = levelData.has("wither_duration") ? levelData.get("wither_duration").getAsInt() : 10;
-                    target.addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.WITHER, witherDuration * 20, witherLevel - 1, false, true, true));
-                }
-                
-                // Apply slowness if level 6
-                if (levelData.has("slowness_level")) {
-                    int slownessLevel = levelData.get("slowness_level").getAsInt();
-                    int slownessDuration = levelData.has("slowness_duration") ? levelData.get("slowness_duration").getAsInt() : 15;
-                    target.addStatusEffect(new StatusEffectInstance(
-                        StatusEffects.SLOWNESS, slownessDuration * 20, slownessLevel - 1, false, true, true));
-                }
-            }
+        if (poisonLevel <= 0 || !abilities.has("poison_mastery")) {
+            return;
+        }
+
+        JsonArray levels = abilities.getAsJsonArray("poison_mastery");
+        if (poisonLevel > levels.size()) {
+            return;
+        }
+
+        JsonObject levelData = levels.get(poisonLevel - 1).getAsJsonObject();
+
+        int poisonEffectLevel = levelData.has("poison_level") ? levelData.get("poison_level").getAsInt() : 1;
+        int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 7;
+
+        target.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.POISON, duration * 20, poisonEffectLevel - 1, false, true, true));
+
+        if (levelData.has("wither_level")) {
+            int witherLevel = levelData.get("wither_level").getAsInt();
+            int witherDuration = levelData.has("wither_duration") ? levelData.get("wither_duration").getAsInt() : 10;
+            target.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.WITHER, witherDuration * 20, witherLevel - 1, false, true, true));
+        }
+
+        if (levelData.has("slowness_level")) {
+            int slownessLevel = levelData.get("slowness_level").getAsInt();
+            int slownessDuration = levelData.has("slowness_duration") ? levelData.get("slowness_duration").getAsInt() : 15;
+            target.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.SLOWNESS, slownessDuration * 20, slownessLevel - 1, false, true, true));
         }
     }
     
@@ -2014,15 +2055,35 @@ public class ScalingSystem {
 
     private static void monitorArmorSlot(MobEntity mob, MobWarData data, JsonObject tree, EquipmentSlot slot, String slotPrefix, ServerWorld world) {
         NbtCompound skillData = data.getSkillData();
-        if (!skillData.getBoolean(slotPrefix + "_equipped")) {
+        int tier = skillData.getInt(slotPrefix + "_tier");
+        if (tier <= 0) {
             return;
         }
-        if (!mob.getEquippedStack(slot).isEmpty()) {
+
+        boolean markedEquipped = skillData.getBoolean(slotPrefix + "_equipped");
+        boolean hasItem = hasEquippedItem(mob, slot);
+
+        if (hasItem) {
+            if (!markedEquipped) {
+                skillData.putBoolean(slotPrefix + "_equipped", true);
+            }
             return;
         }
-        if (handleArmorBreak(mob, data, slotPrefix) && world != null && tree.has(slotPrefix)) {
+
+        if (markedEquipped) {
+            if (handleArmorBreak(mob, data, slotPrefix) && world != null && tree.has(slotPrefix)) {
+                applyArmor(mob, skillData, tree, slotPrefix, slot, world);
+            }
+            return;
+        }
+
+        if (world != null && tree.has(slotPrefix)) {
             applyArmor(mob, skillData, tree, slotPrefix, slot, world);
         }
+    }
+
+    private static boolean hasEquippedItem(MobEntity mob, EquipmentSlot slot) {
+        return !mob.getEquippedStack(slot).isEmpty();
     }
 
     private static void clearEnchantsWithPrefix(NbtCompound skillData, String prefix) {

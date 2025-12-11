@@ -4,6 +4,7 @@
   "killScalingMultiplier": 1.0,
   "maxTier": 20,
   "allowBossScaling": true,
+  "manualWorldDayOverride": -1,
   "restrictEffectsToMobTheme": true,
   "debugUpgradeLog": true,
   "disableNaturalMobSpawns": false,

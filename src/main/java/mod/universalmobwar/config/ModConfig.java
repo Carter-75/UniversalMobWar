@@ -110,6 +110,10 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
 
+    @ConfigEntry.BoundedDiscrete(min = -1, max = 100000)
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public int manualWorldDayOverride = -1; // -1 = use actual world time
+
     // ==========================================================================
     //                       SECTION 4: MOB WARLORD SYSTEM
     // Controls the raid boss feature
@@ -439,5 +443,6 @@ public class ModConfig implements ConfigData {
         killScalingMultiplier = getKillScalingMultiplier();
         warlordHealthMultiplier = getWarlordHealthMultiplier();
         warlordDamageMultiplier = getWarlordDamageMultiplier();
+        manualWorldDayOverride = Math.max(-1, Math.min(100000, manualWorldDayOverride));
     }
 }

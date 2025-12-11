@@ -10,6 +10,7 @@
 		"MobEntityAccessor",
 		"MobEntityInitEquipmentMixin",
 		"PersistentProjectileEntityAccessor",
+		"CreeperEntityAccessor",
 		"MobDataMixin",
 		"LivingEntityDamageMixin",
 		"PotionEntityMixin",
@@ -20,7 +21,11 @@
 		"WarlordMinionProtectionMixin",
 		"RaidSpawningMixin",
 		"NaturalMobSpawnBlockerMixin",
-		"WitchAbilityMixin"
+		"WitchAbilityMixin",
+		"PersistentProjectileAbilityMixin",
+		"EndermanAbilityMixin",
+		"CreeperAbilityMixin",
+		"DragonFireballAbilityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

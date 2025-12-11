@@ -8,6 +8,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
@@ -31,6 +32,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     private Category currentCategory = Category.GENERAL;
     private final List<ClickableWidget> activeWidgets = new ArrayList<>();
     private final List<WidgetPlacement> widgetPlacements = new ArrayList<>();
+    private final List<LabelPlacement> labelPlacements = new ArrayList<>();
     private Text categoryDescription = Text.empty();
     private double scrollOffset = 0.0;
     private int contentHeight = 0;
@@ -40,6 +42,7 @@ public class UniversalMobWarConfigScreen extends Screen {
     private static final int CONTENT_WIDTH = 260;
     private static final int ROW_GAP = 28;
     private static final int WIDGET_HEIGHT = 20;
+    private static final int LABEL_GAP = 14;
 
     private enum Category {
         GENERAL, TARGETING, SCALING, PERFORMANCE, VISUALS, DEBUG
@@ -106,6 +109,7 @@ public class UniversalMobWarConfigScreen extends Screen {
         }
         activeWidgets.clear();
         widgetPlacements.clear();
+        labelPlacements.clear();
         scrollOffset = 0.0;
         contentHeight = 0;
 
@@ -189,6 +193,13 @@ public class UniversalMobWarConfigScreen extends Screen {
                     config.killScalingMultiplierPercent = (int) Math.round(val * 100.0);
                     config.killScalingMultiplier = val;
                 });
+            relativeY = addIntegerField(x, relativeY, w,
+                "Manual Day Override",
+                config.manualWorldDayOverride,
+                -1,
+                100000,
+                val -> config.manualWorldDayOverride = val,
+                "Pretend the world has run for this many days. Set -1 to use the real count.");
             relativeY = addSlider(x, relativeY, w, h, config.saveChancePercent, 0, 100,
                 val -> String.format("Save Chance: %.0f%% (Buy %.0f%%)", val, 100 - val),
                 val -> {
@@ -325,11 +336,43 @@ public class UniversalMobWarConfigScreen extends Screen {
         return relativeY + ROW_GAP;
     }
 
+    private int addIntegerField(int x, int relativeY, int w, String label, int initialValue,
+                                int minValue, int maxValue, Consumer<Integer> onSave, String tooltip) {
+        registerLabel(Text.literal(label), relativeY);
+        int fieldRelativeY = relativeY + LABEL_GAP;
+        TextFieldWidget field = new TextFieldWidget(this.textRenderer, x, CONTENT_TOP + fieldRelativeY, w, WIDGET_HEIGHT, Text.literal(label));
+        field.setText(String.valueOf(initialValue));
+        field.setMaxLength(7);
+        field.setPlaceholder(Text.literal("Use -1 to follow real days"));
+        field.setTooltip(Tooltip.of(Text.literal(tooltip)));
+        field.setTextPredicate(text -> text.isEmpty() || text.equals("-") || text.matches("-?\\d{0,6}"));
+        field.setChangedListener(text -> {
+            if (text == null || text.isEmpty() || text.equals("-")) {
+                return;
+            }
+            try {
+                int parsed = Integer.parseInt(text);
+                parsed = MathHelper.clamp(parsed, minValue, maxValue);
+                onSave.accept(parsed);
+                String clampedText = String.valueOf(parsed);
+                if (!clampedText.equals(text)) {
+                    field.setText(clampedText);
+                }
+            } catch (NumberFormatException ignored) {}
+        });
+        registerScrollableWidget(field, fieldRelativeY);
+        return fieldRelativeY + ROW_GAP;
+    }
+
     private void registerScrollableWidget(ClickableWidget widget, int relativeY) {
         this.addDrawableChild(widget);
         activeWidgets.add(widget);
         widgetPlacements.add(new WidgetPlacement(widget, relativeY));
         updateContentHeight(relativeY);
+    }
+
+    private void registerLabel(Text text, int relativeY) {
+        labelPlacements.add(new LabelPlacement(text, relativeY));
     }
 
     private void updateContentHeight(int relativeY) {
@@ -348,6 +391,8 @@ public class UniversalMobWarConfigScreen extends Screen {
             widget.setY(widgetY);
             if (widget instanceof SliderWidget slider) {
                 slider.setWidth(CONTENT_WIDTH);
+            } else if (widget instanceof TextFieldWidget field) {
+                field.setWidth(CONTENT_WIDTH);
             }
             widget.visible = widgetY + WIDGET_HEIGHT >= CONTENT_TOP - WIDGET_HEIGHT && widgetY <= CONTENT_TOP + visibleHeight;
         }
@@ -394,6 +439,7 @@ public class UniversalMobWarConfigScreen extends Screen {
         }
 
         context.fill(contentLeft - 6, CONTENT_TOP - 10, contentLeft + CONTENT_WIDTH + 6, CONTENT_TOP + visibleHeight + 10, 0x44000000);
+        renderLabels(context);
         super.render(context, mouseX, mouseY, delta);
 
         if (contentHeight > visibleHeight) {
@@ -409,6 +455,19 @@ public class UniversalMobWarConfigScreen extends Screen {
         }
     }
 
+    private void renderLabels(DrawContext context) {
+        if (labelPlacements.isEmpty()) return;
+        int x = this.width / 2 - CONTENT_WIDTH / 2;
+        int visibleHeight = getVisibleHeight();
+        for (LabelPlacement label : labelPlacements) {
+            int drawY = CONTENT_TOP + label.relativeY - (int) scrollOffset;
+            if (drawY < CONTENT_TOP - 12 || drawY > CONTENT_TOP + visibleHeight) {
+                continue;
+            }
+            context.drawTextWithShadow(this.textRenderer, label.text, x, drawY, label.color);
+        }
+    }
+
     private static class WidgetPlacement {
         private final ClickableWidget widget;
         private final int relativeY;
@@ -416,6 +475,22 @@ public class UniversalMobWarConfigScreen extends Screen {
         private WidgetPlacement(ClickableWidget widget, int relativeY) {
             this.widget = widget;
             this.relativeY = relativeY;
+        }
+    }
+
+    private static class LabelPlacement {
+        private final Text text;
+        private final int relativeY;
+        private final int color;
+
+        private LabelPlacement(Text text, int relativeY) {
+            this(text, relativeY, 0xFFC3D5FF);
+        }
+
+        private LabelPlacement(Text text, int relativeY, int color) {
+            this.text = text;
+            this.relativeY = relativeY;
+            this.color = color;
         }
     }
 }
