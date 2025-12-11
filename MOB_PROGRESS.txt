@@ -661,6 +661,24 @@ ENDERMAN TREE (only for Enderman):
     level 4: cost=26, effect="55% chance to apply Weakness III for 12s + Levitation 4s (range 16 blocks)"
 
 ================================================================================
+                           SPECIAL ABILITY QUICK REFERENCE
+================================================================================
+
+horde_summon: Chance-based reinforcement call that spawns allied mobs of the same type when the caster is under pressure.
+hunger_attack: Melee strikes infect targets with escalating Hunger levels, draining saturation and slowing natural regen.
+piercing_shot: Arrows, bolts, or spit ignore additional entities, letting one projectile pass through multiple targets.
+ranged_potion_mastery: Ranged attacks inherit potion payloads, layering slowness, weakness, poison, instant damage, or wither on impact.
+multishot: Every ranged attack clones itself into supplemental projectiles, widening spread and damage output.
+creeper_power: Supercharges the blast radius of Creeper detonations, scaling from mild bumps to siege-level explosions.
+creeper_potion_cloud: After exploding, Creepers leave lingering AOE clouds that escalate from slowness to full wither cocktails.
+potion_throw_speed: Witches wind up faster and throw farther with tighter accuracy cones, making potions harder to dodge.
+extra_potion_bag: Expands a Witch’s arsenal with higher-tier Instant Damage flasks capped by withering brews at max rank.
+poison_mastery: Cave Spider bites gain longer poison durations, higher potency, and eventually tack on wither plus slowness.
+void_bombardment: Ender Dragon fireballs gain damage, radius, faster recharge, and reliable wither damage over time.
+shadow_step: Endermen retaliate by short-range teleporting and briefly blinding aggressors, with odds and distance scaling per level.
+void_grasp: Periodic void pulses check nearby players, inflicting stacking weakness and levitation to set up combo hits.
+
+================================================================================
                            TREE NAMING BY MOB
 ================================================================================
 
