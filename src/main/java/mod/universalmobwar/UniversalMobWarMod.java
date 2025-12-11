@@ -5,6 +5,7 @@ import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
+import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
 // Evolution system handled by individual mob mixins
 import mod.universalmobwar.system.AllianceSystem;
@@ -13,6 +14,7 @@ import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -31,16 +33,46 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
 public class UniversalMobWarMod implements ModInitializer {
 
 	public static final String MODID = "universalmobwar";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
+
+	public static final GameRules.Key<GameRules.BooleanRule> IGNORE_SAME_SPECIES_RULE = registerBooleanRule(
+		"universalmobwarIgnoreSameSpecies",
+		GameRules.Category.MOBS,
+		true,
+		(server, rule) -> {
+			ModConfig config = ModConfig.getInstance();
+			if (config.ignoreSameSpecies != rule.get()) {
+				config.ignoreSameSpecies = rule.get();
+				ModConfig.save();
+			}
+		}
+	);
+
+	public static final GameRules.Key<GameRules.BooleanRule> NEUTRAL_MOBS_AGGRESSIVE_RULE = registerBooleanRule(
+		"universalmobwarNeutralMobsAggressive",
+		GameRules.Category.MOBS,
+		false,
+		(server, rule) -> {
+			ModConfig config = ModConfig.getInstance();
+			if (config.neutralMobsAlwaysAggressive != rule.get()) {
+				config.neutralMobsAlwaysAggressive = rule.get();
+				ModConfig.save();
+			}
+		}
+	);
 
 	// Mob Warlord Boss Entity (uses HostileEntity for Iris Shaders compatibility)
 	public static final EntityType<MobWarlordEntity> MOB_WARLORD = Registry.register(
@@ -64,6 +96,7 @@ public class UniversalMobWarMod implements ModInitializer {
 		// Register and load config
 		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 		ModConfig config = ModConfig.getInstance();
+		ServerLifecycleEvents.SERVER_STARTED.register(UniversalMobWarMod::syncGameRulesWithConfig);
 		
 		// Register Skill Tree Events (Projectiles, etc.)
 		// SkillTreeEvents.register();
@@ -225,7 +258,7 @@ public class UniversalMobWarMod implements ModInitializer {
 				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
 
 			if (!alreadyHasGoal) {
-				var configSupplier = ModConfig::getInstance;
+				Supplier<ModConfig> configSupplier = ModConfig::getInstance;
 				// Add targeting goal
 				targetSelector.add(2, new UniversalTargetGoal(
 					mob,
@@ -257,6 +290,31 @@ public class UniversalMobWarMod implements ModInitializer {
 		});
 
 		LOGGER.info("Universal Mob War initialized successfully!");
+	}
+
+	private static GameRules.Key<GameRules.BooleanRule> registerBooleanRule(
+		String name,
+		GameRules.Category category,
+		boolean defaultValue,
+		BiConsumer<MinecraftServer, GameRules.BooleanRule> changeCallback
+	) {
+		return GameRulesAccessor.GameRulesInvoker.invokeRegister(
+			name,
+			category,
+			GameRulesAccessor.BooleanRuleInvoker.invokeCreate(defaultValue, changeCallback)
+		);
+	}
+
+	private static void syncGameRulesWithConfig(MinecraftServer server) {
+		ModConfig config = ModConfig.getInstance();
+		GameRules.BooleanRule ignoreSameRule = server.getGameRules().get(IGNORE_SAME_SPECIES_RULE);
+		if (ignoreSameRule.get() != config.ignoreSameSpecies) {
+			ignoreSameRule.set(config.ignoreSameSpecies, server);
+		}
+		GameRules.BooleanRule neutralAggressiveRule = server.getGameRules().get(NEUTRAL_MOBS_AGGRESSIVE_RULE);
+		if (neutralAggressiveRule.get() != config.neutralMobsAlwaysAggressive) {
+			neutralAggressiveRule.set(config.neutralMobsAlwaysAggressive, server);
+		}
 	}
 
 }
