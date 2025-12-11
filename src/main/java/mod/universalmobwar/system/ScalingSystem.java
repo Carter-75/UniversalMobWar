@@ -74,6 +74,8 @@ public class ScalingSystem {
         "minecraft:warden",
         "minecraft:elder_guardian"
     );
+    private static final String NBT_WEAPON_ACTIVE_KEY = "weapon_active_key";
+    private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -243,9 +245,12 @@ public class ScalingSystem {
 
         if (skillData.getBoolean("weapon_equipped") && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
             if (handleWeaponBreak(mob, data) && serverWorld != null && tree.has("weapon")) {
-                JsonObject lockedWeapon = getLockedWeaponForMob(tree.get("weapon"), mob);
+                JsonElement weaponElement = tree.get("weapon");
+                JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
                 if (lockedWeapon != null) {
-                    applyWeapon(mob, skillData, lockedWeapon, serverWorld);
+                    boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
+                    String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
+                    applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponKey);
                 }
             }
         }
@@ -486,30 +491,20 @@ public class ScalingSystem {
                 break;
             }
 
-            List<UpgradeOption> zeroCostOptions = affordable.stream()
-                .filter(option -> option.cost == 0)
-                .toList();
-
-            UpgradeOption chosen;
-            if (!zeroCostOptions.isEmpty()) {
-                chosen = zeroCostOptions.get(random.nextInt(zeroCostOptions.size()));
-                logger.logIteration(iterations, 0.0, affordable.size(), "Auto-buying zero cost upgrade");
-            } else {
-                double roll = random.nextDouble();
-                logger.logIteration(iterations, roll, affordable.size(), null);
-                if (roll < saveChance) {
-                    exitReason = "Save roll triggered";
-                    logger.log(exitReason + " (carrying " + budget + " points)");
-                    break;
-                }
-                if (roll >= saveChance + buyChance) {
-                    logger.log("Roll outside buy/save window; retrying next iteration");
-                    continue;
-                }
-
-                // Buy a random affordable upgrade
-                chosen = affordable.get(random.nextInt(affordable.size()));
+            double roll = random.nextDouble();
+            logger.logIteration(iterations, roll, affordable.size(), null);
+            if (roll < saveChance) {
+                exitReason = "Save roll triggered";
+                logger.log(exitReason + " (carrying " + budget + " points)");
+                break;
             }
+            if (roll >= saveChance + buyChance) {
+                logger.log("Roll outside buy/save window; retrying next iteration");
+                continue;
+            }
+
+            // Buy a random affordable upgrade (zero-cost options still go through buy/save logic)
+            UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
 
             // Apply the upgrade
             skillData.putInt(chosen.key, chosen.newLevel);
@@ -633,6 +628,11 @@ public class ScalingSystem {
             JsonElement weaponElement = tree.get("weapon");
             JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
             int currentTier = skillData.getInt("weapon_tier");
+            boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
+            String weaponScopeKey = scopedWeapon && lockedWeapon != null ? getWeaponScopeIdentifier(lockedWeapon) : "";
+            String weaponEnchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
+            String weaponDropKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponScopeKey);
+            String weaponDurabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponScopeKey);
             if (lockedWeapon != null) {
                 int baseCost = lockedWeapon.has("base_cost") ? lockedWeapon.get("base_cost").getAsInt() : 0;
                 if (currentTier == 0) {
@@ -642,7 +642,7 @@ public class ScalingSystem {
                 } else if (lockedWeapon.has("tiers")) {
                     JsonArray tiers = lockedWeapon.getAsJsonArray("tiers");
                     if (tiers.size() > 0 && currentTier < tiers.size()) {
-                        if (meetsTierUpgradePrereqs(skillData, "weapon", lockedWeapon, "weapon_enchant_")) {
+                        if (meetsTierUpgradePrereqs(skillData, "weapon", lockedWeapon, weaponEnchantPrefix, weaponDropKey, weaponDurabilityKey)) {
                             JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                             int tierCost = nextTier.get("cost").getAsInt();
                             if (tierCost <= budget) {
@@ -658,13 +658,13 @@ public class ScalingSystem {
             // Weapon enchants (only after the mob owns the weapon)
             if (lockedWeapon != null && currentTier > 0 && lockedWeapon.has("enchants")) {
                 JsonObject enchants = lockedWeapon.getAsJsonObject("enchants");
-                addUpgradesFromSection(enchants, skillData, budget, affordable, "weapon_enchant_");
+                addUpgradesFromSection(enchants, skillData, budget, affordable, weaponEnchantPrefix);
             }
             
             // Weapon masteries require an equipped weapon
             if (lockedWeapon != null && currentTier > 0) {
-                addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, "weapon_drop_mastery");
-                addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, "weapon_durability_mastery");
+                addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, weaponDropKey);
+                addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, weaponDurabilityKey);
             }
         }
         
@@ -900,17 +900,12 @@ public class ScalingSystem {
         // Apply weapon
         if (tree.has("weapon")) {
             JsonElement weaponElement = tree.get("weapon");
-            JsonObject weapon;
-            
-            if (weaponElement.isJsonArray()) {
-                JsonArray weapons = weaponElement.getAsJsonArray();
-                int index = Math.abs(mob.getUuid().hashCode()) % weapons.size();
-                weapon = weapons.get(index).getAsJsonObject();
-            } else {
-                weapon = weaponElement.getAsJsonObject();
+            JsonObject weapon = getLockedWeaponForMob(weaponElement, mob);
+            if (weapon != null) {
+                boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
+                String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(weapon) : "";
+                applyWeapon(mob, skillData, weapon, world, scopedWeapon, weaponKey);
             }
-            
-            applyWeapon(mob, skillData, weapon, world);
         }
         
         // Apply shield
@@ -928,9 +923,13 @@ public class ScalingSystem {
     /**
      * Apply weapon with enchants
      */
-    private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig, ServerWorld world) {
+    private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig,
+            ServerWorld world, boolean scopedWeapon, String weaponScopeKey) {
         String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
         int weaponTierLevel = skillData.getInt("weapon_tier");
+        String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
+        String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponScopeKey);
+        String dropMasteryKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponScopeKey);
         
         // Determine weapon item based on type and tier
         ItemStack weapon = null;
@@ -965,16 +964,18 @@ public class ScalingSystem {
         
         // Apply enchants
         if (weaponConfig.has("enchants")) {
-            applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), "weapon_enchant_", world);
+            applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), enchantPrefix, world);
         }
         
         // Apply durability mastery - set durability based on level
-        applyDurabilityMastery(weapon, skillData, weaponConfig, "weapon_durability_mastery");
+        applyDurabilityMastery(weapon, skillData, weaponConfig, durabilityKey);
         
         // Equip it
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
         skillData.putBoolean("weapon_equipped", true);
-        applyDropChance(mob, EquipmentSlot.MAINHAND, skillData.getInt("weapon_drop_mastery"));
+        applyDropChance(mob, EquipmentSlot.MAINHAND, skillData.getInt(dropMasteryKey));
+        skillData.putString(NBT_WEAPON_ACTIVE_KEY, scopedWeapon ? weaponScopeKey : "");
+        skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, scopedWeapon);
     }
     
     /**
@@ -1917,9 +1918,16 @@ public class ScalingSystem {
         } else {
             skillData.putInt("weapon_tier", 0);
         }
-        clearEnchantsWithPrefix(skillData, "weapon_enchant_");
-        resetMasteries(skillData, "weapon");
+        boolean scopedWeapon = skillData.getBoolean(NBT_WEAPON_ACTIVE_SCOPED);
+        String weaponKey = skillData.getString(NBT_WEAPON_ACTIVE_KEY);
+        String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponKey);
+        String dropKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponKey);
+        String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponKey);
+        clearEnchantsWithPrefix(skillData, enchantPrefix);
+        resetMasteries(skillData, dropKey, durabilityKey);
         skillData.putBoolean("weapon_equipped", false);
+        skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
+        skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
         MobWarData.save(mob, data);
         return true;
     }
@@ -1984,8 +1992,16 @@ public class ScalingSystem {
     }
 
     private static void resetMasteries(NbtCompound skillData, String slotPrefix) {
-        skillData.putInt(slotPrefix + "_drop_mastery", 0);
-        skillData.putInt(slotPrefix + "_durability_mastery", 0);
+        resetMasteries(skillData, slotPrefix + "_drop_mastery", slotPrefix + "_durability_mastery");
+    }
+
+    private static void resetMasteries(NbtCompound skillData, String dropKey, String durabilityKey) {
+        if (dropKey != null && !dropKey.isEmpty()) {
+            skillData.putInt(dropKey, 0);
+        }
+        if (durabilityKey != null && !durabilityKey.isEmpty()) {
+            skillData.putInt(durabilityKey, 0);
+        }
     }
 
     private static void applyDropChance(MobEntity mob, EquipmentSlot slot, int masteryLevel) {
@@ -2009,14 +2025,21 @@ public class ScalingSystem {
     }
 
     private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig, String enchantPrefix) {
+        String dropKey = slotPrefix + "_drop_mastery";
+        String durabilityKey = slotPrefix + "_durability_mastery";
+        return meetsTierUpgradePrereqs(skillData, slotPrefix, slotConfig, enchantPrefix, dropKey, durabilityKey);
+    }
+
+    private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig,
+            String enchantPrefix, String dropKey, String durabilityKey) {
         int currentTier = skillData.getInt(slotPrefix + "_tier");
         if (currentTier <= 0) {
             return true; // base acquisition
         }
-        if (!hasMasteryAtMax(skillData, slotPrefix + "_drop_mastery", slotConfig, "drop_mastery")) {
+        if (!hasMasteryAtMax(skillData, dropKey, slotConfig, "drop_mastery")) {
             return false;
         }
-        if (!hasMasteryAtMax(skillData, slotPrefix + "_durability_mastery", slotConfig, "durability_mastery")) {
+        if (!hasMasteryAtMax(skillData, durabilityKey, slotConfig, "durability_mastery")) {
             return false;
         }
         if (slotConfig != null && slotConfig.has("enchants")) {
@@ -2057,6 +2080,64 @@ public class ScalingSystem {
         int index = Math.abs(mob.getUuid().hashCode());
         index = index % weapons.size();
         return weapons.get(index).getAsJsonObject();
+    }
+
+    private static boolean hasMultipleWeaponOptions(JsonElement weaponElement) {
+        return weaponElement != null && weaponElement.isJsonArray() && weaponElement.getAsJsonArray().size() > 1;
+    }
+
+    private static String getWeaponScopeIdentifier(JsonObject weaponConfig) {
+        if (weaponConfig == null) {
+            return "";
+        }
+        if (weaponConfig.has("weapon_id")) {
+            String explicit = sanitizeKey(weaponConfig.get("weapon_id").getAsString());
+            if (!explicit.isEmpty()) {
+                return explicit;
+            }
+        }
+        if (weaponConfig.has("weapon_type")) {
+            String type = sanitizeKey(weaponConfig.get("weapon_type").getAsString());
+            if (!type.isEmpty()) {
+                return type;
+            }
+        }
+        String json = GSON.toJson(weaponConfig);
+        java.util.UUID derived = java.util.UUID.nameUUIDFromBytes(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return sanitizeKey(derived.toString());
+    }
+
+    private static String getWeaponScopedKey(String baseKey, boolean scoped, String weaponKey) {
+        if (!scoped) {
+            return baseKey;
+        }
+        String sanitized = sanitizeKey(weaponKey);
+        if (sanitized.isEmpty()) {
+            return baseKey;
+        }
+        return baseKey + "_" + sanitized;
+    }
+
+    private static String getWeaponEnchantPrefix(boolean scoped, String weaponKey) {
+        if (!scoped) {
+            return "weapon_enchant_";
+        }
+        String sanitized = sanitizeKey(weaponKey);
+        if (sanitized.isEmpty()) {
+            return "weapon_enchant_";
+        }
+        return "weapon_enchant_" + sanitized + "_";
+    }
+
+    private static String sanitizeKey(String rawKey) {
+        if (rawKey == null) {
+            return "";
+        }
+        String normalized = rawKey.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "_");
+        while (normalized.endsWith("_")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 
     private static class UpgradeLogger {
