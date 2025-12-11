@@ -81,6 +81,8 @@ public class ScalingSystem {
     );
     private static final String NBT_WEAPON_ACTIVE_KEY = "weapon_active_key";
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
+    private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
+    private static final String NBT_UPGRADE_WRAP_STATE = "umw_upgrade_marker_wrapped";
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -381,30 +383,28 @@ public class ScalingSystem {
         // 1. Mob just spawned (lastUpdate == 0)
         // 2. Mob hasn't been upgraded in 1+ day (24000 ticks)
         long currentTick = world.getTime();
-        long lastUpdate = data.getSkillData().contains("lastUpdateTick") ? 
-            data.getSkillData().getLong("lastUpdateTick") : 0;
-        
-        long ticksSinceLastUpdate = currentTick - lastUpdate;
-        boolean shouldProcessUpgrades = (lastUpdate == 0) || (ticksSinceLastUpdate >= 24000);
+        int currentTimeOfDay = getCurrentTimeOfDay(world);
+        boolean firstUpgradeCycle = !skillData.contains(NBT_LAST_UPGRADE_MARKER);
+        boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay);
+        boolean shouldProcessUpgrades = firstUpgradeCycle || readyForNextCycle;
         boolean needsEquipmentSync = !shouldProcessUpgrades && requiresEquipmentSync(mob, skillData);
-        
-        if (shouldProcessUpgrades) {
-            // Update timestamp
-            skillData.putLong("lastUpdateTick", currentTick);
-            
-            // Spend points on upgrades (with save chance logic loop)
-            spendPoints(mob, data, config, mobType, budget, totalPoints);
-            
-            // Apply permanent effects only when upgrades change
-            applyEffects(mob, data, config, mobType, currentTick);
-        }
-
         boolean appliedEquipment = false;
-        if (world instanceof ServerWorld serverWorld) {
-            if (shouldProcessUpgrades || needsEquipmentSync) {
+
+        if (shouldProcessUpgrades) {
+            skillData.putLong("lastUpdateTick", currentTick);
+            skillData.putInt(NBT_LAST_UPGRADE_MARKER, currentTimeOfDay);
+            skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, false);
+
+            spendPoints(mob, data, config, mobType, budget, totalPoints);
+            applyEffects(mob, data, config, mobType, currentTick);
+
+            if (world instanceof ServerWorld serverWorld) {
                 applyEquipment(mob, data, config, serverWorld);
                 appliedEquipment = true;
             }
+        } else if (world instanceof ServerWorld serverWorld && needsEquipmentSync) {
+            applyEquipment(mob, data, config, serverWorld);
+            appliedEquipment = true;
         }
 
         if (shouldProcessUpgrades || appliedEquipment) {
@@ -464,6 +464,27 @@ public class ScalingSystem {
         
         double dayMultiplier = Math.max(0.0, modConfig.getDayScalingMultiplier());
         return totalPoints * dayMultiplier;
+    }
+
+    private static int getCurrentTimeOfDay(World world) {
+        if (world == null) {
+            return 0;
+        }
+        long timeOfDay = world.getTimeOfDay();
+        return (int) Math.floorMod(timeOfDay, 24000L);
+    }
+
+    private static boolean isUpgradeWindowOpen(NbtCompound skillData, int currentTimeOfDay) {
+        if (skillData == null || !skillData.contains(NBT_LAST_UPGRADE_MARKER)) {
+            return true;
+        }
+        int marker = skillData.getInt(NBT_LAST_UPGRADE_MARKER);
+        boolean wrapped = skillData.getBoolean(NBT_UPGRADE_WRAP_STATE);
+        if (!wrapped && currentTimeOfDay < marker) {
+            skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, true);
+            wrapped = true;
+        }
+        return wrapped && currentTimeOfDay >= marker;
     }
 
     private static int resolveConfiguredWorldDays(World world, ModConfig modConfig) {
