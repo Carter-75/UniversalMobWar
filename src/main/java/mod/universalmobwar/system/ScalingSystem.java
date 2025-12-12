@@ -11,16 +11,12 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -42,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -84,33 +81,6 @@ public class ScalingSystem {
         "minecraft:warden",
         "minecraft:elder_guardian"
     );
-    private static final Set<EntityType<?>> UNDEAD_ENTITY_TYPES = Set.of(
-        EntityType.ZOMBIE,
-        EntityType.ZOMBIE_VILLAGER,
-        EntityType.ZOMBIE_HORSE,
-        EntityType.DROWNED,
-        EntityType.HUSK,
-        EntityType.STRAY,
-        EntityType.BOGGED,
-        EntityType.SKELETON,
-        EntityType.WITHER_SKELETON,
-        EntityType.SKELETON_HORSE,
-        EntityType.PHANTOM,
-        EntityType.WITHER,
-        EntityType.ZOMBIFIED_PIGLIN,
-        EntityType.ZOGLIN,
-        EntityType.GIANT
-    );
-    private static final List<String> UNDEAD_KEYWORDS = List.of(
-        "zombie",
-        "skeleton",
-        "undead",
-        "wither",
-        "ghost",
-        "lich",
-        "ghoul",
-        "phantom"
-    );
     private static final String NBT_WEAPON_ACTIVE_KEY = "weapon_active_key";
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
@@ -121,15 +91,10 @@ public class ScalingSystem {
     private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
-    private static final String NBT_UNDEAD_BASE_HEAL_TICK = "umw_undead_base_heal_tick";
-    private static final String NBT_UNDEAD_ON_DAMAGE_UNTIL = "umw_undead_on_damage_until";
-    private static final String NBT_UNDEAD_ON_DAMAGE_NEXT = "umw_undead_on_damage_next";
-    private static final String NBT_UNDEAD_ON_DAMAGE_AMP = "umw_undead_on_damage_amp";
-
-    private static final int UNDEAD_HEAL_INTERVAL_TICKS = 200;
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
+    private static final Map<UUID, EquipmentSnapshot> PENDING_EQUIPMENT_SNAPSHOTS = new ConcurrentHashMap<>();
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -486,54 +451,68 @@ public class ScalingSystem {
      * This single method handles ALL scaling logic for ALL mobs
      */
     public static void processMobTick(MobEntity mob, World world, MobWarData data) {
-        // Skip client side
-        if (world.isClient()) return;
-        
-        // Check if scaling is enabled
+        if (world.isClient()) {
+            return;
+        }
+
         ModConfig modConfig = ModConfig.getInstance();
-        if (!modConfig.isScalingActive()) return;
-        
+        if (!modConfig.isScalingActive()) {
+            return;
+        }
+
         Identifier entityId = resolveEntityId(mob);
         String entityIdStr = entityId != null ? entityId.toString() : mob.getType().toString();
-        
+
         if (modConfig.isMobExcluded(entityIdStr)) return;
         if (isModdedEntity(entityId)) {
-            // TODO: add opt-in support for modded mobs when custom config schema exists
             return;
         }
         if (!modConfig.allowBossScaling && isBossEntity(entityId)) return;
-        
-        // Get config for this mob
+
         JsonObject config = getConfigForMob(mob);
-        if (config == null) return; // No config = no scaling for this mob
-        
+        if (config == null) return;
+
         NbtCompound skillData = data.getSkillData();
-        
-        // Get mob type for different upgrade paths
+
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         refreshMissingEffects(mob, skillData, config, mobType);
-        
-        // Calculate total points from world age
+
         double totalPoints = calculateWorldAgePoints(world, config, modConfig);
-        
-        // Add kill points (stored in MobWarData)
+        int killCount = data.getKillCount();
         double killScaling = getKillScalingFactor(config);
-        double killPoints = data.getKillCount() * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
+        double killPoints = killCount * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
         totalPoints += killPoints;
-        
-        // Store total for reference
         data.setSkillPoints(totalPoints);
-        
-        // Get current spent points
+
         double spentPoints = data.getSpentPoints();
         int budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
-        
-        // Only process upgrades when:
-        // 1. Mob just spawned (lastUpdate == 0)
-        // 2. Mob hasn't been upgraded in 1+ day (24000 ticks)
+
         long currentTick = world.getTime();
-        tickUndeadHealing(mob, skillData, config, mobType, currentTick);
         int currentTimeOfDay = getCurrentTimeOfDay(world);
+        UUID mobUuid = mob.getUuid();
+
+        UpgradeJobScheduler scheduler = UpgradeJobScheduler.getInstance();
+        boolean asyncEnabled = modConfig.enableAsyncTasks;
+        boolean stateChanged = false;
+        boolean appliedEquipment = false;
+
+        if (asyncEnabled) {
+            UpgradeJobResult completedResult = scheduler.pollResult(mobUuid);
+            if (completedResult != null) {
+                EquipmentSnapshot snapshot = PENDING_EQUIPMENT_SNAPSHOTS.remove(mobUuid);
+                if (snapshot == null) {
+                    snapshot = EquipmentSnapshot.capture(mob, skillData);
+                }
+                applyUpgradeComputation(mob, data, config, mobType, currentTick, currentTimeOfDay, completedResult.computation(), snapshot);
+                clearUpgradeSchedule(data.getSkillData());
+                skillData = data.getSkillData();
+                spentPoints = data.getSpentPoints();
+                budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
+                stateChanged = true;
+                appliedEquipment = true;
+            }
+        }
+
         boolean firstUpgradeCycle = !skillData.contains(NBT_LAST_UPGRADE_MARKER);
         boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay);
         boolean shouldRequestUpgrade = firstUpgradeCycle || readyForNextCycle;
@@ -545,34 +524,70 @@ public class ScalingSystem {
             MobWarData.save(mob, data);
         }
 
-        boolean runUpgradePass = upgradeScheduleReady;
-        boolean canSyncEquipment = !runUpgradePass
+        boolean canSyncEquipment = !upgradeScheduleReady
             && !skillData.getBoolean(NBT_UPGRADE_PENDING)
             && skillData.getBoolean(NBT_EQUIPMENT_PRIMED);
         boolean needsEquipmentSync = canSyncEquipment && requiresEquipmentSync(mob, skillData);
-        boolean appliedEquipment = false;
 
-        if (runUpgradePass) {
-            EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
-            skillData.putLong("lastUpdateTick", currentTick);
-            skillData.putInt(NBT_LAST_UPGRADE_MARKER, currentTimeOfDay);
-            skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, false);
-            lockEquipmentForUpgrade(skillData);
-
-            spendPoints(mob, data, config, mobType, budget, totalPoints);
-            applyEffects(mob, data, config, mobType, currentTick);
-
-            if (world instanceof ServerWorld serverWorld) {
-                applyEquipment(mob, data, config, serverWorld, snapshot, true);
-                appliedEquipment = true;
+        if (upgradeScheduleReady) {
+            if (asyncEnabled) {
+                boolean jobActive = scheduler.isJobActive(mobUuid) || PENDING_EQUIPMENT_SNAPSHOTS.containsKey(mobUuid);
+                if (!jobActive) {
+                    EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
+                    PENDING_EQUIPMENT_SNAPSHOTS.put(mobUuid, snapshot);
+                    lockEquipmentForUpgrade(skillData);
+                    ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
+                    long seed = computeUpgradeSeed(mobUuid, currentTick, budget);
+                    MobUpgradeJob job = new MobUpgradeJob(
+                        mobUuid,
+                        config,
+                        mobType,
+                        skillData.copy(),
+                        budget,
+                        totalPoints,
+                        spentPoints,
+                        configSnapshot,
+                        killCount,
+                        currentTick,
+                        seed
+                    );
+                    scheduler.submit(mobUuid, job);
+                }
+            } else {
+                EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
+                lockEquipmentForUpgrade(skillData);
+                ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
+                long seed = computeUpgradeSeed(mobUuid, currentTick, budget);
+                UpgradeComputationResult computation = calculateUpgradeResult(
+                    mobUuid,
+                    skillData.copy(),
+                    config,
+                    mobType,
+                    budget,
+                    totalPoints,
+                    spentPoints,
+                    configSnapshot,
+                    seed,
+                    killCount
+                );
+                if (computation != null) {
+                    applyUpgradeComputation(mob, data, config, mobType, currentTick, currentTimeOfDay, computation, snapshot);
+                    clearUpgradeSchedule(data.getSkillData());
+                    skillData = data.getSkillData();
+                    stateChanged = true;
+                    appliedEquipment = true;
+                } else {
+                    clearUpgradeSchedule(skillData);
+                }
+                upgradeScheduleReady = false;
             }
-            clearUpgradeSchedule(skillData);
         } else if (world instanceof ServerWorld serverWorld && needsEquipmentSync) {
             applyEquipment(mob, data, config, serverWorld, null, false);
             appliedEquipment = true;
+            stateChanged = true;
         }
 
-        if (runUpgradePass || appliedEquipment) {
+        if (stateChanged || appliedEquipment) {
             MobWarData.save(mob, data);
         }
     }
@@ -674,19 +689,33 @@ public class ScalingSystem {
         }
         long delay = getUpgradeProcessingDelayTicks(modConfig);
         long preferred = currentTick + delay;
-        long scheduled = reserveUpgradeSlot(preferred, delay);
+        boolean bypassDelay = UpgradeJobScheduler.getInstance().isIdle();
+        long scheduled = reserveUpgradeSlot(currentTick, preferred, delay, bypassDelay);
         skillData.putBoolean(NBT_UPGRADE_PENDING, true);
         skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
     }
 
-    private static long reserveUpgradeSlot(long preferredTick, long delayTicks) {
+    private static long reserveUpgradeSlot(long currentTick, long preferredTick, long delayTicks, boolean bypassDelay) {
         synchronized (UPGRADE_SCHEDULER_LOCK) {
             long coreFactor = Math.max(1L, Runtime.getRuntime().availableProcessors());
             long spacing = Math.max(1L, delayTicks / coreFactor);
-            long scheduled = Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
+            long scheduled = bypassDelay
+                ? Math.max(currentTick, NEXT_UPGRADE_SLOT_TICK)
+                : Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
             NEXT_UPGRADE_SLOT_TICK = scheduled + spacing;
             return scheduled;
         }
+    }
+
+    private static long computeUpgradeSeed(UUID mobUuid, long currentTick, int budget) {
+        long seed = 0L;
+        if (mobUuid != null) {
+            seed ^= mobUuid.getMostSignificantBits();
+            seed = Long.rotateLeft(seed, 13) ^ mobUuid.getLeastSignificantBits();
+        }
+        seed ^= Long.rotateLeft(currentTick, 7);
+        seed ^= ((long) budget << 3);
+        return seed;
     }
 
     private static boolean isUpgradeScheduleReady(NbtCompound skillData, long currentTick) {
@@ -743,50 +772,36 @@ public class ScalingSystem {
     private static boolean isBossEntity(Identifier entityId) {
         return entityId != null && KNOWN_BOSS_IDS.contains(entityId.toString());
     }
-
-    private static boolean isUndeadMob(MobEntity mob) {
-        if (mob == null) {
-            return false;
-        }
-        EntityType<?> type = mob.getType();
-        if (type == null) {
-            return false;
-        }
-        if (UNDEAD_ENTITY_TYPES.contains(type)) {
-            return true;
-        }
-        Identifier id = Registries.ENTITY_TYPE.getId(type);
-        if (id == null) {
-            return false;
-        }
-        String path = id.getPath();
-        if (path == null || path.isEmpty()) {
-            return false;
-        }
-        String lowered = path.toLowerCase(Locale.ROOT);
-        for (String keyword : UNDEAD_KEYWORDS) {
-            if (lowered.contains(keyword)) {
-                return true;
-            }
-        }
-        return false;
-    }
     
     // ==========================================================================
     //                           POINT SPENDING
     // ==========================================================================
     
     /**
-     * Spend points on upgrades using 80/20 buy/save logic from JSON
+     * Calculates upgrade purchases using the buy/save logic described in JSON configs.
      */
-    private static void spendPoints(MobEntity mob, MobWarData data, JsonObject config, String mobType, int budget, double totalPoints) {
-        Random random = new Random(mob.getUuid().hashCode() + data.getSkillData().getLong("lastUpdateTick"));
-        UpgradeLogger logger = new UpgradeLogger(mob);
-        
-        // Get buy/save chances (JSON defaults then overridden by global config slider)
+    private static UpgradeComputationResult calculateUpgradeResult(
+            UUID mobUuid,
+            NbtCompound skillData,
+            JsonObject config,
+            String mobType,
+            int budget,
+            double totalPoints,
+            double spentPoints,
+            ModConfigSnapshot configSnapshot,
+            long rngSeed,
+            int killCount
+    ) {
+        if (mobUuid == null || skillData == null || config == null || configSnapshot == null) {
+            return null;
+        }
+
+        Random random = new Random(rngSeed);
+        UpgradeLogBuffer logBuffer = new UpgradeLogBuffer(configSnapshot.debugLogging());
+
         double buyChance = 0.80;
         double saveChance = 0.20;
-        
+
         if (config.has("point_system")) {
             JsonObject ps = config.getAsJsonObject("point_system");
             if (ps.has("buy_chance")) buyChance = ps.get("buy_chance").getAsDouble();
@@ -802,9 +817,8 @@ public class ScalingSystem {
             saveChance /= totalChance;
         }
 
-        ModConfig modConfig = ModConfig.getInstance();
-        double configBuy = Math.max(0.0, Math.min(1.0, modConfig.getBuyChance()));
-        double configSave = Math.max(0.0, Math.min(1.0, modConfig.getSaveChance()));
+        double configBuy = configSnapshot.buyChance();
+        double configSave = configSnapshot.saveChance();
         if (configBuy > 0 || configSave > 0) {
             double configTotal = configBuy + configSave;
             if (configTotal <= 0) {
@@ -816,61 +830,51 @@ public class ScalingSystem {
             }
         }
 
-        int iterationCap = Math.max(1, modConfig.getMaxUpgradeIterations());
-        
-        // Get current upgrade levels from skill data
-        NbtCompound skillData = data.getSkillData();
-        logger.logStart(budget, totalPoints, data.getSpentPoints(), data.getKillCount(), buyChance, saveChance);
-        
-        // Spending loop
+        int iterationCap = Math.max(1, configSnapshot.iterationCap());
+        logBuffer.logStart(budget, totalPoints, spentPoints, killCount, buyChance, saveChance);
+
         int iterations = 0;
         boolean purchasedUpgrade = false;
         String exitReason = "Budget exhausted";
-        while (iterations < iterationCap) { // Cap iterations to prevent infinite loop
+        while (iterations < iterationCap) {
             iterations++;
 
-            List<UpgradeOption> affordable = getAffordableUpgrades(mob, config, mobType, skillData, budget);
+            List<UpgradeOption> affordable = getAffordableUpgrades(mobUuid, config, mobType, skillData, budget);
 
             if (affordable.isEmpty()) {
                 exitReason = "No affordable upgrades remaining";
-                logger.logIteration(iterations, 0.0, affordable.size(), exitReason);
+                logBuffer.logIteration(iterations, 0.0, affordable.size(), exitReason);
                 break;
             }
 
             double roll = random.nextDouble();
-            logger.logIteration(iterations, roll, affordable.size(), null);
+            logBuffer.logIteration(iterations, roll, affordable.size(), null);
             if (roll < saveChance) {
                 exitReason = "Save roll triggered";
-                logger.log(exitReason + " (carrying " + budget + " points)");
+                logBuffer.log(exitReason + " (carrying " + budget + " points)");
                 break;
             }
             if (roll >= saveChance + buyChance) {
-                logger.log("Roll outside buy/save window; retrying next iteration");
+                logBuffer.log("Roll outside buy/save window; retrying next iteration");
                 continue;
             }
 
-            // Buy a random affordable upgrade (zero-cost options still go through buy/save logic)
             UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
-
-            // Apply the upgrade
             int previousLevel = skillData.getInt(chosen.key);
             skillData.putInt(chosen.key, chosen.newLevel);
             handleTierPromotion(skillData, chosen.key, previousLevel, chosen.newLevel);
-            data.setSpentPoints(data.getSpentPoints() + chosen.cost);
+            spentPoints += chosen.cost;
             budget -= chosen.cost;
             purchasedUpgrade = true;
-            logger.logPurchase(chosen, budget);
+            logBuffer.logPurchase(chosen, budget);
         }
-        
+
         if (iterations >= iterationCap && "Budget exhausted".equals(exitReason)) {
             exitReason = "Iteration cap reached";
         }
 
-        data.setSkillData(skillData);
-        if (purchasedUpgrade) {
-            spawnUpgradeParticles(mob);
-        }
-        logger.logCompletion(purchasedUpgrade, budget, exitReason);
+        logBuffer.logCompletion(purchasedUpgrade, budget, exitReason);
+        return new UpgradeComputationResult(skillData, spentPoints, purchasedUpgrade, Math.max(budget, 0), logBuffer.entries());
     }
 
     private static void spawnUpgradeParticles(MobEntity mob) {
@@ -898,11 +902,53 @@ public class ScalingSystem {
             0.12
         );
     }
+
+    private static void applyUpgradeComputation(
+            MobEntity mob,
+            MobWarData data,
+            JsonObject config,
+            String mobType,
+            long currentTick,
+            int currentTimeOfDay,
+            UpgradeComputationResult computation,
+            EquipmentSnapshot snapshot) {
+        if (mob == null || data == null || config == null || computation == null) {
+            return;
+        }
+        NbtCompound computedData = computation.skillData();
+        if (computedData == null) {
+            return;
+        }
+
+        data.setSkillData(computedData);
+        data.setSpentPoints(computation.spentPoints());
+        NbtCompound skillData = data.getSkillData();
+        if (skillData == null) {
+            return;
+        }
+
+        skillData.putInt(NBT_LAST_UPGRADE_MARKER, currentTimeOfDay);
+        skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, false);
+        skillData.putBoolean(NBT_EQUIPMENT_PRIMED, false);
+
+        UpgradeLogger logger = new UpgradeLogger(mob);
+        logger.replay(computation.logEntries());
+
+        if (mob.getWorld() instanceof ServerWorld serverWorld) {
+            applyEquipment(mob, data, config, serverWorld, snapshot, false);
+        }
+
+        applyEffects(mob, data, config, mobType, currentTick);
+
+        if (computation.purchasedUpgrade()) {
+            spawnUpgradeParticles(mob);
+        }
+    }
     
     /**
      * Get list of affordable upgrades from the mob's JSON config
      */
-    private static List<UpgradeOption> getAffordableUpgrades(MobEntity mob, JsonObject config, String mobType, 
+    private static List<UpgradeOption> getAffordableUpgrades(UUID mobUuid, JsonObject config, String mobType, 
             NbtCompound skillData, int budget) {
         
         List<UpgradeOption> affordable = new ArrayList<>();
@@ -910,7 +956,7 @@ public class ScalingSystem {
         if (!config.has("tree")) return affordable;
         JsonObject tree = config.getAsJsonObject("tree");
         JsonElement weaponElement = tree.has("weapon") ? tree.get("weapon") : null;
-        JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mob) : null;
+        JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mobUuid) : null;
         
         // Check potion effects based on mob type
         String effectsKey = mobType.equals("passive") ? "passive_potion_effects" : "hostile_neutral_potion_effects";
@@ -1197,10 +1243,6 @@ public class ScalingSystem {
             }
         }
         
-        if (effect.value() == StatusEffects.REGENERATION && isUndeadMob(mob)) {
-            return;
-        }
-
         boolean showParticles = !ModConfig.getInstance().disableParticles;
         mob.addStatusEffect(new StatusEffectInstance(
             effect,
@@ -1277,76 +1319,6 @@ public class ScalingSystem {
         }
         JsonObject levelData = resistanceLevels.get(resolvedLevel - 1).getAsJsonObject();
         return levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean();
-    }
-
-    private static void tickUndeadHealing(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType, long currentTick) {
-        if (mob == null || skillData == null || config == null || !isUndeadMob(mob) || !config.has("tree")) {
-            return;
-        }
-        JsonObject tree = config.getAsJsonObject("tree");
-        String effectsKey = "passive".equals(mobType) ? "passive_potion_effects" : "hostile_neutral_potion_effects";
-        if (!tree.has(effectsKey)) {
-            return;
-        }
-        JsonObject effects = tree.getAsJsonObject(effectsKey);
-        if (!effects.has("regeneration")) {
-            return;
-        }
-
-        int regenLevel = skillData.getInt("effect_regeneration");
-        if (regenLevel <= 0) {
-            return;
-        }
-
-        long lastBasePulse = skillData.getLong(NBT_UNDEAD_BASE_HEAL_TICK);
-        if (lastBasePulse == 0L || currentTick - lastBasePulse >= UNDEAD_HEAL_INTERVAL_TICKS) {
-            int baseAmplifier = regenLevel <= 1 ? 0 : 1;
-            applyUndeadHealingPulse(mob, baseAmplifier);
-            skillData.putLong(NBT_UNDEAD_BASE_HEAL_TICK, currentTick);
-        }
-
-        long abilityEnd = skillData.getLong(NBT_UNDEAD_ON_DAMAGE_UNTIL);
-        if (abilityEnd > currentTick) {
-            long nextPulse = skillData.getLong(NBT_UNDEAD_ON_DAMAGE_NEXT);
-            if (nextPulse == 0L || currentTick >= nextPulse) {
-                int amplifier = Math.max(0, skillData.getInt(NBT_UNDEAD_ON_DAMAGE_AMP));
-                applyUndeadHealingPulse(mob, amplifier);
-                skillData.putLong(NBT_UNDEAD_ON_DAMAGE_NEXT, currentTick + UNDEAD_HEAL_INTERVAL_TICKS);
-            }
-        } else if (abilityEnd > 0L) {
-            skillData.remove(NBT_UNDEAD_ON_DAMAGE_UNTIL);
-            skillData.remove(NBT_UNDEAD_ON_DAMAGE_NEXT);
-            skillData.remove(NBT_UNDEAD_ON_DAMAGE_AMP);
-        }
-    }
-
-    private static void startUndeadOnDamageHealing(MobEntity mob, NbtCompound skillData, int regenLevel, int durationSeconds, long currentTick) {
-        if (mob == null || skillData == null || regenLevel <= 0) {
-            return;
-        }
-        int amplifier = Math.max(0, regenLevel - 1);
-        applyUndeadHealingPulse(mob, amplifier);
-        long durationTicks = Math.max(UNDEAD_HEAL_INTERVAL_TICKS, durationSeconds * 20L);
-        skillData.putLong(NBT_UNDEAD_ON_DAMAGE_UNTIL, currentTick + durationTicks);
-        skillData.putLong(NBT_UNDEAD_ON_DAMAGE_NEXT, currentTick + UNDEAD_HEAL_INTERVAL_TICKS);
-        skillData.putInt(NBT_UNDEAD_ON_DAMAGE_AMP, amplifier);
-    }
-
-    private static void applyUndeadHealingPulse(MobEntity mob, int amplifier) {
-        if (mob == null || !mob.isAlive()) {
-            return;
-        }
-        if (!(mob.getWorld() instanceof ServerWorld)) {
-            return;
-        }
-        mob.addStatusEffect(new StatusEffectInstance(
-            StatusEffects.INSTANT_DAMAGE,
-            1,
-            Math.max(0, amplifier),
-            false,
-            false,
-            true
-        ));
     }
 
     private static void refreshMissingEffects(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType) {
@@ -1949,6 +1921,40 @@ public class ScalingSystem {
     // ==========================================================================
     //                           SPECIAL ABILITIES
     // ==========================================================================
+
+    /**
+     * Highlights mobs that are in a critical health state so players can spot them easily.
+     */
+    public static void handleCriticalGlow(MobEntity mob, DamageSource source) {
+        if (mob == null || source == null) {
+            return;
+        }
+        if (!ModConfig.getInstance().isScalingActive()) {
+            return;
+        }
+        if (!(mob.getWorld() instanceof ServerWorld)) {
+            return;
+        }
+        float maxHealth = mob.getMaxHealth();
+        if (maxHealth <= 0.0f) {
+            return;
+        }
+        float threshold = Math.max(2.0f, maxHealth * 0.25f);
+        if (mob.getHealth() > threshold) {
+            return;
+        }
+        if (mob.hasStatusEffect(StatusEffects.GLOWING)) {
+            return;
+        }
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.GLOWING,
+            100,
+            0,
+            false,
+            true,
+            true
+        ));
+    }
     
     /**
      * Handle on-damage abilities like invisibility_on_hit
@@ -1990,10 +1996,9 @@ public class ScalingSystem {
                 if (currentTick - lastUse >= cooldown * 20L) { // cooldown is in seconds
                     // Roll chance
                     if (mob.getRandom().nextDouble() < chance) {
-                        int durationTicks = Math.max(20, duration * 20);
                         mob.addStatusEffect(new StatusEffectInstance(
                             StatusEffects.INVISIBILITY,
-                            durationTicks,
+                            StatusEffectInstance.INFINITE,
                             0,
                             false,
                             false,
@@ -2022,18 +2027,14 @@ public class ScalingSystem {
                     long lastUse = cooldowns.getOrDefault("on_damage_regen", 0L);
                     
                     if (currentTick - lastUse >= cooldown * 20L) {
-                        if (isUndeadMob(mob)) {
-                            startUndeadOnDamageHealing(mob, skillData, regenLevel, duration, currentTick);
-                        } else {
-                            mob.addStatusEffect(new StatusEffectInstance(
-                                StatusEffects.REGENERATION,
-                                StatusEffectInstance.INFINITE,
-                                regenLevel - 1,
-                                false,
-                                false,
-                                true
-                            ));
-                        }
+                        mob.addStatusEffect(new StatusEffectInstance(
+                            StatusEffects.REGENERATION,
+                            StatusEffectInstance.INFINITE,
+                            regenLevel - 1,
+                            false,
+                            false,
+                            true
+                        ));
                         cooldowns.put("on_damage_regen", currentTick);
                     }
                 }
@@ -2041,49 +2042,6 @@ public class ScalingSystem {
         }
     }
     
-    public static void handleCriticalGlow(MobEntity mob, DamageSource source) {
-        if (mob == null || source == null) {
-            return;
-        }
-        World world = mob.getWorld();
-        if (world == null || world.isClient()) {
-            return;
-        }
-        if (!isCriticalHit(source)) {
-            return;
-        }
-        boolean showParticles = !ModConfig.getInstance().disableParticles;
-        mob.addStatusEffect(new StatusEffectInstance(
-            StatusEffects.GLOWING,
-            200,
-            0,
-            false,
-            showParticles,
-            true
-        ));
-    }
-
-    private static boolean isCriticalHit(DamageSource source) {
-        Entity projectile = source.getSource();
-        if (projectile instanceof PersistentProjectileEntity persistentProjectile && persistentProjectile.isCritical()) {
-            return true;
-        }
-        Entity attacker = source.getAttacker();
-        if (attacker instanceof PlayerEntity player) {
-            if (player.getAttackCooldownProgress(0.5F) > 0.9F
-                && player.fallDistance > 0.0F
-                && !player.isOnGround()
-                && !player.isClimbing()
-                && !player.isTouchingWater()
-                && !player.hasStatusEffect(StatusEffects.BLINDNESS)
-                && !player.hasVehicle()
-                && !player.isSprinting()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     // ==========================================================================
     //                        SPECIAL ABILITY HANDLERS
     // ==========================================================================
@@ -2937,6 +2895,10 @@ public class ScalingSystem {
     }
 
     private static JsonObject getLockedWeaponForMob(JsonElement weaponElement, MobEntity mob) {
+        return getLockedWeaponForMob(weaponElement, mob != null ? mob.getUuid() : null);
+    }
+
+    private static JsonObject getLockedWeaponForMob(JsonElement weaponElement, UUID mobUuid) {
         if (weaponElement == null) {
             return null;
         }
@@ -2950,7 +2912,7 @@ public class ScalingSystem {
         if (weapons.isEmpty()) {
             return null;
         }
-        int index = Math.abs(mob.getUuid().hashCode());
+        int index = mobUuid != null ? Math.abs(mobUuid.hashCode()) : 0;
         index = index % weapons.size();
         return weapons.get(index).getAsJsonObject();
     }
@@ -3065,6 +3027,156 @@ public class ScalingSystem {
         }
     }
 
+    private static record ModConfigSnapshot(
+        double buyChance,
+        double saveChance,
+        int iterationCap,
+        boolean debugLogging
+    ) {
+        static ModConfigSnapshot capture(ModConfig config) {
+            if (config == null) {
+                return new ModConfigSnapshot(0.80, 0.20, 1000, false);
+            }
+            double buy = Math.max(0.0, config.getBuyChance());
+            double save = Math.max(0.0, config.getSaveChance());
+            return new ModConfigSnapshot(
+                buy,
+                save,
+                config.getMaxUpgradeIterations(),
+                config.debugUpgradeLog
+            );
+        }
+    }
+
+    static record UpgradeJobResult(
+        UUID mobUuid,
+        UpgradeComputationResult computation,
+        long requestedTick,
+        long startedAtNanos,
+        long completedAtNanos
+    ) {}
+
+    private static final class MobUpgradeJob implements Callable<UpgradeJobResult> {
+        private final UUID mobUuid;
+        private final JsonObject config;
+        private final String mobType;
+        private final NbtCompound skillData;
+        private final int budget;
+        private final double totalPoints;
+        private final double spentPoints;
+        private final ModConfigSnapshot configSnapshot;
+        private final int killCount;
+        private final long requestedTick;
+        private final long seed;
+
+        private MobUpgradeJob(
+                UUID mobUuid,
+                JsonObject config,
+                String mobType,
+                NbtCompound skillData,
+                int budget,
+                double totalPoints,
+                double spentPoints,
+                ModConfigSnapshot configSnapshot,
+                int killCount,
+                long requestedTick,
+                long seed) {
+            this.mobUuid = mobUuid;
+            this.config = config;
+            this.mobType = mobType;
+            this.skillData = skillData;
+            this.budget = budget;
+            this.totalPoints = totalPoints;
+            this.spentPoints = spentPoints;
+            this.configSnapshot = configSnapshot;
+            this.killCount = killCount;
+            this.requestedTick = requestedTick;
+            this.seed = seed;
+        }
+
+        @Override
+        public UpgradeJobResult call() {
+            long started = System.nanoTime();
+            UpgradeComputationResult computation = calculateUpgradeResult(
+                mobUuid,
+                skillData,
+                config,
+                mobType,
+                budget,
+                totalPoints,
+                spentPoints,
+                configSnapshot,
+                seed,
+                killCount
+            );
+            if (computation == null) {
+                return null;
+            }
+            long completed = System.nanoTime();
+            return new UpgradeJobResult(mobUuid, computation, requestedTick, started, completed);
+        }
+    }
+
+    private static class UpgradeLogBuffer {
+        private final boolean enabled;
+        private final List<String> entries;
+
+        UpgradeLogBuffer(boolean enabled) {
+            this.enabled = enabled;
+            this.entries = enabled ? new ArrayList<>() : Collections.emptyList();
+        }
+
+        void logStart(int budget, double totalPoints, double spentPoints, int killCount, double buyChance, double saveChance) {
+            if (!enabled) return;
+            entries.add(String.format(
+                Locale.US,
+                "Start: budget=%d total=%.2f spent=%.2f kills=%d buy=%.0f%% save=%.0f%%",
+                budget,
+                totalPoints,
+                spentPoints,
+                killCount,
+                buyChance * 100.0,
+                saveChance * 100.0
+            ));
+        }
+
+        void logIteration(int iteration, double roll, int affordable, String note) {
+            if (!enabled) return;
+            if (note != null) {
+                entries.add(String.format(Locale.US, "Iteration %d: %s", iteration, note));
+            } else {
+                entries.add(String.format(Locale.US, "Iteration %d: roll=%.3f options=%d", iteration, roll, affordable));
+            }
+        }
+
+        void logPurchase(UpgradeOption option, int remainingBudget) {
+            if (!enabled) return;
+            entries.add(String.format(
+                Locale.US,
+                "Purchased %s -> level %d (cost=%d, remaining=%d)",
+                formatUpgradeKey(option.key),
+                option.newLevel,
+                option.cost,
+                Math.max(remainingBudget, 0)
+            ));
+        }
+
+        void log(String message) {
+            if (!enabled) return;
+            entries.add(message);
+        }
+
+        void logCompletion(boolean purchased, int remainingBudget, String exitReason) {
+            if (!enabled) return;
+            String status = purchased ? "completed with purchases" : "completed with no purchases";
+            entries.add(String.format(Locale.US, "Pass %s. Exit: %s. Remaining budget=%d", status, exitReason, Math.max(remainingBudget, 0)));
+        }
+
+        List<String> entries() {
+            return enabled ? entries : Collections.emptyList();
+        }
+    }
+
     private static class UpgradeLogger {
         private final boolean enabled;
         private final ServerWorld serverWorld;
@@ -3126,6 +3238,15 @@ public class ScalingSystem {
                 .styled(style -> style.withColor(Formatting.DARK_AQUA).withBold(true));
             Text finalText = prefix.append(Text.literal(message).styled(style -> style.withColor(Formatting.WHITE)));
             serverWorld.getServer().getPlayerManager().broadcast(finalText, false);
+        }
+
+        void replay(List<String> entries) {
+            if (!enabled || entries == null || entries.isEmpty()) {
+                return;
+            }
+            for (String entry : entries) {
+                log(entry);
+            }
         }
 
         void logCompletion(boolean purchased, int remainingBudget, String exitReason) {
@@ -3191,6 +3312,14 @@ public class ScalingSystem {
         }
     }
 
+    private static record UpgradeComputationResult(
+        NbtCompound skillData,
+        double spentPoints,
+        boolean purchasedUpgrade,
+        int remainingBudget,
+        List<String> logEntries
+    ) {}
+
     /**
      * Helper class for upgrade options
      */
@@ -3205,5 +3334,4 @@ public class ScalingSystem {
             this.cost = cost;
         }
     }
-
 }

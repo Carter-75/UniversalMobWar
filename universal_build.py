@@ -242,7 +242,10 @@ class UniversalBuildSystem:
             has_scaling_system = True
             has_json_loading = "loadMobConfig" in content and "MOB_CONFIGS" in content
             has_point_calculation = "calculateWorldAgePoints" in content
-            has_upgrade_spending = "spendPoints" in content and "getAffordableUpgrades" in content
+            has_upgrade_spending = (
+                ("spendPoints" in content or "calculateUpgradeResult" in content)
+                and "getAffordableUpgrades" in content
+            )
             has_effect_application = "applyEffects" in content
         
         # Check if MobDataMixin calls ScalingSystem (this is the central hook)
@@ -593,7 +596,12 @@ class UniversalBuildSystem:
         except Exception as e:
             warning(f"Could not check Java version: {e}")
         
-        gradlew = "./gradlew" if os.name != "nt" else "gradlew.bat"
+        gradlew_path = self.root / ("gradlew.bat" if os.name == "nt" else "gradlew")
+        if not gradlew_path.exists():
+            error("Gradle wrapper not found! expected gradlew/gradlew.bat at project root")
+            self.log_to_file("❌ Gradle wrapper missing")
+            return False
+        gradlew = str(gradlew_path)
         
         # Clean
         info("Running gradle clean...")
