@@ -248,9 +248,13 @@ public class UniversalMobWarConfigScreen extends Screen {
                     config.buyChancePercent = 100 - clamped;
                 });
             double maxIterations = config.getMaxUpgradeIterations();
-            relativeY = addSlider(x, relativeY, w, h, maxIterations, 10, 500,
+            relativeY = addSlider(x, relativeY, w, h, maxIterations, ModConfig.MIN_UPGRADE_ITERATIONS, ModConfig.MAX_UPGRADE_ITERATIONS,
                 val -> String.format("Max Upgrades / Cycle: %.0f", val),
-                val -> config.maxUpgradeIterations = (int) MathHelper.clamp(Math.round(val), 10, 500));
+                val -> config.maxUpgradeIterations = (int) MathHelper.clamp(
+                    Math.round(val),
+                    ModConfig.MIN_UPGRADE_ITERATIONS,
+                    ModConfig.MAX_UPGRADE_ITERATIONS
+                ));
             break;
 
             case WARLORD:

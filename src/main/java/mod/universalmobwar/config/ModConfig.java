@@ -107,9 +107,12 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int saveChancePercent = 20; // 20% chance to save points
 
-    @ConfigEntry.BoundedDiscrete(min = 10, max = 1000)
+    public static final int MIN_UPGRADE_ITERATIONS = 10;
+    public static final int MAX_UPGRADE_ITERATIONS = 1000;
+
+    @ConfigEntry.BoundedDiscrete(min = MIN_UPGRADE_ITERATIONS, max = MAX_UPGRADE_ITERATIONS)
     @ConfigEntry.Gui.Tooltip(count = 2)
-    public int maxUpgradeIterations = 1000; // Hard cap per spend cycle
+    public int maxUpgradeIterations = MAX_UPGRADE_ITERATIONS; // Hard cap per spend cycle
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
@@ -391,7 +394,7 @@ public class ModConfig implements ConfigData {
     }
 
     public int getMaxUpgradeIterations() {
-        return Math.max(10, Math.min(1000, maxUpgradeIterations));
+        return Math.max(MIN_UPGRADE_ITERATIONS, Math.min(MAX_UPGRADE_ITERATIONS, maxUpgradeIterations));
     }
     
     // Section enable checks
