@@ -85,6 +85,13 @@ public class ScalingSystem {
     private static final String NBT_UPGRADE_WRAP_STATE = "umw_upgrade_marker_wrapped";
     private static final String OVERRIDE_KEY_WEAPON = "weapon_player_override";
     private static final String OVERRIDE_KEY_SHIELD = "shield_player_override";
+    private static final String NBT_INITIAL_DISARMED = "umw_initial_disarmed";
+    private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
+    private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
+    private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
+
+    private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
+    private static long NEXT_UPGRADE_SLOT_TICK = 0L;
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -285,6 +292,14 @@ public class ScalingSystem {
             return;
         }
 
+        boolean stateChanged = ensureInitialDisarm(mob, skillData);
+        if (!skillData.getBoolean(NBT_EQUIPMENT_PRIMED)) {
+            if (stateChanged) {
+                MobWarData.save(mob, data);
+            }
+            return;
+        }
+
         JsonObject config = getConfigForMob(mob);
         if (config == null || !config.has("tree")) {
             return;
@@ -334,10 +349,10 @@ public class ScalingSystem {
         if (hasWeaponEquipped && weaponMissing) {
             mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
             if (handleWeaponBreak(mob, data) && serverWorld != null && lockedWeapon != null) {
-                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
+                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey, null, false);
             }
         } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null && !weaponOverride) {
-            applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
+            applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey, null, false);
         }
 
         boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
@@ -371,18 +386,57 @@ public class ScalingSystem {
         }
         if (hasShieldEquipped && shieldMissing) {
             if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
-                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
+                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, false);
             }
         } else if (!hasShieldEquipped && shouldHaveShield && !shieldMissing && currentShield.isOf(Items.SHIELD)) {
             skillData.putBoolean("shield_equipped", true);
         } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield") && !shieldOverride) {
-            applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
+            applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, false);
         }
 
         monitorArmorSlot(mob, data, tree, EquipmentSlot.HEAD, "helmet", serverWorld);
         monitorArmorSlot(mob, data, tree, EquipmentSlot.CHEST, "chestplate", serverWorld);
         monitorArmorSlot(mob, data, tree, EquipmentSlot.LEGS, "leggings", serverWorld);
         monitorArmorSlot(mob, data, tree, EquipmentSlot.FEET, "boots", serverWorld);
+
+        if (stateChanged) {
+            MobWarData.save(mob, data);
+        }
+    }
+
+    private static boolean ensureInitialDisarm(MobEntity mob, NbtCompound skillData) {
+        if (skillData == null || skillData.getBoolean(NBT_INITIAL_DISARMED)) {
+            return false;
+        }
+        clearMobEquipment(mob);
+        resetEquippedFlags(skillData);
+        skillData.putBoolean(NBT_INITIAL_DISARMED, true);
+        skillData.putBoolean(NBT_EQUIPMENT_PRIMED, false);
+        return true;
+    }
+
+    private static void clearMobEquipment(MobEntity mob) {
+        if (mob == null) {
+            return;
+        }
+        mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        mob.equipStack(EquipmentSlot.HEAD, ItemStack.EMPTY);
+        mob.equipStack(EquipmentSlot.CHEST, ItemStack.EMPTY);
+        mob.equipStack(EquipmentSlot.LEGS, ItemStack.EMPTY);
+        mob.equipStack(EquipmentSlot.FEET, ItemStack.EMPTY);
+    }
+
+    private static void resetEquippedFlags(NbtCompound skillData) {
+        if (skillData == null) {
+            return;
+        }
+        skillData.putBoolean("weapon_equipped", false);
+        skillData.putBoolean("shield_equipped", false);
+        skillData.putBoolean("helmet_equipped", false);
+        skillData.putBoolean("chestplate_equipped", false);
+        skillData.putBoolean("leggings_equipped", false);
+        skillData.putBoolean("boots_equipped", false);
     }
     
     // ==========================================================================
@@ -443,28 +497,43 @@ public class ScalingSystem {
         int currentTimeOfDay = getCurrentTimeOfDay(world);
         boolean firstUpgradeCycle = !skillData.contains(NBT_LAST_UPGRADE_MARKER);
         boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay);
-        boolean shouldProcessUpgrades = firstUpgradeCycle || readyForNextCycle;
-        boolean needsEquipmentSync = !shouldProcessUpgrades && requiresEquipmentSync(mob, skillData);
+        boolean shouldRequestUpgrade = firstUpgradeCycle || readyForNextCycle;
+        boolean upgradePending = skillData.getBoolean(NBT_UPGRADE_PENDING);
+        boolean upgradeScheduleReady = isUpgradeScheduleReady(skillData, currentTick);
+
+        if (shouldRequestUpgrade && !upgradePending) {
+            scheduleUpgradePass(skillData, currentTick, modConfig);
+            MobWarData.save(mob, data);
+        }
+
+        boolean runUpgradePass = upgradeScheduleReady;
+        boolean canSyncEquipment = !runUpgradePass
+            && !skillData.getBoolean(NBT_UPGRADE_PENDING)
+            && skillData.getBoolean(NBT_EQUIPMENT_PRIMED);
+        boolean needsEquipmentSync = canSyncEquipment && requiresEquipmentSync(mob, skillData);
         boolean appliedEquipment = false;
 
-        if (shouldProcessUpgrades) {
+        if (runUpgradePass) {
+            EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
             skillData.putLong("lastUpdateTick", currentTick);
             skillData.putInt(NBT_LAST_UPGRADE_MARKER, currentTimeOfDay);
             skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, false);
+            lockEquipmentForUpgrade(skillData);
 
             spendPoints(mob, data, config, mobType, budget, totalPoints);
             applyEffects(mob, data, config, mobType, currentTick);
 
             if (world instanceof ServerWorld serverWorld) {
-                applyEquipment(mob, data, config, serverWorld);
+                applyEquipment(mob, data, config, serverWorld, snapshot, true);
                 appliedEquipment = true;
             }
+            clearUpgradeSchedule(skillData);
         } else if (world instanceof ServerWorld serverWorld && needsEquipmentSync) {
-            applyEquipment(mob, data, config, serverWorld);
+            applyEquipment(mob, data, config, serverWorld, null, false);
             appliedEquipment = true;
         }
 
-        if (shouldProcessUpgrades || appliedEquipment) {
+        if (runUpgradePass || appliedEquipment) {
             MobWarData.save(mob, data);
         }
     }
@@ -550,6 +619,61 @@ public class ScalingSystem {
         }
         long worldTicks = Math.max(0L, world.getTime());
         return (int) (worldTicks / 24000L);
+    }
+
+    private static long getUpgradeProcessingDelayTicks(ModConfig modConfig) {
+        if (modConfig == null) {
+            return 20L * 5L;
+        }
+        int ms = Math.max(1000, Math.min(30000, modConfig.upgradeProcessingTimeMs));
+        return Math.max(1L, Math.round(ms / 50.0));
+    }
+
+    private static void scheduleUpgradePass(NbtCompound skillData, long currentTick, ModConfig modConfig) {
+        if (skillData == null) {
+            return;
+        }
+        long delay = getUpgradeProcessingDelayTicks(modConfig);
+        long preferred = currentTick + delay;
+        long scheduled = reserveUpgradeSlot(preferred, delay);
+        skillData.putBoolean(NBT_UPGRADE_PENDING, true);
+        skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
+    }
+
+    private static long reserveUpgradeSlot(long preferredTick, long delayTicks) {
+        synchronized (UPGRADE_SCHEDULER_LOCK) {
+            long coreFactor = Math.max(1L, Runtime.getRuntime().availableProcessors());
+            long spacing = Math.max(1L, delayTicks / coreFactor);
+            long scheduled = Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
+            NEXT_UPGRADE_SLOT_TICK = scheduled + spacing;
+            return scheduled;
+        }
+    }
+
+    private static boolean isUpgradeScheduleReady(NbtCompound skillData, long currentTick) {
+        if (skillData == null || !skillData.getBoolean(NBT_UPGRADE_PENDING)) {
+            return false;
+        }
+        long readyTick = skillData.getLong(NBT_NEXT_UPGRADE_TICK);
+        return readyTick > 0L && currentTick >= readyTick;
+    }
+
+    private static void clearUpgradeSchedule(NbtCompound skillData) {
+        if (skillData == null) {
+            return;
+        }
+        skillData.putBoolean(NBT_UPGRADE_PENDING, false);
+        skillData.remove(NBT_NEXT_UPGRADE_TICK);
+    }
+
+    private static void lockEquipmentForUpgrade(NbtCompound skillData) {
+        if (skillData == null) {
+            return;
+        }
+        resetEquippedFlags(skillData);
+        setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+        setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+        skillData.putBoolean(NBT_EQUIPMENT_PRIMED, false);
     }
 
     private static JsonObject getPointSystem(JsonObject config) {
@@ -961,7 +1085,7 @@ public class ScalingSystem {
         if (tree.has(effectsKey)) {
             JsonObject effects = tree.getAsJsonObject(effectsKey);
             
-            // Apply healing/regeneration
+            // Apply regeneration
             applyPotionEffect(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", "regen_level");
             
             // Apply health boost
@@ -976,7 +1100,7 @@ public class ScalingSystem {
             // Apply speed
             applyPotionEffect(mob, skillData, effects, "speed", StatusEffects.SPEED, "effect_speed", "speed_level");
             
-            // Passive-only: regeneration (different from healing)
+            // Passive-only: regeneration (different from regeneration)
             if (mobType.equals("passive")) {
                 applyPotionEffect(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", null);
             }
@@ -1094,7 +1218,7 @@ public class ScalingSystem {
             return;
         }
         JsonObject effects = tree.getAsJsonObject(effectsKey);
-        ensureEffectPresent(mob, skillData, effects, "healing", StatusEffects.REGENERATION, "effect_healing", "regen_level");
+        ensureEffectPresent(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", "regen_level");
         ensureEffectPresent(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
         ensureEffectPresent(mob, skillData, effects, "strength", StatusEffects.STRENGTH, "effect_strength", "strength_level");
         ensureEffectPresent(mob, skillData, effects, "speed", StatusEffects.SPEED, "effect_speed", "speed_level");
@@ -1123,7 +1247,8 @@ public class ScalingSystem {
     /**
      * Apply equipment based on upgrade levels
      */
-    private static void applyEquipment(MobEntity mob, MobWarData data, JsonObject config, ServerWorld world) {
+    private static void applyEquipment(MobEntity mob, MobWarData data, JsonObject config, ServerWorld world,
+            EquipmentSnapshot snapshot, boolean forceOverride) {
         NbtCompound skillData = data.getSkillData();
         
         if (!config.has("tree")) return;
@@ -1136,27 +1261,30 @@ public class ScalingSystem {
             if (weapon != null) {
                 boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
                 String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(weapon) : "";
-                applyWeapon(mob, skillData, weapon, world, scopedWeapon, weaponKey);
+                applyWeapon(mob, skillData, weapon, world, scopedWeapon, weaponKey, snapshot, forceOverride);
             }
         }
         
         // Apply shield
         if (tree.has("shield")) {
-            applyShield(mob, skillData, tree.getAsJsonObject("shield"), world);
+            applyShield(mob, skillData, tree.getAsJsonObject("shield"), world, snapshot, forceOverride);
         }
         
         // Apply armor
-        applyArmor(mob, skillData, tree, "helmet", EquipmentSlot.HEAD, world);
-        applyArmor(mob, skillData, tree, "chestplate", EquipmentSlot.CHEST, world);
-        applyArmor(mob, skillData, tree, "leggings", EquipmentSlot.LEGS, world);
-        applyArmor(mob, skillData, tree, "boots", EquipmentSlot.FEET, world);
+        applyArmor(mob, skillData, tree, "helmet", EquipmentSlot.HEAD, world, snapshot, forceOverride);
+        applyArmor(mob, skillData, tree, "chestplate", EquipmentSlot.CHEST, world, snapshot, forceOverride);
+        applyArmor(mob, skillData, tree, "leggings", EquipmentSlot.LEGS, world, snapshot, forceOverride);
+        applyArmor(mob, skillData, tree, "boots", EquipmentSlot.FEET, world, snapshot, forceOverride);
+
+        skillData.putBoolean(NBT_EQUIPMENT_PRIMED, true);
     }
     
     /**
      * Apply weapon with enchants
      */
-    private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig,
-            ServerWorld world, boolean scopedWeapon, String weaponScopeKey) {
+        private static void applyWeapon(MobEntity mob, NbtCompound skillData, JsonObject weaponConfig,
+            ServerWorld world, boolean scopedWeapon, String weaponScopeKey,
+            EquipmentSnapshot snapshot, boolean forceOverride) {
         String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
         int weaponTierLevel = skillData.getInt("weapon_tier");
         String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
@@ -1181,9 +1309,13 @@ public class ScalingSystem {
 
         ItemStack current = mob.getEquippedStack(EquipmentSlot.MAINHAND);
         if (!current.isEmpty() && !current.isOf(weapon.getItem())) {
-            setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
-            skillData.putBoolean("weapon_equipped", true);
-            return;
+            if (forceOverride) {
+                mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            } else {
+                setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
+                skillData.putBoolean("weapon_equipped", true);
+                return;
+            }
         }
 
         skillData.putBoolean("weapon_equipped", false);
@@ -1194,8 +1326,12 @@ public class ScalingSystem {
             applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), enchantPrefix, world);
         }
         
-        // Apply durability mastery - set durability based on level
-        applyDurabilityMastery(weapon, skillData, weaponConfig, durabilityKey);
+        // Apply durability mastery or preserve previous damage if mastery unchanged
+        ItemStack previousWeapon = snapshot != null ? snapshot.getMainHand() : ItemStack.EMPTY;
+        if (!tryPreserveDurability(weapon, previousWeapon,
+                durabilityKey, skillData.getInt(durabilityKey), snapshot)) {
+            applyDurabilityMastery(weapon, skillData, weaponConfig, durabilityKey, previousWeapon);
+        }
         
         // Equip it
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
@@ -1208,7 +1344,8 @@ public class ScalingSystem {
     /**
      * Apply shield with enchants
      */
-    private static void applyShield(MobEntity mob, NbtCompound skillData, JsonObject shieldConfig, ServerWorld world) {
+    private static void applyShield(MobEntity mob, NbtCompound skillData, JsonObject shieldConfig, ServerWorld world,
+            EquipmentSnapshot snapshot, boolean forceOverride) {
         int hasShield = skillData.getInt("has_shield");
         if (hasShield <= 0) {
             skillData.putBoolean("shield_equipped", false);
@@ -1218,9 +1355,13 @@ public class ScalingSystem {
 
         ItemStack current = mob.getEquippedStack(EquipmentSlot.OFFHAND);
         if (!current.isEmpty() && !current.isOf(Items.SHIELD)) {
-            setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
-            skillData.putBoolean("shield_equipped", true);
-            return;
+            if (forceOverride) {
+                mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+            } else {
+                setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
+                skillData.putBoolean("shield_equipped", true);
+                return;
+            }
         }
 
         skillData.putBoolean("shield_equipped", false);
@@ -1233,8 +1374,12 @@ public class ScalingSystem {
             applyEnchantments(shield, skillData, shieldConfig.getAsJsonObject("enchants"), "shield_enchant_", world);
         }
         
-        // Apply durability mastery
-        applyDurabilityMastery(shield, skillData, shieldConfig, "shield_durability_mastery");
+        // Apply durability mastery or preserve damage
+        ItemStack previousShield = snapshot != null ? snapshot.getOffHand() : ItemStack.EMPTY;
+        if (!tryPreserveDurability(shield, previousShield,
+                "shield_durability_mastery", skillData.getInt("shield_durability_mastery"), snapshot)) {
+            applyDurabilityMastery(shield, skillData, shieldConfig, "shield_durability_mastery", previousShield);
+        }
         
         // Equip it
         mob.equipStack(EquipmentSlot.OFFHAND, shield);
@@ -1245,8 +1390,9 @@ public class ScalingSystem {
     /**
      * Apply armor piece with enchants
      */
-    private static void applyArmor(MobEntity mob, NbtCompound skillData, JsonObject tree, 
-            String slotName, EquipmentSlot slot, ServerWorld world) {
+        private static void applyArmor(MobEntity mob, NbtCompound skillData, JsonObject tree,
+            String slotName, EquipmentSlot slot, ServerWorld world,
+            EquipmentSnapshot snapshot, boolean forceOverride) {
         
         if (!tree.has(slotName)) {
             logEquipmentDebug(mob, slotName, "Config missing entry for this slot");
@@ -1281,9 +1427,13 @@ public class ScalingSystem {
 
         ItemStack current = mob.getEquippedStack(slot);
         if (!current.isEmpty() && !current.isOf(armor.getItem())) {
-            skillData.putBoolean(slotName + "_equipped", true);
-            setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
-            return;
+            if (forceOverride) {
+                mob.equipStack(slot, ItemStack.EMPTY);
+            } else {
+                skillData.putBoolean(slotName + "_equipped", true);
+                setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
+                return;
+            }
         }
 
         skillData.putBoolean(slotName + "_equipped", false);
@@ -1294,8 +1444,15 @@ public class ScalingSystem {
             applyEnchantments(armor, skillData, armorConfig.getAsJsonObject("enchants"), slotName + "_enchant_", world);
         }
         
-        // Apply durability mastery
-        applyDurabilityMastery(armor, skillData, armorConfig, slotName + "_durability_mastery");
+        String durabilityKey = slotName + "_durability_mastery";
+        ItemStack previousArmor = snapshot != null ? snapshot.getArmor(slot) : ItemStack.EMPTY;
+        if (!tryPreserveDurability(armor,
+                previousArmor,
+                durabilityKey,
+                skillData.getInt(durabilityKey),
+                snapshot)) {
+            applyDurabilityMastery(armor, skillData, armorConfig, durabilityKey, previousArmor);
+        }
         
         // Equip it
         mob.equipStack(slot, armor);
@@ -1305,6 +1462,9 @@ public class ScalingSystem {
 
     private static boolean requiresEquipmentSync(MobEntity mob, NbtCompound skillData) {
         if (mob == null || skillData == null) {
+            return false;
+        }
+        if (!skillData.getBoolean(NBT_EQUIPMENT_PRIMED)) {
             return false;
         }
         if (skillData.getInt("weapon_tier") > 0 && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
@@ -1387,7 +1547,8 @@ public class ScalingSystem {
      * Apply durability mastery - set item durability based on upgrade level
      * Higher mastery = spawn with more durability (0.10 to 1.00 = 10% to 100%)
      */
-    private static void applyDurabilityMastery(ItemStack item, NbtCompound skillData, JsonObject config, String skillKey) {
+    private static void applyDurabilityMastery(ItemStack item, NbtCompound skillData, JsonObject config,
+            String skillKey, ItemStack previousStack) {
         int masteryLevel = skillData.getInt(skillKey);
         if (masteryLevel <= 0) return;
         
@@ -1410,9 +1571,42 @@ public class ScalingSystem {
         int maxDurability = item.getMaxDamage();
         if (maxDurability > 0) {
             int targetDurability = (int) Math.round(maxDurability * Math.min(1.0, durabilityPercent));
-            int damageToSet = maxDurability - targetDurability;
-            item.setDamage(Math.max(0, damageToSet));
+            int previousDurability = getRemainingDurability(previousStack);
+            if (previousDurability >= 0 && previousDurability > targetDurability) {
+                targetDurability = Math.min(maxDurability, previousDurability);
+            }
+            int damageToSet = Math.max(0, Math.min(maxDurability, maxDurability - targetDurability));
+            item.setDamage(damageToSet);
         }
+    }
+
+    private static int getRemainingDurability(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || stack.getMaxDamage() <= 0) {
+            return -1;
+        }
+        return stack.getMaxDamage() - stack.getDamage();
+    }
+
+    private static boolean tryPreserveDurability(ItemStack target, ItemStack previous,
+            String durabilityKey, int currentLevel, EquipmentSnapshot snapshot) {
+        if (target == null || previous == null || previous.isEmpty() || snapshot == null) {
+            return false;
+        }
+        if (durabilityKey == null || durabilityKey.isEmpty()) {
+            return false;
+        }
+        if (!previous.isOf(target.getItem())) {
+            return false;
+        }
+        int previousLevel = snapshot.getDurabilityLevel(durabilityKey);
+        if (previousLevel != currentLevel) {
+            return false;
+        }
+        if (target.getMaxDamage() <= 0) {
+            return false;
+        }
+        target.setDamage(Math.min(target.getMaxDamage(), Math.max(0, previous.getDamage())));
+        return true;
     }
     
     /**
@@ -1669,12 +1863,12 @@ public class ScalingSystem {
             }
         }
         
-        // Check on_damage_regen (from healing ability)
-        int healingLevel = skillData.getInt("effect_healing");
-        if (healingLevel >= 3 && effects.has("healing")) {
-            JsonArray levels = effects.getAsJsonArray("healing");
-            if (healingLevel <= levels.size()) {
-                JsonObject levelData = levels.get(healingLevel - 1).getAsJsonObject();
+        // Check on_damage_regen (from regeneration ability)
+        int regenerationLevel = skillData.getInt("effect_regeneration");
+        if (regenerationLevel >= 3 && effects.has("regeneration")) {
+            JsonArray levels = effects.getAsJsonArray("regeneration");
+            if (regenerationLevel <= levels.size()) {
+                JsonObject levelData = levels.get(regenerationLevel - 1).getAsJsonObject();
                 
                 if (levelData.has("on_damage_regen_level")) {
                     int regenLevel = levelData.get("on_damage_regen_level").getAsInt();
@@ -1921,7 +2115,7 @@ public class ScalingSystem {
             case "poison" -> StatusEffects.POISON;
             case "wither" -> StatusEffects.WITHER;
             case "instant_damage", "harming" -> StatusEffects.INSTANT_DAMAGE;
-            case "instant_health", "healing" -> StatusEffects.INSTANT_HEALTH;
+            case "instant_health", "regeneration" -> StatusEffects.INSTANT_HEALTH;
             case "blindness" -> StatusEffects.BLINDNESS;
             case "nausea" -> StatusEffects.NAUSEA;
             case "hunger" -> StatusEffects.HUNGER;
@@ -2457,13 +2651,13 @@ public class ScalingSystem {
 
         if (markedEquipped) {
             if (handleArmorBreak(mob, data, slotPrefix) && world != null) {
-                applyArmor(mob, skillData, tree, slotPrefix, slot, world);
+                applyArmor(mob, skillData, tree, slotPrefix, slot, world, null, false);
             }
             return;
         }
 
         if (world != null) {
-            applyArmor(mob, skillData, tree, slotPrefix, slot, world);
+            applyArmor(mob, skillData, tree, slotPrefix, slot, world, null, false);
         }
     }
 
@@ -2749,6 +2943,62 @@ public class ScalingSystem {
             if (!enabled) return;
             String status = purchased ? "completed with purchases" : "completed with no purchases";
             log(String.format(java.util.Locale.US, "Pass %s. Exit: %s. Remaining budget=%d", status, exitReason, Math.max(remainingBudget, 0)));
+        }
+    }
+
+    private static class EquipmentSnapshot {
+        private final ItemStack mainHand;
+        private final ItemStack offHand;
+        private final EnumMap<EquipmentSlot, ItemStack> armor;
+        private final Map<String, Integer> durabilityLevels;
+
+        private EquipmentSnapshot(ItemStack mainHand, ItemStack offHand, EnumMap<EquipmentSlot, ItemStack> armor,
+                Map<String, Integer> durabilityLevels) {
+            this.mainHand = mainHand;
+            this.offHand = offHand;
+            this.armor = armor;
+            this.durabilityLevels = durabilityLevels;
+        }
+
+        static EquipmentSnapshot capture(MobEntity mob, NbtCompound skillData) {
+            ItemStack main = mob != null ? mob.getEquippedStack(EquipmentSlot.MAINHAND).copy() : ItemStack.EMPTY;
+            ItemStack off = mob != null ? mob.getEquippedStack(EquipmentSlot.OFFHAND).copy() : ItemStack.EMPTY;
+            EnumMap<EquipmentSlot, ItemStack> armorMap = new EnumMap<>(EquipmentSlot.class);
+            for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+                armorMap.put(slot, mob != null ? mob.getEquippedStack(slot).copy() : ItemStack.EMPTY);
+            }
+            Map<String, Integer> durability = new HashMap<>();
+            if (skillData != null) {
+                for (String key : skillData.getKeys()) {
+                    if (key.endsWith("_durability_mastery")) {
+                        durability.put(key, skillData.getInt(key));
+                    }
+                }
+            }
+            return new EquipmentSnapshot(main, off, armorMap, durability);
+        }
+
+        ItemStack getMainHand() {
+            return mainHand == null ? ItemStack.EMPTY : mainHand;
+        }
+
+        ItemStack getOffHand() {
+            return offHand == null ? ItemStack.EMPTY : offHand;
+        }
+
+        ItemStack getArmor(EquipmentSlot slot) {
+            if (armor == null || slot == null) {
+                return ItemStack.EMPTY;
+            }
+            ItemStack stack = armor.get(slot);
+            return stack == null ? ItemStack.EMPTY : stack;
+        }
+
+        int getDurabilityLevel(String key) {
+            if (durabilityLevels == null || key == null) {
+                return -1;
+            }
+            return durabilityLevels.getOrDefault(key, -1);
         }
     }
 
