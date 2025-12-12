@@ -60,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ScalingSystem {
 
     private static final Gson GSON = new Gson();
+    private static final int PERMANENT_EFFECT_DURATION_TICKS = 20 * 60 * 60 * 24; // 24 in-game hours
     
     // Cache of loaded mob configs: mob_name -> JsonObject
     private static final Map<String, JsonObject> MOB_CONFIGS = new ConcurrentHashMap<>();
@@ -303,6 +304,11 @@ public class ScalingSystem {
         if (!weaponMissing && lockedWeapon != null && shouldHaveWeapon) {
             weaponMismatch = !isExpectedWeaponItem(currentWeapon, lockedWeapon, skillData.getInt("weapon_tier"));
         }
+        boolean weaponMatches = !weaponMissing && !weaponMismatch && lockedWeapon != null && shouldHaveWeapon;
+        if (weaponMatches && !hasWeaponEquipped) {
+            skillData.putBoolean("weapon_equipped", true);
+            hasWeaponEquipped = true;
+        }
         if (hasWeaponEquipped && (weaponMissing || weaponMismatch)) {
             mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
             if (handleWeaponBreak(mob, data) && serverWorld != null && lockedWeapon != null) {
@@ -314,10 +320,14 @@ public class ScalingSystem {
 
         boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
         boolean shouldHaveShield = skillData.getInt("has_shield") > 0;
-        if (hasShieldEquipped && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
+        ItemStack currentShield = mob.getEquippedStack(EquipmentSlot.OFFHAND);
+        boolean shieldMissing = currentShield.isEmpty();
+        if (hasShieldEquipped && shieldMissing) {
             if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
                 applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
             }
+        } else if (!hasShieldEquipped && shouldHaveShield && !shieldMissing && currentShield.isOf(Items.SHIELD)) {
+            skillData.putBoolean("shield_equipped", true);
         } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield")) {
             applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
         }
@@ -950,8 +960,14 @@ public class ScalingSystem {
         }
         
         boolean showParticles = !ModConfig.getInstance().disableParticles;
-        // Apply permanent effect (infinite duration) - only called when upgrades change
-        mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, showParticles, true));
+        mob.addStatusEffect(new StatusEffectInstance(
+            effect,
+            PERMANENT_EFFECT_DURATION_TICKS,
+            Math.max(0, amplifier),
+            false,
+            showParticles,
+            true
+        ));
     }
 
     private static void applyResistanceEffect(MobEntity mob, NbtCompound skillData, JsonObject effects) {
@@ -974,7 +990,7 @@ public class ScalingSystem {
         boolean showParticles = !ModConfig.getInstance().disableParticles;
         mob.addStatusEffect(new StatusEffectInstance(
             StatusEffects.RESISTANCE,
-            StatusEffectInstance.INFINITE,
+            PERMANENT_EFFECT_DURATION_TICKS,
             amplifier,
             false,
             showParticles,
@@ -983,7 +999,7 @@ public class ScalingSystem {
         if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
             mob.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.FIRE_RESISTANCE,
-                StatusEffectInstance.INFINITE,
+                PERMANENT_EFFECT_DURATION_TICKS,
                 0,
                 false,
                 showParticles,
