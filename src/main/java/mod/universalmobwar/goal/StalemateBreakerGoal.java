@@ -59,10 +59,6 @@ public class StalemateBreakerGoal extends Goal {
                 mob.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 100, 3)); // Strength IV
                 mob.addStatusEffect(new StatusEffectInstance(StatusEffects.HASTE, 100, 2));    // Haste III
             }
-            // Debuff target if close
-            if (mob.squaredDistanceTo(target) < 16) {
-                target.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 40, 1));
-            }
         }
 
         // Stage 3: Sudden Death (45s+)
@@ -72,7 +68,7 @@ public class StalemateBreakerGoal extends Goal {
             }
             // Wither the target
             if (mob.squaredDistanceTo(target) < 16) {
-                target.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 40, 2));
+                target.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 40, 6));
                 target.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, 40, 0)); // No hiding
             }
         }

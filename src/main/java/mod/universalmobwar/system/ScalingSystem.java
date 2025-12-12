@@ -11,11 +11,16 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -79,6 +84,33 @@ public class ScalingSystem {
         "minecraft:warden",
         "minecraft:elder_guardian"
     );
+    private static final Set<EntityType<?>> UNDEAD_ENTITY_TYPES = Set.of(
+        EntityType.ZOMBIE,
+        EntityType.ZOMBIE_VILLAGER,
+        EntityType.ZOMBIE_HORSE,
+        EntityType.DROWNED,
+        EntityType.HUSK,
+        EntityType.STRAY,
+        EntityType.BOGGED,
+        EntityType.SKELETON,
+        EntityType.WITHER_SKELETON,
+        EntityType.SKELETON_HORSE,
+        EntityType.PHANTOM,
+        EntityType.WITHER,
+        EntityType.ZOMBIFIED_PIGLIN,
+        EntityType.ZOGLIN,
+        EntityType.GIANT
+    );
+    private static final List<String> UNDEAD_KEYWORDS = List.of(
+        "zombie",
+        "skeleton",
+        "undead",
+        "wither",
+        "ghost",
+        "lich",
+        "ghoul",
+        "phantom"
+    );
     private static final String NBT_WEAPON_ACTIVE_KEY = "weapon_active_key";
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
@@ -89,6 +121,12 @@ public class ScalingSystem {
     private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
+    private static final String NBT_UNDEAD_BASE_HEAL_TICK = "umw_undead_base_heal_tick";
+    private static final String NBT_UNDEAD_ON_DAMAGE_UNTIL = "umw_undead_on_damage_until";
+    private static final String NBT_UNDEAD_ON_DAMAGE_NEXT = "umw_undead_on_damage_next";
+    private static final String NBT_UNDEAD_ON_DAMAGE_AMP = "umw_undead_on_damage_amp";
+
+    private static final int UNDEAD_HEAL_INTERVAL_TICKS = 200;
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
@@ -494,6 +532,7 @@ public class ScalingSystem {
         // 1. Mob just spawned (lastUpdate == 0)
         // 2. Mob hasn't been upgraded in 1+ day (24000 ticks)
         long currentTick = world.getTime();
+        tickUndeadHealing(mob, skillData, config, mobType, currentTick);
         int currentTimeOfDay = getCurrentTimeOfDay(world);
         boolean firstUpgradeCycle = !skillData.contains(NBT_LAST_UPGRADE_MARKER);
         boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay);
@@ -703,6 +742,34 @@ public class ScalingSystem {
 
     private static boolean isBossEntity(Identifier entityId) {
         return entityId != null && KNOWN_BOSS_IDS.contains(entityId.toString());
+    }
+
+    private static boolean isUndeadMob(MobEntity mob) {
+        if (mob == null) {
+            return false;
+        }
+        EntityType<?> type = mob.getType();
+        if (type == null) {
+            return false;
+        }
+        if (UNDEAD_ENTITY_TYPES.contains(type)) {
+            return true;
+        }
+        Identifier id = Registries.ENTITY_TYPE.getId(type);
+        if (id == null) {
+            return false;
+        }
+        String path = id.getPath();
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        String lowered = path.toLowerCase(Locale.ROOT);
+        for (String keyword : UNDEAD_KEYWORDS) {
+            if (lowered.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     // ==========================================================================
@@ -1130,6 +1197,10 @@ public class ScalingSystem {
             }
         }
         
+        if (effect.value() == StatusEffects.REGENERATION && isUndeadMob(mob)) {
+            return;
+        }
+
         boolean showParticles = !ModConfig.getInstance().disableParticles;
         mob.addStatusEffect(new StatusEffectInstance(
             effect,
@@ -1206,6 +1277,76 @@ public class ScalingSystem {
         }
         JsonObject levelData = resistanceLevels.get(resolvedLevel - 1).getAsJsonObject();
         return levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean();
+    }
+
+    private static void tickUndeadHealing(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType, long currentTick) {
+        if (mob == null || skillData == null || config == null || !isUndeadMob(mob) || !config.has("tree")) {
+            return;
+        }
+        JsonObject tree = config.getAsJsonObject("tree");
+        String effectsKey = "passive".equals(mobType) ? "passive_potion_effects" : "hostile_neutral_potion_effects";
+        if (!tree.has(effectsKey)) {
+            return;
+        }
+        JsonObject effects = tree.getAsJsonObject(effectsKey);
+        if (!effects.has("regeneration")) {
+            return;
+        }
+
+        int regenLevel = skillData.getInt("effect_regeneration");
+        if (regenLevel <= 0) {
+            return;
+        }
+
+        long lastBasePulse = skillData.getLong(NBT_UNDEAD_BASE_HEAL_TICK);
+        if (lastBasePulse == 0L || currentTick - lastBasePulse >= UNDEAD_HEAL_INTERVAL_TICKS) {
+            int baseAmplifier = regenLevel <= 1 ? 0 : 1;
+            applyUndeadHealingPulse(mob, baseAmplifier);
+            skillData.putLong(NBT_UNDEAD_BASE_HEAL_TICK, currentTick);
+        }
+
+        long abilityEnd = skillData.getLong(NBT_UNDEAD_ON_DAMAGE_UNTIL);
+        if (abilityEnd > currentTick) {
+            long nextPulse = skillData.getLong(NBT_UNDEAD_ON_DAMAGE_NEXT);
+            if (nextPulse == 0L || currentTick >= nextPulse) {
+                int amplifier = Math.max(0, skillData.getInt(NBT_UNDEAD_ON_DAMAGE_AMP));
+                applyUndeadHealingPulse(mob, amplifier);
+                skillData.putLong(NBT_UNDEAD_ON_DAMAGE_NEXT, currentTick + UNDEAD_HEAL_INTERVAL_TICKS);
+            }
+        } else if (abilityEnd > 0L) {
+            skillData.remove(NBT_UNDEAD_ON_DAMAGE_UNTIL);
+            skillData.remove(NBT_UNDEAD_ON_DAMAGE_NEXT);
+            skillData.remove(NBT_UNDEAD_ON_DAMAGE_AMP);
+        }
+    }
+
+    private static void startUndeadOnDamageHealing(MobEntity mob, NbtCompound skillData, int regenLevel, int durationSeconds, long currentTick) {
+        if (mob == null || skillData == null || regenLevel <= 0) {
+            return;
+        }
+        int amplifier = Math.max(0, regenLevel - 1);
+        applyUndeadHealingPulse(mob, amplifier);
+        long durationTicks = Math.max(UNDEAD_HEAL_INTERVAL_TICKS, durationSeconds * 20L);
+        skillData.putLong(NBT_UNDEAD_ON_DAMAGE_UNTIL, currentTick + durationTicks);
+        skillData.putLong(NBT_UNDEAD_ON_DAMAGE_NEXT, currentTick + UNDEAD_HEAL_INTERVAL_TICKS);
+        skillData.putInt(NBT_UNDEAD_ON_DAMAGE_AMP, amplifier);
+    }
+
+    private static void applyUndeadHealingPulse(MobEntity mob, int amplifier) {
+        if (mob == null || !mob.isAlive()) {
+            return;
+        }
+        if (!(mob.getWorld() instanceof ServerWorld)) {
+            return;
+        }
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.INSTANT_DAMAGE,
+            1,
+            Math.max(0, amplifier),
+            false,
+            false,
+            true
+        ));
     }
 
     private static void refreshMissingEffects(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType) {
@@ -1849,9 +1990,10 @@ public class ScalingSystem {
                 if (currentTick - lastUse >= cooldown * 20L) { // cooldown is in seconds
                     // Roll chance
                     if (mob.getRandom().nextDouble() < chance) {
+                        int durationTicks = Math.max(20, duration * 20);
                         mob.addStatusEffect(new StatusEffectInstance(
                             StatusEffects.INVISIBILITY,
-                            StatusEffectInstance.INFINITE,
+                            durationTicks,
                             0,
                             false,
                             false,
@@ -1880,14 +2022,18 @@ public class ScalingSystem {
                     long lastUse = cooldowns.getOrDefault("on_damage_regen", 0L);
                     
                     if (currentTick - lastUse >= cooldown * 20L) {
-                        mob.addStatusEffect(new StatusEffectInstance(
-                            StatusEffects.REGENERATION,
-                            StatusEffectInstance.INFINITE,
-                            regenLevel - 1,
-                            false,
-                            false,
-                            true
-                        ));
+                        if (isUndeadMob(mob)) {
+                            startUndeadOnDamageHealing(mob, skillData, regenLevel, duration, currentTick);
+                        } else {
+                            mob.addStatusEffect(new StatusEffectInstance(
+                                StatusEffects.REGENERATION,
+                                StatusEffectInstance.INFINITE,
+                                regenLevel - 1,
+                                false,
+                                false,
+                                true
+                            ));
+                        }
                         cooldowns.put("on_damage_regen", currentTick);
                     }
                 }
@@ -1895,6 +2041,49 @@ public class ScalingSystem {
         }
     }
     
+    public static void handleCriticalGlow(MobEntity mob, DamageSource source) {
+        if (mob == null || source == null) {
+            return;
+        }
+        World world = mob.getWorld();
+        if (world == null || world.isClient()) {
+            return;
+        }
+        if (!isCriticalHit(source)) {
+            return;
+        }
+        boolean showParticles = !ModConfig.getInstance().disableParticles;
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.GLOWING,
+            200,
+            0,
+            false,
+            showParticles,
+            true
+        ));
+    }
+
+    private static boolean isCriticalHit(DamageSource source) {
+        Entity projectile = source.getSource();
+        if (projectile instanceof PersistentProjectileEntity persistentProjectile && persistentProjectile.isCritical()) {
+            return true;
+        }
+        Entity attacker = source.getAttacker();
+        if (attacker instanceof PlayerEntity player) {
+            if (player.getAttackCooldownProgress(0.5F) > 0.9F
+                && player.fallDistance > 0.0F
+                && !player.isOnGround()
+                && !player.isClimbing()
+                && !player.isTouchingWater()
+                && !player.hasStatusEffect(StatusEffects.BLINDNESS)
+                && !player.hasVehicle()
+                && !player.isSprinting()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ==========================================================================
     //                        SPECIAL ABILITY HANDLERS
     // ==========================================================================
@@ -3016,4 +3205,5 @@ public class ScalingSystem {
             this.cost = cost;
         }
     }
+
 }

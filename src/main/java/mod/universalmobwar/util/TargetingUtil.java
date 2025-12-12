@@ -57,9 +57,12 @@ public final class TargetingUtil {
 	 * LOW OVERHEAD: Multiple early-exit paths and smart filtering.
 	 */
 	public static LivingEntity findNearestValidTarget(MobEntity self, double range, boolean ignoreSameSpecies, boolean targetPlayers) {
-		// Performance mode check: skip targeting every other tick for distant mobs
+		// Performance mode check: allow faster targeting when few mobs are requesting it
 		if (mod.universalmobwar.config.ModConfig.getInstance().performanceMode) {
-			if (self.age % 2 != 0 && self.getTarget() == null) return null;
+			boolean lowLoad = queriesThisTick < (MAX_QUERIES_PER_TICK / 4);
+			if (!lowLoad && self.age % 2 != 0 && self.getTarget() == null) {
+				return null;
+			}
 		}
 
 		long currentTime = System.currentTimeMillis();

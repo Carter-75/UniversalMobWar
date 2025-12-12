@@ -30,6 +30,9 @@ public abstract class LivingEntityDamageMixin {
         }
 
         MobWarData data = ((IMobWarDataHolder) mobEntity).getMobWarData();
+
+        ScalingSystem.handleCriticalGlow(mobEntity, source);
+
         if (data == null) {
             return;
         }
