@@ -2160,18 +2160,6 @@ public class ScalingSystem {
             skillData.putBoolean("weapon_equipped", false);
             return false;
         }
-        if (tier > 1) {
-            skillData.putInt("weapon_tier", tier - 1);
-        } else {
-            skillData.putInt("weapon_tier", 0);
-        }
-        boolean scopedWeapon = skillData.getBoolean(NBT_WEAPON_ACTIVE_SCOPED);
-        String weaponKey = skillData.getString(NBT_WEAPON_ACTIVE_KEY);
-        String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponKey);
-        String dropKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponKey);
-        String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponKey);
-        clearEnchantsWithPrefix(skillData, enchantPrefix);
-        resetMasteries(skillData, dropKey, durabilityKey);
         skillData.putBoolean("weapon_equipped", false);
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
         skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
@@ -2185,9 +2173,6 @@ public class ScalingSystem {
             skillData.putBoolean("shield_equipped", false);
             return false;
         }
-        skillData.putInt("has_shield", 0);
-        clearEnchantsWithPrefix(skillData, "shield_enchant_");
-        resetMasteries(skillData, "shield");
         skillData.putBoolean("shield_equipped", false);
         MobWarData.save(mob, data);
         return true;
@@ -2201,15 +2186,6 @@ public class ScalingSystem {
             skillData.putBoolean(slotPrefix + "_equipped", false);
             return false;
         }
-
-        if (tier > 1) {
-            skillData.putInt(tierKey, tier - 1);
-        } else {
-            skillData.putInt(tierKey, 0);
-        }
-
-        clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
-        resetMasteries(skillData, slotPrefix);
         skillData.putBoolean(slotPrefix + "_equipped", false);
         MobWarData.save(mob, data);
         return true;
