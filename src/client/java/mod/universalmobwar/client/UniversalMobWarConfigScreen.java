@@ -301,6 +301,10 @@ public class UniversalMobWarConfigScreen extends Screen {
                 "Batch upgrade tasks to reduce tick spikes.");
             relativeY = addCheckbox(x, relativeY, "Enable Async Tasks", config.enableAsyncTasks, val -> config.enableAsyncTasks = val,
                 "Move heavy calculations off the main thread.");
+            double concurrentJobs = config.getMaxConcurrentUpgradeJobs();
+            relativeY = addSlider(x, relativeY, w, h, concurrentJobs, 1, 256,
+                val -> String.format("Concurrent Upgrades: %.0f", val),
+                val -> config.maxConcurrentUpgradeJobs = (int) MathHelper.clamp(Math.round(val), 1, 256));
             double windowSeconds = config.upgradeProcessingTimeMs / 1000.0;
             relativeY = addSlider(x, relativeY, w, h, windowSeconds, 1.0, 30.0,
                 val -> String.format("Upgrade Window: %.1fs", val),

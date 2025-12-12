@@ -534,29 +534,43 @@ public class ScalingSystem {
             && skillData.getBoolean(NBT_EQUIPMENT_PRIMED);
         boolean needsEquipmentSync = canSyncEquipment && requiresEquipmentSync(mob, skillData);
 
+        if (upgradeScheduleReady && !readyForNextCycle) {
+            long windowDelayTicks = Math.max(1L, computeTicksUntilUpgradeWindow(skillData, currentTimeOfDay));
+            deferUpgradePass(skillData, currentTick, windowDelayTicks);
+            upgradeScheduleReady = false;
+        }
+
         if (upgradeScheduleReady) {
             if (asyncEnabled) {
                 boolean jobActive = scheduler.isJobActive(mobUuid) || PENDING_EQUIPMENT_SNAPSHOTS.containsKey(mobUuid);
                 if (!jobActive) {
-                    EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
-                    PENDING_EQUIPMENT_SNAPSHOTS.put(mobUuid, snapshot);
-                    lockEquipmentForUpgrade(skillData);
-                    ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
-                    long seed = computeUpgradeSeed(mobUuid, currentTick, budget);
-                    MobUpgradeJob job = new MobUpgradeJob(
-                        mobUuid,
-                        config,
-                        mobType,
-                        skillData.copy(),
-                        budget,
-                        totalPoints,
-                        spentPoints,
-                        configSnapshot,
-                        killCount,
-                        currentTick,
-                        seed
-                    );
-                    scheduler.submit(mobUuid, job);
+                    int maxConcurrentJobs = Math.max(1, modConfig.getMaxConcurrentUpgradeJobs());
+                    int activeJobs = scheduler.getActiveJobCount();
+                    if (activeJobs >= maxConcurrentJobs) {
+                        long delayTicks = computeConcurrencyBackoffTicks(modConfig, activeJobs, maxConcurrentJobs);
+                        deferUpgradePass(skillData, currentTick, delayTicks);
+                        upgradeScheduleReady = false;
+                    } else {
+                        EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
+                        PENDING_EQUIPMENT_SNAPSHOTS.put(mobUuid, snapshot);
+                        lockEquipmentForUpgrade(skillData);
+                        ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
+                        long seed = computeUpgradeSeed(mobUuid, currentTick, budget);
+                        MobUpgradeJob job = new MobUpgradeJob(
+                            mobUuid,
+                            config,
+                            mobType,
+                            skillData.copy(),
+                            budget,
+                            totalPoints,
+                            spentPoints,
+                            configSnapshot,
+                            killCount,
+                            currentTick,
+                            seed
+                        );
+                        scheduler.submit(mobUuid, job);
+                    }
                 }
             } else {
                 EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
@@ -700,6 +714,16 @@ public class ScalingSystem {
         skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
     }
 
+    private static void deferUpgradePass(NbtCompound skillData, long currentTick, long delayTicks) {
+        if (skillData == null) {
+            return;
+        }
+        long adjustedDelay = Math.max(1L, delayTicks);
+        long deferredTick = currentTick + adjustedDelay;
+        skillData.putBoolean(NBT_UPGRADE_PENDING, true);
+        skillData.putLong(NBT_NEXT_UPGRADE_TICK, deferredTick);
+    }
+
     private static long reserveUpgradeSlot(long currentTick, long preferredTick, long delayTicks, boolean bypassDelay) {
         synchronized (UPGRADE_SCHEDULER_LOCK) {
             long coreFactor = Math.max(1L, Runtime.getRuntime().availableProcessors());
@@ -721,6 +745,36 @@ public class ScalingSystem {
         seed ^= Long.rotateLeft(currentTick, 7);
         seed ^= ((long) budget << 3);
         return seed;
+    }
+
+    private static long computeConcurrencyBackoffTicks(ModConfig modConfig, int activeJobs, int maxConcurrentJobs) {
+        long baseDelay = Math.max(20L, getUpgradeProcessingDelayTicks(modConfig));
+        if (maxConcurrentJobs <= 0 || activeJobs <= maxConcurrentJobs) {
+            return baseDelay;
+        }
+        long overload = Math.max(1L, activeJobs - maxConcurrentJobs);
+        long step = Math.max(5L, baseDelay / 4L);
+        return baseDelay + (overload * step);
+    }
+
+    private static long computeTicksUntilUpgradeWindow(NbtCompound skillData, int currentTimeOfDay) {
+        if (skillData == null || !skillData.contains(NBT_LAST_UPGRADE_MARKER)) {
+            return 0L;
+        }
+        int marker = skillData.getInt(NBT_LAST_UPGRADE_MARKER);
+        boolean wrapped = skillData.getBoolean(NBT_UPGRADE_WRAP_STATE);
+        final int ticksPerDay = 24000;
+
+        if (!wrapped) {
+            int ticksToMidnight = Math.max(0, ticksPerDay - currentTimeOfDay);
+            return (long) ticksToMidnight + Math.max(0, marker);
+        }
+
+        if (currentTimeOfDay >= marker) {
+            return 0L;
+        }
+
+        return Math.max(1L, marker - currentTimeOfDay);
     }
 
     private static boolean isUpgradeScheduleReady(NbtCompound skillData, long currentTick) {

@@ -167,6 +167,10 @@ public class ModConfig implements ConfigData {
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean enableAsyncTasks = true;
+
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 256)
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public int maxConcurrentUpgradeJobs = 32;
     
     @ConfigEntry.BoundedDiscrete(min = 1000, max = 30000)
     @ConfigEntry.Gui.Tooltip(count = 3)
@@ -395,6 +399,10 @@ public class ModConfig implements ConfigData {
 
     public int getMaxUpgradeIterations() {
         return Math.max(MIN_UPGRADE_ITERATIONS, Math.min(MAX_UPGRADE_ITERATIONS, maxUpgradeIterations));
+    }
+
+    public int getMaxConcurrentUpgradeJobs() {
+        return Math.max(1, Math.min(256, maxConcurrentUpgradeJobs));
     }
     
     // Section enable checks
