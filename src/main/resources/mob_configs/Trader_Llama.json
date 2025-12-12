@@ -37,7 +37,7 @@
     },
 
     "hostile_neutral_potion_effects": {
-      "healing": [
+      "regeneration": [
         { "level": 1, "cost": 1,  "regen_level": 1, "permanent": true },
         { "level": 2, "cost": 2,  "regen_level": 2, "permanent": true },
         { "level": 3, "cost": 3,  "regen_level": 2, "permanent": true, "on_damage_regen_level": 3, "on_damage_duration": 8,  "on_damage_cooldown": 60 },
