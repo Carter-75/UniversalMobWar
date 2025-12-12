@@ -89,6 +89,7 @@ public class ScalingSystem {
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
     private static final String NBT_UPGRADE_WRAP_STATE = "umw_upgrade_marker_wrapped";
+    private static final String NBT_WINDOW_APPROVED = "umw_upgrade_window_approved";
     private static final String OVERRIDE_KEY_WEAPON = "weapon_player_override";
     private static final String OVERRIDE_KEY_SHIELD = "shield_player_override";
     private static final String NBT_INITIAL_DISARMED = "umw_initial_disarmed";
@@ -522,10 +523,19 @@ public class ScalingSystem {
         boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay);
         boolean shouldRequestUpgrade = firstUpgradeCycle || readyForNextCycle;
         boolean upgradePending = skillData.getBoolean(NBT_UPGRADE_PENDING);
+        boolean windowApproved = skillData.getBoolean(NBT_WINDOW_APPROVED);
         boolean upgradeScheduleReady = isUpgradeScheduleReady(skillData, currentTick);
 
+        if (readyForNextCycle && upgradePending && !windowApproved) {
+            skillData.putBoolean(NBT_WINDOW_APPROVED, true);
+            windowApproved = true;
+        }
+
         if (shouldRequestUpgrade && !upgradePending) {
-            scheduleUpgradePass(skillData, currentTick, modConfig);
+            boolean approveNow = readyForNextCycle || firstUpgradeCycle;
+            scheduleUpgradePass(skillData, currentTick, modConfig, approveNow);
+            upgradePending = true;
+            windowApproved = approveNow;
             MobWarData.save(mob, data);
         }
 
@@ -534,8 +544,9 @@ public class ScalingSystem {
             && skillData.getBoolean(NBT_EQUIPMENT_PRIMED);
         boolean needsEquipmentSync = canSyncEquipment && requiresEquipmentSync(mob, skillData);
 
-        if (upgradeScheduleReady && !readyForNextCycle) {
+        if (upgradeScheduleReady && !readyForNextCycle && !windowApproved) {
             long windowDelayTicks = Math.max(1L, computeTicksUntilUpgradeWindow(skillData, currentTimeOfDay));
+            skillData.putBoolean(NBT_WINDOW_APPROVED, false);
             deferUpgradePass(skillData, currentTick, windowDelayTicks);
             upgradeScheduleReady = false;
         }
@@ -702,7 +713,7 @@ public class ScalingSystem {
         return Math.max(1L, Math.round(ms / 50.0));
     }
 
-    private static void scheduleUpgradePass(NbtCompound skillData, long currentTick, ModConfig modConfig) {
+    private static void scheduleUpgradePass(NbtCompound skillData, long currentTick, ModConfig modConfig, boolean windowApproved) {
         if (skillData == null) {
             return;
         }
@@ -711,6 +722,7 @@ public class ScalingSystem {
         boolean bypassDelay = UpgradeJobScheduler.getInstance().isIdle();
         long scheduled = reserveUpgradeSlot(currentTick, preferred, delay, bypassDelay);
         skillData.putBoolean(NBT_UPGRADE_PENDING, true);
+        skillData.putBoolean(NBT_WINDOW_APPROVED, windowApproved);
         skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
     }
 
@@ -790,6 +802,7 @@ public class ScalingSystem {
             return;
         }
         skillData.putBoolean(NBT_UPGRADE_PENDING, false);
+        skillData.putBoolean(NBT_WINDOW_APPROVED, false);
         skillData.remove(NBT_NEXT_UPGRADE_TICK);
     }
 
