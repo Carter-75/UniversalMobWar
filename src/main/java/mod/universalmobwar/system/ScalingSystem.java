@@ -290,26 +290,26 @@ public class ScalingSystem {
         JsonObject tree = config.getAsJsonObject("tree");
         ServerWorld serverWorld = mob.getWorld() instanceof ServerWorld sw ? sw : null;
 
+        JsonElement weaponElement = tree.has("weapon") ? tree.get("weapon") : null;
+        JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mob) : null;
+        boolean scopedWeapon = lockedWeapon != null && hasMultipleWeaponOptions(weaponElement);
+        String weaponScopeKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
+
         boolean hasWeaponEquipped = skillData.getBoolean("weapon_equipped");
         boolean shouldHaveWeapon = skillData.getInt("weapon_tier") > 0;
-        if (hasWeaponEquipped && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
-            if (handleWeaponBreak(mob, data) && serverWorld != null && tree.has("weapon")) {
-                JsonElement weaponElement = tree.get("weapon");
-                JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
-                if (lockedWeapon != null) {
-                    boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
-                    String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
-                    applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponKey);
-                }
+        ItemStack currentWeapon = mob.getEquippedStack(EquipmentSlot.MAINHAND);
+        boolean weaponMissing = currentWeapon.isEmpty();
+        boolean weaponMismatch = false;
+        if (!weaponMissing && lockedWeapon != null && shouldHaveWeapon) {
+            weaponMismatch = !isExpectedWeaponItem(currentWeapon, lockedWeapon, skillData.getInt("weapon_tier"));
+        }
+        if (hasWeaponEquipped && (weaponMissing || weaponMismatch)) {
+            mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            if (handleWeaponBreak(mob, data) && serverWorld != null && lockedWeapon != null) {
+                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
             }
-        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && tree.has("weapon")) {
-            JsonElement weaponElement = tree.get("weapon");
-            JsonObject lockedWeapon = getLockedWeaponForMob(weaponElement, mob);
-            if (lockedWeapon != null) {
-                boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
-                String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
-                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponKey);
-            }
+        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null) {
+            applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
         }
 
         boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
@@ -910,26 +910,8 @@ public class ScalingSystem {
             // Apply health boost
             applyPotionEffect(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
             
-            // Apply resistance
-            int resistanceLevel = skillData.getInt("effect_resistance");
-            if (resistanceLevel > 0) {
-                boolean showParticles = !ModConfig.getInstance().disableParticles;
-                // Permanent effect (infinite duration)
-                mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.RESISTANCE, StatusEffectInstance.INFINITE, Math.min(resistanceLevel - 1, 1), false, showParticles, true));
-                
-                // Check for fire resistance at level 3
-                if (effects.has("resistance")) {
-                    JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
-                    if (resistanceLevel <= resistanceLevels.size()) {
-                        JsonObject levelData = resistanceLevels.get(resistanceLevel - 1).getAsJsonObject();
-                        if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
-                            mob.addStatusEffect(new StatusEffectInstance(
-                                StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, false, true));
-                        }
-                    }
-                }
-            }
+            // Apply resistance (and optional fire resistance) directly from config
+            applyResistanceEffect(mob, skillData, effects);
             
             // Apply strength
             applyPotionEffect(mob, skillData, effects, "strength", StatusEffects.STRENGTH, "effect_strength", "strength_level");
@@ -972,6 +954,73 @@ public class ScalingSystem {
         mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, showParticles, true));
     }
 
+    private static void applyResistanceEffect(MobEntity mob, NbtCompound skillData, JsonObject effects) {
+        if (skillData == null || effects == null || !effects.has("resistance")) {
+            return;
+        }
+        int resistanceLevel = skillData.getInt("effect_resistance");
+        if (resistanceLevel <= 0) {
+            return;
+        }
+        JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
+        int resolvedLevel = Math.min(resistanceLevel, resistanceLevels.size());
+        if (resolvedLevel <= 0) {
+            return;
+        }
+        JsonObject levelData = resistanceLevels.get(resolvedLevel - 1).getAsJsonObject();
+        int amplifier = levelData.has("resistance_level")
+            ? Math.max(0, levelData.get("resistance_level").getAsInt() - 1)
+            : Math.max(0, resolvedLevel - 1);
+        boolean showParticles = !ModConfig.getInstance().disableParticles;
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.RESISTANCE,
+            StatusEffectInstance.INFINITE,
+            amplifier,
+            false,
+            showParticles,
+            true
+        ));
+        if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
+            mob.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.FIRE_RESISTANCE,
+                StatusEffectInstance.INFINITE,
+                0,
+                false,
+                showParticles,
+                true
+            ));
+        }
+    }
+
+    private static void ensureResistanceEffects(MobEntity mob, NbtCompound skillData, JsonObject effects) {
+        if (mob == null || skillData == null || effects == null || !effects.has("resistance")) {
+            return;
+        }
+        int resistanceLevel = skillData.getInt("effect_resistance");
+        if (resistanceLevel <= 0) {
+            return;
+        }
+        JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
+        int resolvedLevel = Math.min(resistanceLevel, resistanceLevels.size());
+        if (resolvedLevel <= 0) {
+            return;
+        }
+        boolean needsFire = resistanceLevelGrantsFire(resistanceLevels, resolvedLevel);
+        boolean missingResistance = !mob.hasStatusEffect(StatusEffects.RESISTANCE);
+        boolean missingFire = needsFire && !mob.hasStatusEffect(StatusEffects.FIRE_RESISTANCE);
+        if (missingResistance || missingFire) {
+            applyResistanceEffect(mob, skillData, effects);
+        }
+    }
+
+    private static boolean resistanceLevelGrantsFire(JsonArray resistanceLevels, int resolvedLevel) {
+        if (resistanceLevels == null || resolvedLevel <= 0 || resolvedLevel > resistanceLevels.size()) {
+            return false;
+        }
+        JsonObject levelData = resistanceLevels.get(resolvedLevel - 1).getAsJsonObject();
+        return levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean();
+    }
+
     private static void refreshMissingEffects(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType) {
         if (skillData == null || mob == null || config == null || !config.has("tree")) {
             return;
@@ -986,11 +1035,10 @@ public class ScalingSystem {
         ensureEffectPresent(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
         ensureEffectPresent(mob, skillData, effects, "strength", StatusEffects.STRENGTH, "effect_strength", "strength_level");
         ensureEffectPresent(mob, skillData, effects, "speed", StatusEffects.SPEED, "effect_speed", "speed_level");
-        ensureEffectPresent(mob, skillData, effects, "resistance", StatusEffects.RESISTANCE, "effect_resistance", null);
+        ensureResistanceEffects(mob, skillData, effects);
         if (mobType.equals("passive")) {
             ensureEffectPresent(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", null);
         }
-        ensureFireResistanceFromResistance(mob, skillData, effects);
     }
 
     private static void ensureEffectPresent(MobEntity mob, NbtCompound skillData, JsonObject effects,
@@ -1005,27 +1053,6 @@ public class ScalingSystem {
         applyPotionEffect(mob, skillData, effects, effectName, effect, skillKey, levelKey);
     }
 
-    private static void ensureFireResistanceFromResistance(MobEntity mob, NbtCompound skillData, JsonObject effects) {
-        int resistanceLevel = skillData.getInt("effect_resistance");
-        if (resistanceLevel <= 0 || effects == null || !effects.has("resistance")) {
-            return;
-        }
-        var fireResistEffect = StatusEffects.FIRE_RESISTANCE;
-        JsonArray resistanceLevels = effects.getAsJsonArray("resistance");
-        int clampedLevel = Math.min(resistanceLevel, resistanceLevels.size());
-        if (clampedLevel <= 0) {
-            return;
-        }
-        JsonObject levelData = resistanceLevels.get(clampedLevel - 1).getAsJsonObject();
-        if (!levelData.has("fire_resistance") || !levelData.get("fire_resistance").getAsBoolean()) {
-            return;
-        }
-        if (!mob.hasStatusEffect(fireResistEffect)) {
-            boolean showParticles = !ModConfig.getInstance().disableParticles;
-            mob.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, showParticles, true));
-        }
-    }
-    
     // ==========================================================================
     //                           EQUIPMENT APPLICATION
     // ==========================================================================
@@ -1072,55 +1099,16 @@ public class ScalingSystem {
         String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
         String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponScopeKey);
         String dropMasteryKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponScopeKey);
-        
-        // Determine weapon item based on type and tier
-        ItemStack weapon = null;
-        
-        if (weaponType.equals("bow")) {
-            if (weaponTierLevel > 0) {
-                weapon = new ItemStack(Items.BOW);
-            }
-        } else if (weaponType.equals("crossbow")) {
-            if (weaponTierLevel > 0) {
-                weapon = new ItemStack(Items.CROSSBOW);
-            }
-        } else if (weaponType.equals("trident")) {
-            if (weaponTierLevel > 0) {
-                weapon = new ItemStack(Items.TRIDENT);
-            }
-        } else {
-            // Sword/Axe tiers
-            int tier = weaponTierLevel;
-            if (tier > 0) {
-                if (!weaponConfig.has("tiers")) {
-                    logEquipmentDebug(mob, "weapon", "Tier " + tier + " purchased but config lacks tiers block");
-                } else {
-                    JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
-                    if (tiers.isEmpty()) {
-                        logEquipmentDebug(mob, "weapon", "Tiers array is empty for weapon config");
-                    } else {
-                        if (tier > tiers.size()) {
-                            logEquipmentDebug(
-                                mob,
-                                "weapon",
-                                "Tier " + tier + " exceeds defined tiers (" + tiers.size() + "); clamping"
-                            );
-                            tier = tiers.size();
-                            skillData.putInt("weapon_tier", tier);
-                            weaponTierLevel = tier;
-                        }
-                        JsonObject tierData = tiers.get(Math.max(0, tier - 1)).getAsJsonObject();
-                        if (!tierData.has("tier")) {
-                            logEquipmentDebug(mob, "weapon", "Tier entry missing 'tier' field at level " + tier);
-                        } else {
-                            String tierName = tierData.get("tier").getAsString();
-                            weapon = getWeaponByTier(tierName, weaponType);
-                        }
-                    }
-                }
-            }
+
+        int tierCount = isRangedWeaponType(weaponType) ? weaponTierLevel : getTierCount(weaponConfig);
+        if (!isRangedWeaponType(weaponType) && tierCount > 0 && weaponTierLevel > tierCount) {
+            logEquipmentDebug(mob, "weapon", "Tier " + weaponTierLevel + " exceeds defined tiers (" + tierCount + "); clamping");
+            weaponTierLevel = tierCount;
+            skillData.putInt("weapon_tier", weaponTierLevel);
         }
-        
+
+        ItemStack weapon = getExpectedWeaponStack(weaponConfig, weaponTierLevel);
+
         skillData.putBoolean("weapon_equipped", false);
         if (weapon == null || weapon.isEmpty()) {
             if (weaponTierLevel > 0) {
@@ -1184,38 +1172,24 @@ public class ScalingSystem {
         int tier = skillData.getInt(slotName + "_tier");
         skillData.putBoolean(slotName + "_equipped", false);
         if (tier <= 0) {
+            mob.equipStack(slot, ItemStack.EMPTY);
             return;
         }
 
-        ItemStack armor = ItemStack.EMPTY;
-
-        if (!armorConfig.has("tiers")) {
+        int tierCount = getTierCount(armorConfig);
+        if (tierCount <= 0) {
             logEquipmentDebug(mob, slotName, "Tier data missing in config");
             return;
         }
-
-        JsonArray tiers = armorConfig.getAsJsonArray("tiers");
-        if (tiers.isEmpty()) {
-            logEquipmentDebug(mob, slotName, "Tiers array is empty");
-            return;
-        }
-
-        if (tier > tiers.size()) {
-            logEquipmentDebug(mob, slotName, "Tier " + tier + " exceeds defined tiers (" + tiers.size() + "); clamping");
-            tier = tiers.size();
+        if (tier > tierCount) {
+            logEquipmentDebug(mob, slotName, "Tier " + tier + " exceeds defined tiers (" + tierCount + "); clamping");
+            tier = tierCount;
             skillData.putInt(slotName + "_tier", tier);
         }
 
-        JsonObject tierData = tiers.get(Math.max(0, tier - 1)).getAsJsonObject();
-        if (!tierData.has("tier")) {
-            logEquipmentDebug(mob, slotName, "Tier entry missing 'tier' field at level " + tier);
-            return;
-        }
-        String tierName = tierData.get("tier").getAsString();
-        armor = getArmorByTierAndSlot(tierName, slot);
-
+        ItemStack armor = getExpectedArmorStack(armorConfig, slot, tier);
         if (armor == null || armor.isEmpty()) {
-            logEquipmentDebug(mob, slotName, "No ItemStack mapping for tier '" + tierName + "'");
+            logEquipmentDebug(mob, slotName, "No ItemStack mapping for configured tier");
             return;
         }
         
@@ -1347,6 +1321,50 @@ public class ScalingSystem {
         };
     }
     
+    private static ItemStack getExpectedWeaponStack(JsonObject weaponConfig, int tierLevel) {
+        if (weaponConfig == null || tierLevel <= 0) {
+            return ItemStack.EMPTY;
+        }
+        String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
+        if (isRangedWeaponType(weaponType)) {
+            return getRangedWeaponItem(weaponType);
+        }
+        if (!weaponConfig.has("tiers")) {
+            return ItemStack.EMPTY;
+        }
+        JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
+        if (tiers.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        int clampedTier = Math.max(1, Math.min(tierLevel, tiers.size()));
+        JsonObject tierData = tiers.get(clampedTier - 1).getAsJsonObject();
+        if (!tierData.has("tier")) {
+            return ItemStack.EMPTY;
+        }
+        String tierName = tierData.get("tier").getAsString();
+        return getWeaponByTier(tierName, weaponType);
+    }
+
+    private static ItemStack getRangedWeaponItem(String weaponType) {
+        if (weaponType == null) {
+            return ItemStack.EMPTY;
+        }
+        return switch (weaponType.toLowerCase(java.util.Locale.ROOT)) {
+            case "bow" -> new ItemStack(Items.BOW);
+            case "crossbow" -> new ItemStack(Items.CROSSBOW);
+            case "trident" -> new ItemStack(Items.TRIDENT);
+            default -> ItemStack.EMPTY;
+        };
+    }
+
+    private static boolean isExpectedWeaponItem(ItemStack equipped, JsonObject weaponConfig, int tierLevel) {
+        if (equipped == null || equipped.isEmpty()) {
+            return false;
+        }
+        ItemStack expected = getExpectedWeaponStack(weaponConfig, tierLevel);
+        return !expected.isEmpty() && equipped.isOf(expected.getItem());
+    }
+    
     /**
      * Get armor ItemStack by tier and slot
      */
@@ -1396,6 +1414,42 @@ public class ScalingSystem {
             };
             default -> ItemStack.EMPTY;
         };
+    }
+
+    private static ItemStack getExpectedArmorStack(JsonObject armorConfig, EquipmentSlot slot, int tierLevel) {
+        if (armorConfig == null || slot == null || tierLevel <= 0) {
+            return ItemStack.EMPTY;
+        }
+        if (!armorConfig.has("tiers")) {
+            return ItemStack.EMPTY;
+        }
+        JsonArray tiers = armorConfig.getAsJsonArray("tiers");
+        if (tiers.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        int clampedTier = Math.max(1, Math.min(tierLevel, tiers.size()));
+        JsonObject tierData = tiers.get(clampedTier - 1).getAsJsonObject();
+        if (!tierData.has("tier")) {
+            return ItemStack.EMPTY;
+        }
+        String tierName = tierData.get("tier").getAsString();
+        return getArmorByTierAndSlot(tierName, slot);
+    }
+
+    private static boolean isArmorItemMatchingTier(ItemStack equipped, JsonObject armorConfig, EquipmentSlot slot, int tierLevel) {
+        if (equipped == null || equipped.isEmpty() || tierLevel <= 0) {
+            return false;
+        }
+        ItemStack expected = getExpectedArmorStack(armorConfig, slot, tierLevel);
+        return !expected.isEmpty() && equipped.isOf(expected.getItem());
+    }
+
+    private static int getTierCount(JsonObject config) {
+        if (config == null || !config.has("tiers")) {
+            return 0;
+        }
+        JsonArray tiers = config.getAsJsonArray("tiers");
+        return Math.max(0, tiers.size());
     }
     
     /**
@@ -2219,28 +2273,48 @@ public class ScalingSystem {
     private static void monitorArmorSlot(MobEntity mob, MobWarData data, JsonObject tree, EquipmentSlot slot, String slotPrefix, ServerWorld world) {
         NbtCompound skillData = data.getSkillData();
         int tier = skillData.getInt(slotPrefix + "_tier");
+        boolean markedEquipped = skillData.getBoolean(slotPrefix + "_equipped");
+
         if (tier <= 0) {
+            if (markedEquipped) {
+                skillData.putBoolean(slotPrefix + "_equipped", false);
+            }
+            if (!mob.getEquippedStack(slot).isEmpty()) {
+                mob.equipStack(slot, ItemStack.EMPTY);
+            }
             return;
         }
 
-        boolean markedEquipped = skillData.getBoolean(slotPrefix + "_equipped");
-        boolean hasItem = hasEquippedItem(mob, slot);
+        JsonObject armorConfig = tree.has(slotPrefix) ? tree.getAsJsonObject(slotPrefix) : null;
+        if (armorConfig == null) {
+            logEquipmentDebug(mob, slotPrefix, "Config missing entry for this slot");
+            skillData.putBoolean(slotPrefix + "_equipped", false);
+            return;
+        }
 
-        if (hasItem) {
+        ItemStack equipped = mob.getEquippedStack(slot);
+        boolean hasItem = !equipped.isEmpty();
+        boolean matchesExpected = hasItem && isArmorItemMatchingTier(equipped, armorConfig, slot, tier);
+
+        if (hasItem && matchesExpected) {
             if (!markedEquipped) {
                 skillData.putBoolean(slotPrefix + "_equipped", true);
             }
             return;
         }
 
+        if (hasItem && !matchesExpected) {
+            mob.equipStack(slot, ItemStack.EMPTY);
+        }
+
         if (markedEquipped) {
-            if (handleArmorBreak(mob, data, slotPrefix) && world != null && tree.has(slotPrefix)) {
+            if (handleArmorBreak(mob, data, slotPrefix) && world != null) {
                 applyArmor(mob, skillData, tree, slotPrefix, slot, world);
             }
             return;
         }
 
-        if (world != null && tree.has(slotPrefix)) {
+        if (world != null) {
             applyArmor(mob, skillData, tree, slotPrefix, slot, world);
         }
     }
