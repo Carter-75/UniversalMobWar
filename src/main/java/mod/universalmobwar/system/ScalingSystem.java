@@ -60,7 +60,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ScalingSystem {
 
     private static final Gson GSON = new Gson();
-    private static final int PERMANENT_EFFECT_DURATION_TICKS = 20 * 60 * 60 * 24; // 24 in-game hours
     
     // Cache of loaded mob configs: mob_name -> JsonObject
     private static final Map<String, JsonObject> MOB_CONFIGS = new ConcurrentHashMap<>();
@@ -84,6 +83,8 @@ public class ScalingSystem {
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
     private static final String NBT_UPGRADE_WRAP_STATE = "umw_upgrade_marker_wrapped";
+    private static final String OVERRIDE_KEY_WEAPON = "weapon_player_override";
+    private static final String OVERRIDE_KEY_SHIELD = "shield_player_override";
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -298,6 +299,7 @@ public class ScalingSystem {
 
         boolean hasWeaponEquipped = skillData.getBoolean("weapon_equipped");
         boolean shouldHaveWeapon = skillData.getInt("weapon_tier") > 0;
+        boolean weaponOverride = isPlayerOverrideActive(skillData, OVERRIDE_KEY_WEAPON);
         ItemStack currentWeapon = mob.getEquippedStack(EquipmentSlot.MAINHAND);
         boolean weaponMissing = currentWeapon.isEmpty();
         boolean weaponMismatch = false;
@@ -305,30 +307,75 @@ public class ScalingSystem {
             weaponMismatch = !isExpectedWeaponItem(currentWeapon, lockedWeapon, skillData.getInt("weapon_tier"));
         }
         boolean weaponMatches = !weaponMissing && !weaponMismatch && lockedWeapon != null && shouldHaveWeapon;
-        if (weaponMatches && !hasWeaponEquipped) {
-            skillData.putBoolean("weapon_equipped", true);
-            hasWeaponEquipped = true;
+        if (weaponMatches) {
+            if (!hasWeaponEquipped) {
+                skillData.putBoolean("weapon_equipped", true);
+                hasWeaponEquipped = true;
+            }
+            if (weaponOverride) {
+                setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+                weaponOverride = false;
+            }
         }
-        if (hasWeaponEquipped && (weaponMissing || weaponMismatch)) {
+        if (!weaponMissing && weaponMismatch) {
+            if (!weaponOverride) {
+                setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
+                weaponOverride = true;
+            }
+            if (!hasWeaponEquipped) {
+                skillData.putBoolean("weapon_equipped", true);
+                hasWeaponEquipped = true;
+            }
+        }
+        if (weaponMissing && weaponOverride) {
+            setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+            weaponOverride = false;
+        }
+        if (hasWeaponEquipped && weaponMissing) {
             mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
             if (handleWeaponBreak(mob, data) && serverWorld != null && lockedWeapon != null) {
                 applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
             }
-        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null) {
+        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null && !weaponOverride) {
             applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey);
         }
 
         boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
         boolean shouldHaveShield = skillData.getInt("has_shield") > 0;
+        boolean shieldOverride = isPlayerOverrideActive(skillData, OVERRIDE_KEY_SHIELD);
         ItemStack currentShield = mob.getEquippedStack(EquipmentSlot.OFFHAND);
         boolean shieldMissing = currentShield.isEmpty();
+        boolean shieldMatches = !shieldMissing && currentShield.isOf(Items.SHIELD);
+        if (shieldMatches && shouldHaveShield) {
+            if (!hasShieldEquipped) {
+                skillData.putBoolean("shield_equipped", true);
+                hasShieldEquipped = true;
+            }
+            if (shieldOverride) {
+                setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+                shieldOverride = false;
+            }
+        } else if (!shieldMissing && !shieldMatches) {
+            if (!shieldOverride) {
+                setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
+                shieldOverride = true;
+            }
+            if (!hasShieldEquipped) {
+                skillData.putBoolean("shield_equipped", true);
+                hasShieldEquipped = true;
+            }
+        }
+        if (shieldMissing && shieldOverride) {
+            setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+            shieldOverride = false;
+        }
         if (hasShieldEquipped && shieldMissing) {
             if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
                 applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
             }
         } else if (!hasShieldEquipped && shouldHaveShield && !shieldMissing && currentShield.isOf(Items.SHIELD)) {
             skillData.putBoolean("shield_equipped", true);
-        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield")) {
+        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield") && !shieldOverride) {
             applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld);
         }
 
@@ -915,7 +962,7 @@ public class ScalingSystem {
             JsonObject effects = tree.getAsJsonObject(effectsKey);
             
             // Apply healing/regeneration
-            applyPotionEffect(mob, skillData, effects, "healing", StatusEffects.REGENERATION, "effect_healing", "regen_level");
+            applyPotionEffect(mob, skillData, effects, "regeneration", StatusEffects.REGENERATION, "effect_regeneration", "regen_level");
             
             // Apply health boost
             applyPotionEffect(mob, skillData, effects, "health_boost", StatusEffects.HEALTH_BOOST, "effect_health_boost", null);
@@ -962,7 +1009,7 @@ public class ScalingSystem {
         boolean showParticles = !ModConfig.getInstance().disableParticles;
         mob.addStatusEffect(new StatusEffectInstance(
             effect,
-            PERMANENT_EFFECT_DURATION_TICKS,
+            StatusEffectInstance.INFINITE,
             Math.max(0, amplifier),
             false,
             showParticles,
@@ -990,7 +1037,7 @@ public class ScalingSystem {
         boolean showParticles = !ModConfig.getInstance().disableParticles;
         mob.addStatusEffect(new StatusEffectInstance(
             StatusEffects.RESISTANCE,
-            PERMANENT_EFFECT_DURATION_TICKS,
+            StatusEffectInstance.INFINITE,
             amplifier,
             false,
             showParticles,
@@ -999,7 +1046,7 @@ public class ScalingSystem {
         if (levelData.has("fire_resistance") && levelData.get("fire_resistance").getAsBoolean()) {
             mob.addStatusEffect(new StatusEffectInstance(
                 StatusEffects.FIRE_RESISTANCE,
-                PERMANENT_EFFECT_DURATION_TICKS,
+                StatusEffectInstance.INFINITE,
                 0,
                 false,
                 showParticles,
@@ -1125,13 +1172,22 @@ public class ScalingSystem {
 
         ItemStack weapon = getExpectedWeaponStack(weaponConfig, weaponTierLevel);
 
-        skillData.putBoolean("weapon_equipped", false);
         if (weapon == null || weapon.isEmpty()) {
             if (weaponTierLevel > 0) {
                 logEquipmentDebug(mob, "weapon", "Unable to create item for type " + weaponType + " at tier " + weaponTierLevel);
             }
             return;
         }
+
+        ItemStack current = mob.getEquippedStack(EquipmentSlot.MAINHAND);
+        if (!current.isEmpty() && !current.isOf(weapon.getItem())) {
+            setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
+            skillData.putBoolean("weapon_equipped", true);
+            return;
+        }
+
+        skillData.putBoolean("weapon_equipped", false);
+        setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
         
         // Apply enchants
         if (weaponConfig.has("enchants")) {
@@ -1154,9 +1210,22 @@ public class ScalingSystem {
      */
     private static void applyShield(MobEntity mob, NbtCompound skillData, JsonObject shieldConfig, ServerWorld world) {
         int hasShield = skillData.getInt("has_shield");
+        if (hasShield <= 0) {
+            skillData.putBoolean("shield_equipped", false);
+            setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+            return;
+        }
+
+        ItemStack current = mob.getEquippedStack(EquipmentSlot.OFFHAND);
+        if (!current.isEmpty() && !current.isOf(Items.SHIELD)) {
+            setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
+            skillData.putBoolean("shield_equipped", true);
+            return;
+        }
+
         skillData.putBoolean("shield_equipped", false);
-        if (hasShield <= 0) return;
-        
+        setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+
         ItemStack shield = new ItemStack(Items.SHIELD);
         
         // Apply enchants
@@ -1186,8 +1255,9 @@ public class ScalingSystem {
         JsonObject armorConfig = tree.getAsJsonObject(slotName);
         
         int tier = skillData.getInt(slotName + "_tier");
-        skillData.putBoolean(slotName + "_equipped", false);
         if (tier <= 0) {
+            skillData.putBoolean(slotName + "_equipped", false);
+            setPlayerOverride(skillData, getArmorOverrideKey(slotName), false);
             mob.equipStack(slot, ItemStack.EMPTY);
             return;
         }
@@ -1208,6 +1278,16 @@ public class ScalingSystem {
             logEquipmentDebug(mob, slotName, "No ItemStack mapping for configured tier");
             return;
         }
+
+        ItemStack current = mob.getEquippedStack(slot);
+        if (!current.isEmpty() && !current.isOf(armor.getItem())) {
+            skillData.putBoolean(slotName + "_equipped", true);
+            setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
+            return;
+        }
+
+        skillData.putBoolean(slotName + "_equipped", false);
+        setPlayerOverride(skillData, getArmorOverrideKey(slotName), false);
         
         // Apply enchants
         if (armorConfig.has("enchants")) {
@@ -1262,6 +1342,21 @@ public class ScalingSystem {
             slotLabel,
             message
         );
+    }
+
+    private static boolean isPlayerOverrideActive(NbtCompound skillData, String key) {
+        return skillData != null && key != null && skillData.getBoolean(key);
+    }
+
+    private static void setPlayerOverride(NbtCompound skillData, String key, boolean active) {
+        if (skillData == null || key == null) {
+            return;
+        }
+        skillData.putBoolean(key, active);
+    }
+
+    private static String getArmorOverrideKey(String slotPrefix) {
+        return slotPrefix + "_player_override";
     }
     
     /**
@@ -1561,7 +1656,13 @@ public class ScalingSystem {
                     // Roll chance
                     if (mob.getRandom().nextDouble() < chance) {
                         mob.addStatusEffect(new StatusEffectInstance(
-                            StatusEffects.INVISIBILITY, duration * 20, 0, false, false, true));
+                            StatusEffects.INVISIBILITY,
+                            StatusEffectInstance.INFINITE,
+                            0,
+                            false,
+                            false,
+                            true
+                        ));
                         cooldowns.put("invisibility_on_hit", currentTick);
                     }
                 }
@@ -1586,7 +1687,13 @@ public class ScalingSystem {
                     
                     if (currentTick - lastUse >= cooldown * 20L) {
                         mob.addStatusEffect(new StatusEffectInstance(
-                            StatusEffects.REGENERATION, duration * 20, regenLevel - 1, false, false, true));
+                            StatusEffects.REGENERATION,
+                            StatusEffectInstance.INFINITE,
+                            regenLevel - 1,
+                            false,
+                            false,
+                            true
+                        ));
                         cooldowns.put("on_damage_regen", currentTick);
                     }
                 }
@@ -2248,6 +2355,7 @@ public class ScalingSystem {
         skillData.putBoolean("weapon_equipped", false);
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
         skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
+        setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
         MobWarData.save(mob, data);
         return true;
     }
@@ -2262,6 +2370,7 @@ public class ScalingSystem {
         clearEnchantsWithPrefix(skillData, "shield_enchant_");
         resetMasteries(skillData, "shield");
         skillData.putBoolean("shield_equipped", false);
+        setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
         MobWarData.save(mob, data);
         return true;
     }
@@ -2282,6 +2391,7 @@ public class ScalingSystem {
         clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
         resetMasteries(skillData, slotPrefix);
         skillData.putBoolean(slotPrefix + "_equipped", false);
+        setPlayerOverride(skillData, getArmorOverrideKey(slotPrefix), false);
         MobWarData.save(mob, data);
         return true;
     }
@@ -2290,11 +2400,14 @@ public class ScalingSystem {
         NbtCompound skillData = data.getSkillData();
         int tier = skillData.getInt(slotPrefix + "_tier");
         boolean markedEquipped = skillData.getBoolean(slotPrefix + "_equipped");
+        String overrideKey = getArmorOverrideKey(slotPrefix);
+        boolean overrideActive = isPlayerOverrideActive(skillData, overrideKey);
 
         if (tier <= 0) {
             if (markedEquipped) {
                 skillData.putBoolean(slotPrefix + "_equipped", false);
             }
+            setPlayerOverride(skillData, overrideKey, false);
             if (!mob.getEquippedStack(slot).isEmpty()) {
                 mob.equipStack(slot, ItemStack.EMPTY);
             }
@@ -2315,12 +2428,31 @@ public class ScalingSystem {
         if (hasItem && matchesExpected) {
             if (!markedEquipped) {
                 skillData.putBoolean(slotPrefix + "_equipped", true);
+                markedEquipped = true;
+            }
+            if (overrideActive) {
+                setPlayerOverride(skillData, overrideKey, false);
             }
             return;
         }
 
         if (hasItem && !matchesExpected) {
-            mob.equipStack(slot, ItemStack.EMPTY);
+            if (!overrideActive) {
+                setPlayerOverride(skillData, overrideKey, true);
+            }
+            if (!markedEquipped) {
+                skillData.putBoolean(slotPrefix + "_equipped", true);
+            }
+            return;
+        }
+
+        if (!hasItem && overrideActive) {
+            setPlayerOverride(skillData, overrideKey, false);
+            overrideActive = false;
+        }
+
+        if (overrideActive) {
+            return;
         }
 
         if (markedEquipped) {
@@ -2528,12 +2660,14 @@ public class ScalingSystem {
         skillData.putBoolean("weapon_equipped", false);
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
         skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
+        setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
     }
 
     private static void resetEquipmentProgress(NbtCompound skillData, String slotPrefix) {
         clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
         resetMasteries(skillData, slotPrefix);
         skillData.putBoolean(slotPrefix + "_equipped", false);
+        setPlayerOverride(skillData, getArmorOverrideKey(slotPrefix), false);
     }
 
     private static void resetNumericKeysWithPrefix(NbtCompound skillData, String prefix) {
