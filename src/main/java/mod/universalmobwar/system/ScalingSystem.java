@@ -29,6 +29,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.world.World;
 
 import java.io.IOException;
@@ -74,6 +75,9 @@ public class ScalingSystem {
     
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
+    private static final String ABILITY_KEY_UNDEAD_PULSE = "undead_harming_pulse";
+    private static final String ABILITY_KEY_UNDEAD_BURST = "undead_harming_burst_until";
+    private static final long UNDEAD_HARMING_INTERVAL_TICKS = 200L;
     
     private static final Set<String> KNOWN_BOSS_IDS = Set.of(
         "minecraft:ender_dragon",
@@ -490,6 +494,7 @@ public class ScalingSystem {
         long currentTick = world.getTime();
         int currentTimeOfDay = getCurrentTimeOfDay(world);
         UUID mobUuid = mob.getUuid();
+        handleUndeadHealingPulse(mob, skillData, currentTick);
 
         UpgradeJobScheduler scheduler = UpgradeJobScheduler.getInstance();
         boolean asyncEnabled = modConfig.enableAsyncTasks;
@@ -1353,6 +1358,59 @@ public class ScalingSystem {
         applyPotionEffect(mob, skillData, effects, effectName, effect, skillKey, levelKey);
     }
 
+    private static void handleUndeadHealingPulse(MobEntity mob, NbtCompound skillData, long currentTick) {
+        if (mob == null || skillData == null) {
+            return;
+        }
+        if (!isUndeadMob(mob)) {
+            return;
+        }
+        int regenerationLevel = skillData.getInt("effect_regeneration");
+        if (regenerationLevel <= 0) {
+            return;
+        }
+
+        UUID mobUuid = mob.getUuid();
+        Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
+        long lastPulse = cooldowns.getOrDefault(ABILITY_KEY_UNDEAD_PULSE, Long.MIN_VALUE);
+        if (currentTick - lastPulse < UNDEAD_HARMING_INTERVAL_TICKS) {
+            return;
+        }
+
+        int baseAmplifier = Math.max(0, Math.min(regenerationLevel, 2) - 1);
+        applyInstantDamagePulse(mob, baseAmplifier);
+        cooldowns.put(ABILITY_KEY_UNDEAD_PULSE, currentTick);
+
+        long burstUntil = cooldowns.getOrDefault(ABILITY_KEY_UNDEAD_BURST, 0L);
+        if (burstUntil > 0L && burstUntil < currentTick) {
+            cooldowns.remove(ABILITY_KEY_UNDEAD_BURST);
+            burstUntil = 0L;
+        }
+
+        if (regenerationLevel >= 3 && burstUntil >= currentTick) {
+            applyInstantDamagePulse(mob, 2);
+        }
+    }
+
+    private static void applyInstantDamagePulse(MobEntity mob, int amplifier) {
+        if (mob == null) {
+            return;
+        }
+        boolean showParticles = !ModConfig.getInstance().disableParticles;
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.INSTANT_DAMAGE,
+            1,
+            Math.max(0, amplifier),
+            false,
+            showParticles,
+            true
+        ));
+    }
+
+    private static boolean isUndeadMob(MobEntity mob) {
+        return mob != null && mob.getType().isIn(EntityTypeTags.UNDEAD);
+    }
+
     // ==========================================================================
     //                           EQUIPMENT APPLICATION
     // ==========================================================================
@@ -2036,6 +2094,10 @@ public class ScalingSystem {
                             true
                         ));
                         cooldowns.put("on_damage_regen", currentTick);
+                        if (isUndeadMob(mob)) {
+                            long burstWindowTicks = Math.max(20L, duration * 20L);
+                            cooldowns.put(ABILITY_KEY_UNDEAD_BURST, currentTick + burstWindowTicks);
+                        }
                     }
                 }
             }
