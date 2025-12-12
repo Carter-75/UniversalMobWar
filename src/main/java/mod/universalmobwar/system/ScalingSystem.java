@@ -913,9 +913,10 @@ public class ScalingSystem {
             // Apply resistance
             int resistanceLevel = skillData.getInt("effect_resistance");
             if (resistanceLevel > 0) {
+                boolean showParticles = !ModConfig.getInstance().disableParticles;
                 // Permanent effect (infinite duration)
                 mob.addStatusEffect(new StatusEffectInstance(
-                    StatusEffects.RESISTANCE, StatusEffectInstance.INFINITE, Math.min(resistanceLevel - 1, 1), false, false, true));
+                    StatusEffects.RESISTANCE, StatusEffectInstance.INFINITE, Math.min(resistanceLevel - 1, 1), false, showParticles, true));
                 
                 // Check for fire resistance at level 3
                 if (effects.has("resistance")) {
@@ -966,8 +967,9 @@ public class ScalingSystem {
             }
         }
         
+        boolean showParticles = !ModConfig.getInstance().disableParticles;
         // Apply permanent effect (infinite duration) - only called when upgrades change
-        mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, false, true));
+        mob.addStatusEffect(new StatusEffectInstance(effect, StatusEffectInstance.INFINITE, Math.max(0, amplifier), false, showParticles, true));
     }
 
     private static void refreshMissingEffects(MobEntity mob, NbtCompound skillData, JsonObject config, String mobType) {
@@ -1019,7 +1021,8 @@ public class ScalingSystem {
             return;
         }
         if (!mob.hasStatusEffect(fireResistEffect)) {
-            mob.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, false, true));
+            boolean showParticles = !ModConfig.getInstance().disableParticles;
+            mob.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, StatusEffectInstance.INFINITE, 0, false, showParticles, true));
         }
     }
     
@@ -2160,6 +2163,18 @@ public class ScalingSystem {
             skillData.putBoolean("weapon_equipped", false);
             return false;
         }
+        if (tier > 1) {
+            skillData.putInt("weapon_tier", tier - 1);
+        } else {
+            skillData.putInt("weapon_tier", 0);
+        }
+        boolean scopedWeapon = skillData.getBoolean(NBT_WEAPON_ACTIVE_SCOPED);
+        String weaponKey = skillData.getString(NBT_WEAPON_ACTIVE_KEY);
+        String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponKey);
+        String dropKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponKey);
+        String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponKey);
+        clearEnchantsWithPrefix(skillData, enchantPrefix);
+        resetMasteries(skillData, dropKey, durabilityKey);
         skillData.putBoolean("weapon_equipped", false);
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, "");
         skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, false);
@@ -2173,6 +2188,9 @@ public class ScalingSystem {
             skillData.putBoolean("shield_equipped", false);
             return false;
         }
+        skillData.putInt("has_shield", 0);
+        clearEnchantsWithPrefix(skillData, "shield_enchant_");
+        resetMasteries(skillData, "shield");
         skillData.putBoolean("shield_equipped", false);
         MobWarData.save(mob, data);
         return true;
@@ -2186,6 +2204,13 @@ public class ScalingSystem {
             skillData.putBoolean(slotPrefix + "_equipped", false);
             return false;
         }
+        if (tier > 1) {
+            skillData.putInt(tierKey, tier - 1);
+        } else {
+            skillData.putInt(tierKey, 0);
+        }
+        clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
+        resetMasteries(skillData, slotPrefix);
         skillData.putBoolean(slotPrefix + "_equipped", false);
         MobWarData.save(mob, data);
         return true;
