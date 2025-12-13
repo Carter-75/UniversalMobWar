@@ -81,6 +81,19 @@ public class ScalingSystem {
     private static final String ABILITY_KEY_UNDEAD_PULSE = "undead_harming_pulse";
     private static final String ABILITY_KEY_UNDEAD_BURST = "undead_harming_burst_until";
     private static final long UNDEAD_HARMING_INTERVAL_TICKS = 200L;
+    private static final String ABILITY_KEY_INVIS_GLOW_NEXT = "invisibility_on_hit_glow_next";
+    private static final String ABILITY_KEY_INVIS_GLOW_UNTIL = "invisibility_on_hit_glow_until";
+    private static final long INVIS_GLOW_INTERVAL_TICKS = 15L;
+    private static final int INVIS_GLOW_DURATION_TICKS = 8;
+    private static final double DEFAULT_DAILY_POINTS = 0.1d;
+    private static final DayRange[] DEFAULT_DAILY_SCALING = new DayRange[] {
+        new DayRange(1, 10, 0.1d, 0),
+        new DayRange(11, 15, 0.5d, 1),
+        new DayRange(16, 20, 1.0d, 2),
+        new DayRange(21, 25, 1.5d, 3),
+        new DayRange(26, 30, 3.0d, 4),
+        new DayRange(31, Integer.MAX_VALUE, 5.0d, 5)
+    };
     
     private static final Set<String> KNOWN_BOSS_IDS = Set.of(
         "minecraft:ender_dragon",
@@ -88,6 +101,7 @@ public class ScalingSystem {
         "minecraft:warden",
         "minecraft:elder_guardian"
     );
+    private record DayRange(int minDay, int maxDay, double pointsPerDay, int order) {}
     private static final String NBT_WEAPON_ACTIVE_KEY = "weapon_active_key";
     private static final String NBT_WEAPON_ACTIVE_SCOPED = "weapon_active_scoped";
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
@@ -100,6 +114,8 @@ public class ScalingSystem {
     private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
+    private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
+    private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
@@ -274,19 +290,8 @@ public class ScalingSystem {
         if (modConfig == null) {
             return ((long) configHash) << 32;
         }
-        int modHash = Objects.hash(
-            modConfig.getBuyChance(),
-            modConfig.getSaveChance(),
-            modConfig.getMaxUpgradeIterations(),
-            modConfig.getDayScalingMultiplier(),
-            modConfig.getKillScalingMultiplier(),
-            modConfig.allowBossScaling,
-            modConfig.enableAsyncTasks,
-            modConfig.performanceMode,
-            modConfig.maxConcurrentUpgradeJobs,
-            modConfig.upgradeProcessingTimeMs,
-            modConfig.debugUpgradeLog
-        );
+        ModConfigSnapshot snapshot = ModConfigSnapshot.capture(modConfig);
+        int modHash = snapshot != null ? snapshot.hashCode() : 0;
         return (((long) configHash) << 32) ^ (modHash & 0xffffffffL);
     }
     
@@ -590,11 +595,44 @@ public class ScalingSystem {
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         refreshMissingEffects(mob, skillData, config, mobType);
 
-        double totalPoints = calculateWorldAgePoints(world, config, modConfig);
+        double dayPoints = calculateWorldAgePoints(world, config, modConfig);
         int killCount = data.getKillCount();
         double killScaling = getKillScalingFactor(config);
         double killPoints = killCount * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
-        totalPoints += killPoints;
+
+        int worldDays = resolveConfiguredWorldDays(world, modConfig);
+        int lastAccountedDay = skillData.contains(NBT_LAST_ACCOUNTED_DAY)
+            ? skillData.getInt(NBT_LAST_ACCOUNTED_DAY)
+            : worldDays;
+        boolean skillDataDirty = false;
+        if (!skillData.contains(NBT_LAST_ACCOUNTED_DAY)) {
+            skillData.putInt(NBT_LAST_ACCOUNTED_DAY, lastAccountedDay);
+            skillDataDirty = true;
+        }
+
+        double dayPointCache = skillData.contains(NBT_TOTAL_POINT_CACHE)
+            ? skillData.getDouble(NBT_TOTAL_POINT_CACHE)
+            : Math.max(0.0, data.getSkillPoints() - killPoints);
+        if (!skillData.contains(NBT_TOTAL_POINT_CACHE)) {
+            skillData.putDouble(NBT_TOTAL_POINT_CACHE, dayPointCache);
+            skillDataDirty = true;
+        }
+
+        if (worldDays > lastAccountedDay) {
+            double addedPoints = calculateWorldAgePointsForRange(lastAccountedDay + 1, worldDays, config, modConfig);
+            if (addedPoints > 0.0) {
+                dayPointCache += addedPoints;
+                skillData.putDouble(NBT_TOTAL_POINT_CACHE, dayPointCache);
+                skillDataDirty = true;
+            }
+            skillData.putInt(NBT_LAST_ACCOUNTED_DAY, worldDays);
+            skillDataDirty = true;
+        } else if (worldDays < lastAccountedDay) {
+            skillData.putInt(NBT_LAST_ACCOUNTED_DAY, worldDays);
+            skillDataDirty = true;
+        }
+
+        double totalPoints = Math.max(0.0, dayPointCache + killPoints);
         data.setSkillPoints(totalPoints);
 
         double spentPoints = data.getSpentPoints();
@@ -604,10 +642,11 @@ public class ScalingSystem {
         int currentTimeOfDay = getCurrentTimeOfDay(world);
         UUID mobUuid = mob.getUuid();
         handleUndeadHealingPulse(mob, skillData, currentTick);
+        handleInvisibilityGlowFlicker(mob, currentTick);
 
         UpgradeJobScheduler scheduler = UpgradeJobScheduler.getInstance();
         boolean asyncEnabled = modConfig.enableAsyncTasks;
-        boolean stateChanged = false;
+        boolean stateChanged = skillDataDirty;
         boolean appliedEquipment = false;
 
         if (asyncEnabled) {
@@ -739,49 +778,125 @@ public class ScalingSystem {
      */
     private static double calculateWorldAgePoints(World world, JsonObject config, ModConfig modConfig) {
         int worldDays = resolveConfiguredWorldDays(world, modConfig);
-        double totalPoints = 0.0;
-        
-        // Get daily_scaling from config
+        return calculateWorldAgePointsThroughDay(worldDays, config, modConfig);
+    }
+
+    private static double calculateWorldAgePointsThroughDay(int worldDays, JsonObject config, ModConfig modConfig) {
+        if (worldDays <= 0) {
+            return 0.0;
+        }
+
         JsonObject pointSystem = getPointSystem(config);
         JsonArray dailyScaling = pointSystem != null && pointSystem.has("daily_scaling")
             ? pointSystem.getAsJsonArray("daily_scaling")
             : null;
-        
-        // Default scaling if not in config
-        if (dailyScaling == null) {
-            for (int day = 1; day <= worldDays; day++) {
-                if (day <= 10) totalPoints += 0.1;
-                else if (day <= 15) totalPoints += 0.5;
-                else if (day <= 20) totalPoints += 1.0;
-                else if (day <= 25) totalPoints += 1.5;
-                else if (day <= 30) totalPoints += 3.0;
-                else totalPoints += 5.0;
-            }
-            return (int) totalPoints;
-        }
-        
-        // Use config-defined scaling
-        for (int day = 1; day <= worldDays; day++) {
-            double pointsForDay = 0.1; // Default
-            
-            for (JsonElement element : dailyScaling) {
-                JsonObject range = element.getAsJsonObject();
-                int daysMin = range.get("days_min").getAsInt();
-                int daysMax = range.get("days_max").getAsInt();
-                double pointsPerDay = range.get("points_per_day").getAsDouble();
-                
-                // days_max of -1 means infinite
-                if (day >= daysMin && (daysMax == -1 || day <= daysMax)) {
-                    pointsForDay = pointsPerDay;
-                    break;
-                }
-            }
-            
-            totalPoints += pointsForDay;
-        }
-        
+
+        double totalPoints = dailyScaling == null
+            ? computeDefaultScalingPoints(worldDays)
+            : computeCustomScalingPoints(worldDays, dailyScaling);
+
         double dayMultiplier = Math.max(0.0, modConfig.getDayScalingMultiplier());
         return totalPoints * dayMultiplier;
+    }
+
+    private static double calculateWorldAgePointsForRange(int startDay, int endDay, JsonObject config, ModConfig modConfig) {
+        if (endDay < startDay) {
+            return 0.0;
+        }
+        int safeStart = Math.max(1, startDay);
+        int safeEnd = Math.max(1, endDay);
+        if (safeEnd < safeStart) {
+            return 0.0;
+        }
+        double endTotal = calculateWorldAgePointsThroughDay(safeEnd, config, modConfig);
+        double startTotal = calculateWorldAgePointsThroughDay(safeStart - 1, config, modConfig);
+        return Math.max(0.0, endTotal - startTotal);
+    }
+
+    private static double computeDefaultScalingPoints(int worldDays) {
+        double total = 0.0d;
+        for (DayRange range : DEFAULT_DAILY_SCALING) {
+            if (worldDays < range.minDay()) {
+                break;
+            }
+            total += accumulateSegment(range.minDay(), Math.min(worldDays, range.maxDay()), range.pointsPerDay());
+            if (range.maxDay() >= worldDays) {
+                break;
+            }
+        }
+        return total;
+    }
+
+    private static double computeCustomScalingPoints(int worldDays, JsonArray dailyScaling) {
+        if (dailyScaling == null || dailyScaling.isEmpty()) {
+            return computeDefaultScalingPoints(worldDays);
+        }
+
+        List<DayRange> ranges = new ArrayList<>(dailyScaling.size());
+        int order = 0;
+        for (JsonElement element : dailyScaling) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            try {
+                JsonObject range = element.getAsJsonObject();
+                int minDay = Math.max(1, range.has("days_min") ? range.get("days_min").getAsInt() : 1);
+                int maxDayRaw = range.has("days_max") ? range.get("days_max").getAsInt() : -1;
+                int maxDay = maxDayRaw < 0 ? Integer.MAX_VALUE : Math.max(minDay, maxDayRaw);
+                double pointsPerDay = range.has("points_per_day")
+                    ? range.get("points_per_day").getAsDouble()
+                    : DEFAULT_DAILY_POINTS;
+                ranges.add(new DayRange(minDay, maxDay, pointsPerDay, order++));
+            } catch (Exception ignored) {
+                // Ignore malformed entries to avoid destabilizing the tick loop
+            }
+        }
+
+        if (ranges.isEmpty()) {
+            return computeDefaultScalingPoints(worldDays);
+        }
+
+        ranges.sort(Comparator.comparingInt(DayRange::minDay).thenComparingInt(DayRange::order));
+
+        double total = 0.0d;
+        int currentDay = 1;
+
+        for (DayRange range : ranges) {
+            if (currentDay > worldDays) {
+                break;
+            }
+
+            if (range.minDay() > currentDay) {
+                int gapEnd = Math.min(worldDays, range.minDay() - 1);
+                total += accumulateDefaultSegment(currentDay, gapEnd);
+                currentDay = gapEnd + 1;
+            }
+
+            int effectiveStart = Math.max(currentDay, range.minDay());
+            int effectiveEnd = Math.min(worldDays, range.maxDay());
+            if (effectiveEnd >= effectiveStart) {
+                total += accumulateSegment(effectiveStart, effectiveEnd, range.pointsPerDay());
+                currentDay = effectiveEnd + 1;
+            }
+        }
+
+        if (currentDay <= worldDays) {
+            total += accumulateDefaultSegment(currentDay, worldDays);
+        }
+
+        return total;
+    }
+
+    private static double accumulateSegment(int startDay, int endDay, double pointsPerDay) {
+        if (endDay < startDay) {
+            return 0.0d;
+        }
+        long days = (long) endDay - startDay + 1L;
+        return days * pointsPerDay;
+    }
+
+    private static double accumulateDefaultSegment(int startDay, int endDay) {
+        return accumulateSegment(startDay, endDay, DEFAULT_DAILY_POINTS);
     }
 
     private static int getCurrentTimeOfDay(World world) {
@@ -1586,6 +1701,52 @@ public class ScalingSystem {
         return mob != null && mob.getType().isIn(EntityTypeTags.UNDEAD);
     }
 
+    private static void handleInvisibilityGlowFlicker(MobEntity mob, long currentTick) {
+        if (mob == null || mob.getWorld().isClient()) {
+            return;
+        }
+        Map<String, Long> cooldowns = ABILITY_COOLDOWNS.get(mob.getUuid());
+        if (cooldowns == null) {
+            return;
+        }
+        long glowUntil = cooldowns.getOrDefault(ABILITY_KEY_INVIS_GLOW_UNTIL, 0L);
+        if (glowUntil <= currentTick || !mob.hasStatusEffect(StatusEffects.INVISIBILITY)) {
+            cooldowns.remove(ABILITY_KEY_INVIS_GLOW_UNTIL);
+            cooldowns.remove(ABILITY_KEY_INVIS_GLOW_NEXT);
+            return;
+        }
+        long nextGlow = cooldowns.getOrDefault(ABILITY_KEY_INVIS_GLOW_NEXT, 0L);
+        if (currentTick >= nextGlow) {
+            mob.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.GLOWING,
+                INVIS_GLOW_DURATION_TICKS,
+                0,
+                false,
+                true,
+                true
+            ));
+            cooldowns.put(ABILITY_KEY_INVIS_GLOW_NEXT, currentTick + INVIS_GLOW_INTERVAL_TICKS);
+        }
+    }
+
+    private static void startInvisibilityGlowFlicker(MobEntity mob, Map<String, Long> cooldowns,
+            long currentTick, int durationSeconds) {
+        if (mob == null || cooldowns == null) {
+            return;
+        }
+        long windowTicks = Math.max(40L, durationSeconds * 20L);
+        cooldowns.put(ABILITY_KEY_INVIS_GLOW_UNTIL, currentTick + windowTicks);
+        cooldowns.put(ABILITY_KEY_INVIS_GLOW_NEXT, currentTick);
+        mob.addStatusEffect(new StatusEffectInstance(
+            StatusEffects.GLOWING,
+            INVIS_GLOW_DURATION_TICKS,
+            0,
+            false,
+            true,
+            true
+        ));
+    }
+
     // ==========================================================================
     //                           EQUIPMENT APPLICATION
     // ==========================================================================
@@ -2238,6 +2399,7 @@ public class ScalingSystem {
                             true
                         ));
                         cooldowns.put("invisibility_on_hit", currentTick);
+                        startInvisibilityGlowFlicker(mob, cooldowns, currentTick, duration);
                     }
                 }
             }
