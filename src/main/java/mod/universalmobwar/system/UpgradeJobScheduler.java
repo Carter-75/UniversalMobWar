@@ -88,4 +88,16 @@ public final class UpgradeJobScheduler {
     public int getActiveJobCount() {
         return activeCount.get();
     }
+
+    public void cancel(UUID mobId) {
+        if (mobId == null) {
+            return;
+        }
+        Future<?> future = activeJobs.remove(mobId);
+        if (future != null) {
+            future.cancel(true);
+            activeCount.updateAndGet(value -> Math.max(0, value - 1));
+        }
+        completedResults.remove(mobId);
+    }
 }

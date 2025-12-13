@@ -72,6 +72,9 @@ public class ScalingSystem {
     
     // Entity class name -> mob config name mapping
     private static final Map<String, String> ENTITY_TO_CONFIG = new ConcurrentHashMap<>();
+
+    // Cached fingerprints per mob config to detect changes without recomputing large JSON hashes every tick
+    private static final Map<String, Integer> CONFIG_FINGERPRINTS = new ConcurrentHashMap<>();
     
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
@@ -90,6 +93,7 @@ public class ScalingSystem {
     private static final String NBT_LAST_UPGRADE_MARKER = "umw_last_upgrade_marker";
     private static final String NBT_UPGRADE_WRAP_STATE = "umw_upgrade_marker_wrapped";
     private static final String NBT_WINDOW_APPROVED = "umw_upgrade_window_approved";
+    private static final String NBT_CONFIG_FINGERPRINT = "umw_config_fingerprint";
     private static final String OVERRIDE_KEY_WEAPON = "weapon_player_override";
     private static final String OVERRIDE_KEY_SHIELD = "shield_player_override";
     private static final String NBT_INITIAL_DISARMED = "umw_initial_disarmed";
@@ -237,11 +241,53 @@ public class ScalingSystem {
                 // Also map simple class name for easier lookup
                 String simpleClassName = entityClass.substring(entityClass.lastIndexOf('.') + 1).toLowerCase();
                 ENTITY_TO_CONFIG.put(simpleClassName, configMobName);
+                CONFIG_FINGERPRINTS.put(configMobName, computeJsonFingerprint(config));
             }
             
         } catch (Exception e) {
             UniversalMobWarMod.LOGGER.error("[ScalingSystem] Failed to load {}: {}", path, e.getMessage());
         }
+    }
+
+    private static int computeJsonFingerprint(JsonObject json) {
+        if (json == null) {
+            return 0;
+        }
+        return json.toString().hashCode();
+    }
+
+    private static int resolveMobConfigHash(JsonObject config) {
+        if (config == null) {
+            return 0;
+        }
+        String configName = config.has("mob_name")
+            ? config.get("mob_name").getAsString().toLowerCase(java.util.Locale.ROOT)
+            : null;
+        if (configName == null) {
+            return computeJsonFingerprint(config);
+        }
+        return CONFIG_FINGERPRINTS.computeIfAbsent(configName, key -> computeJsonFingerprint(config));
+    }
+
+    private static long computeEffectiveConfigFingerprint(JsonObject config, ModConfig modConfig) {
+        int configHash = resolveMobConfigHash(config);
+        if (modConfig == null) {
+            return ((long) configHash) << 32;
+        }
+        int modHash = Objects.hash(
+            modConfig.getBuyChance(),
+            modConfig.getSaveChance(),
+            modConfig.getMaxUpgradeIterations(),
+            modConfig.getDayScalingMultiplier(),
+            modConfig.getKillScalingMultiplier(),
+            modConfig.allowBossScaling,
+            modConfig.enableAsyncTasks,
+            modConfig.performanceMode,
+            modConfig.maxConcurrentUpgradeJobs,
+            modConfig.upgradeProcessingTimeMs,
+            modConfig.debugUpgradeLog
+        );
+        return (((long) configHash) << 32) ^ (modHash & 0xffffffffL);
     }
     
     /**
@@ -435,6 +481,43 @@ public class ScalingSystem {
         mob.equipStack(EquipmentSlot.FEET, ItemStack.EMPTY);
     }
 
+    private static void abortUpgradesForMob(MobEntity mob, MobWarData data) {
+        if (mob == null || data == null) {
+            return;
+        }
+        UUID mobUuid = mob.getUuid();
+        UpgradeJobScheduler.getInstance().cancel(mobUuid);
+        PENDING_EQUIPMENT_SNAPSHOTS.remove(mobUuid);
+        NbtCompound skillData = data.getSkillData();
+        if (skillData != null) {
+            clearUpgradeSchedule(skillData);
+        }
+    }
+
+    private static void resetUpgradesForConfigChange(MobEntity mob, MobWarData data, long newFingerprint) {
+        if (mob == null || data == null) {
+            return;
+        }
+        UUID mobUuid = mob.getUuid();
+        UpgradeJobScheduler.getInstance().cancel(mobUuid);
+        PENDING_EQUIPMENT_SNAPSHOTS.remove(mobUuid);
+        NbtCompound previousData = data.getSkillData();
+        boolean hadPrimedEquipment = previousData != null && previousData.getBoolean(NBT_EQUIPMENT_PRIMED);
+        if (previousData != null) {
+            clearUpgradeSchedule(previousData);
+        }
+        if (hadPrimedEquipment) {
+            clearMobEquipment(mob);
+        }
+        NbtCompound resetData = new NbtCompound();
+        resetData.putLong(NBT_CONFIG_FINGERPRINT, newFingerprint);
+        resetData.putBoolean(NBT_EQUIPMENT_PRIMED, false);
+        resetEquippedFlags(resetData);
+        data.setSkillData(resetData);
+        data.setSpentPoints(0);
+        MobWarData.save(mob, data);
+    }
+
     private static void resetEquippedFlags(NbtCompound skillData) {
         if (skillData == null) {
             return;
@@ -460,6 +543,11 @@ public class ScalingSystem {
             return;
         }
 
+        if (mob == null || data == null || !mob.isAlive() || mob.isRemoved()) {
+            abortUpgradesForMob(mob, data);
+            return;
+        }
+
         ModConfig modConfig = ModConfig.getInstance();
         if (!modConfig.isScalingActive()) {
             return;
@@ -478,6 +566,26 @@ public class ScalingSystem {
         if (config == null) return;
 
         NbtCompound skillData = data.getSkillData();
+        if (skillData == null) {
+            skillData = new NbtCompound();
+            data.setSkillData(skillData);
+        }
+
+        long configFingerprint = computeEffectiveConfigFingerprint(config, modConfig);
+        if (skillData.contains(NBT_CONFIG_FINGERPRINT)) {
+            long storedFingerprint = skillData.getLong(NBT_CONFIG_FINGERPRINT);
+            if (storedFingerprint != configFingerprint) {
+                resetUpgradesForConfigChange(mob, data, configFingerprint);
+                skillData = data.getSkillData();
+                if (skillData == null) {
+                    skillData = new NbtCompound();
+                    data.setSkillData(skillData);
+                }
+            }
+        } else {
+            skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
+        }
+        skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
 
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         refreshMissingEffects(mob, skillData, config, mobType);
