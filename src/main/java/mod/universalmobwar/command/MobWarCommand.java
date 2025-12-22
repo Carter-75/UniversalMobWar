@@ -64,86 +64,13 @@ public class MobWarCommand {
                 .styled(style -> style.withColor(Formatting.GOLD).withBold(true)), false);
         
         source.sendFeedback(() -> 
-            Text.literal("Commands:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)), false);
-        
+            Text.literal("Quick Access:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)), false);
+
         source.sendFeedback(() -> 
-            Text.literal("  • /mobwar help")
+            Text.literal("  • /kit [player]")
                 .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Show this help message")
+                .append(Text.literal(" - Max gear kit (self or OP target)")
                     .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /mobwar stats")
-                .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Show nearby mob statistics")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /mobwar reset")
-                .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Clear all mob targets (OP)")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /mobwar reload")
-                .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Reload config file (OP)")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> Text.literal(""), false);
-        source.sendFeedback(() -> 
-            Text.literal("Boss:").styled(style -> style.withColor(Formatting.DARK_PURPLE).withBold(true)), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /mobwar summon warlord")
-                .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Summon Mob Warlord boss (OP)")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /mobwar raid forceboss")
-                .styled(style -> style.withColor(Formatting.GREEN))
-                .append(Text.literal(" - Guarantee boss in next raid (OP)")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /summon universalmobwar:mob_warlord")
-                .styled(style -> style.withColor(Formatting.LIGHT_PURPLE))
-                .append(Text.literal(" - Summon the Mob Warlord boss")
-                    .styled(style -> style.withColor(Formatting.GRAY))), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • Or use Mob Warlord Spawn Egg")
-                .styled(style -> style.withColor(Formatting.LIGHT_PURPLE)), false);
-        
-        source.sendFeedback(() -> Text.literal(""), false);
-        source.sendFeedback(() -> 
-            Text.literal("Game Rules:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)), false);
-        
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarEnabled <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarIgnoreSame <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarTargetPlayers <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarNeutralAggressive <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarAlliances <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarEvolution <true|false>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("  • /gamerule universalMobWarRangeMultiplier <1-10000>")
-                .styled(style -> style.withColor(Formatting.YELLOW)), false);
-        source.sendFeedback(() -> 
-            Text.literal("    (1=0.01x, 100=1.0x, 10000=100.0x range)")
-                .styled(style -> style.withColor(Formatting.DARK_GRAY)), false);
         
         source.sendFeedback(() -> 
             Text.literal("═══════════════════════════════════════════════════")

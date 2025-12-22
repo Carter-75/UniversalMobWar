@@ -1,5 +1,6 @@
 package mod.universalmobwar;
 
+import mod.universalmobwar.command.KitCommand;
 import mod.universalmobwar.command.MobWarCommand;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
@@ -111,6 +112,7 @@ public class UniversalMobWarMod implements ModInitializer {
 		
 		// Register commands
 		CommandRegistrationCallback.EVENT.register(MobWarCommand::register);
+		CommandRegistrationCallback.EVENT.register(KitCommand::register);
 
 		// Send welcome message to players when they join
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -122,112 +124,6 @@ public class UniversalMobWarMod implements ModInitializer {
 			handler.player.sendMessage(
 				Text.literal("    UNIVERSAL MOB WAR").styled(style -> style.withColor(Formatting.RED).withBold(true))
 					.append(Text.literal(" v2.0 - EVOLUTION UPDATE!").styled(style -> style.withColor(Formatting.YELLOW))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
-				false
-			);
-			
-			handler.player.sendMessage(
-				Text.literal("⚔ NEW FEATURES:").styled(style -> style.withColor(Formatting.RED).withBold(true)),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("Evolution System").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Mobs level up, gain stats & equipment!").styled(style -> style.withColor(Formatting.WHITE))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("Alliance System").styled(style -> style.withColor(Formatting.AQUA)))
-					.append(Text.literal(" - Mobs team up against common enemies!").styled(style -> style.withColor(Formatting.WHITE))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("Player Immunity").styled(style -> style.withColor(Formatting.GREEN)))
-					.append(Text.literal(" - Toggle to spectate safely!").styled(style -> style.withColor(Formatting.WHITE))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("Range Control").styled(style -> style.withColor(Formatting.LIGHT_PURPLE)))
-					.append(Text.literal(" - 0.01x to 100x detection range!").styled(style -> style.withColor(Formatting.WHITE))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("Neutral Mob Control").styled(style -> style.withColor(Formatting.GOLD)))
-					.append(Text.literal(" - Force passive mobs to fight!").styled(style -> style.withColor(Formatting.WHITE))),
-				false
-			);
-			
-			handler.player.sendMessage(Text.literal(""), false);
-			handler.player.sendMessage(
-				Text.literal("📋 Quick Commands:").styled(style -> style.withColor(Formatting.AQUA).withBold(true)),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("/mobwar help").styled(style -> style.withColor(Formatting.GREEN)))
-					.append(Text.literal(" - Full command list").styled(style -> style.withColor(Formatting.DARK_GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.GRAY))
-					.append(Text.literal("/mobwar stats").styled(style -> style.withColor(Formatting.GREEN)))
-					.append(Text.literal(" - View nearby mob levels").styled(style -> style.withColor(Formatting.DARK_GRAY))),
-				false
-			);
-			
-			handler.player.sendMessage(Text.literal(""), false);
-			handler.player.sendMessage(
-				Text.literal("⚙ Key Settings (config/Mod Menu):").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("modEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Turn mod on/off").styled(style -> style.withColor(Formatting.GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("targetPlayers").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Player immunity toggle").styled(style -> style.withColor(Formatting.GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("rangeMultiplier").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Scale detection range (0.01x to 100x)").styled(style -> style.withColor(Formatting.GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("evolutionSystemEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Enable leveling system").styled(style -> style.withColor(Formatting.GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("  • ").styled(style -> style.withColor(Formatting.DARK_GRAY))
-					.append(Text.literal("allianceSystemEnabled").styled(style -> style.withColor(Formatting.YELLOW)))
-					.append(Text.literal(" - Enable alliance system").styled(style -> style.withColor(Formatting.GRAY))),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("    All options are available in the config file or Mod Menu!").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true)),
-				false
-			);
-			
-			handler.player.sendMessage(
-				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("    Watch mobs evolve into warriors! Good luck!").styled(style -> style.withColor(Formatting.WHITE).withItalic(true)),
 				false
 			);
 			handler.player.sendMessage(
