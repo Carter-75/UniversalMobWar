@@ -111,6 +111,9 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
         net.minecraft.entity.EntityData entityData,
         org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<net.minecraft.entity.EntityData> cir
     ) {
+        if (!ModConfig.getInstance().modEnabled) {
+            return; // Leave vanilla gear untouched when mod is disabled
+        }
         MobEntity self = (MobEntity)(Object)this;
         
         // Tag spawn eggs so they aren't blocked by natural spawn blocker
