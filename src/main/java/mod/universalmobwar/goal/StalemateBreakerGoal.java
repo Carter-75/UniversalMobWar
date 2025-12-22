@@ -27,13 +27,16 @@ public class StalemateBreakerGoal extends Goal {
 
     @Override
     public boolean canStart() {
-        return mob.getTarget() != null && mob.getTarget().isAlive();
+        LivingEntity target = mob.getTarget();
+        return target instanceof MobEntity && target.isAlive();
     }
 
     @Override
     public void tick() {
-        LivingEntity target = mob.getTarget();
-        if (target == null) return;
+        LivingEntity potentialTarget = mob.getTarget();
+        if (!(potentialTarget instanceof MobEntity target) || !target.isAlive()) {
+            return; // Players (and other non-mobs) should never trigger stalemate buffs
+        }
 
         MobWarData data = MobWarData.get(mob);
         // Ensure we are tracking the current target
