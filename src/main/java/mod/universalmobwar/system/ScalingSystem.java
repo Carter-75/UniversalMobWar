@@ -353,6 +353,7 @@ public class ScalingSystem {
         if (!encodedProfile.equals(skillData.getString(NBT_FALLBACK_PROFILE))) {
             skillData.putString(NBT_FALLBACK_PROFILE, encodedProfile);
             cleanupSkillDataForFallback(skillData);
+            seedFallbackSkillLevels(skillData, profile);
             data.setSkillPoints(0);
             data.setSpentPoints(0);
             skillDataUpdated = true;
@@ -390,6 +391,15 @@ public class ScalingSystem {
         resetEquippedFlags(skillData);
     }
 
+    private static void seedFallbackSkillLevels(NbtCompound skillData, FallbackProfile profile) {
+        if (skillData == null || profile == null) {
+            return;
+        }
+        if (!skillData.contains("effect_regeneration") || skillData.getInt("effect_regeneration") <= 0) {
+            skillData.putInt("effect_regeneration", 1);
+        }
+    }
+
     private static FallbackProfile determineFallbackProfile(MobEntity mob) {
         return hasAttackDamageAttribute(mob) ? FallbackProfile.HOSTILE : FallbackProfile.PASSIVE;
     }
@@ -414,20 +424,12 @@ public class ScalingSystem {
                 applied |= applyEffectIfMissing(mob, StatusEffects.SPEED, 0, showParticles);
                 applied |= applyEffectIfMissing(mob, StatusEffects.RESISTANCE, 0, showParticles);
                 applied |= applyEffectIfMissing(mob, StatusEffects.HEALTH_BOOST, 1, showParticles);
-                if (!isUndeadMob(mob)) {
-                    applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
-                } else {
-                    applied |= applyEffectIfMissing(mob, StatusEffects.ABSORPTION, 0, showParticles);
-                }
+                applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
             }
             case PASSIVE -> {
                 applied |= applyEffectIfMissing(mob, StatusEffects.RESISTANCE, 0, showParticles);
                 applied |= applyEffectIfMissing(mob, StatusEffects.HEALTH_BOOST, 0, showParticles);
-                if (!isUndeadMob(mob)) {
-                    applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
-                } else {
-                    applied |= applyEffectIfMissing(mob, StatusEffects.ABSORPTION, 0, showParticles);
-                }
+                applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
             }
         }
         return applied;
