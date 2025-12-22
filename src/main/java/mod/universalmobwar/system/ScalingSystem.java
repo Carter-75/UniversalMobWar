@@ -13,6 +13,8 @@ import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.attribute.EntityAttributeInstance;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -116,10 +118,12 @@ public class ScalingSystem {
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
     private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
     private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
+    private static final String NBT_FALLBACK_PROFILE = "umw_fallback_profile";
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
     private static final Map<UUID, EquipmentSnapshot> PENDING_EQUIPMENT_SNAPSHOTS = new ConcurrentHashMap<>();
+    private static final Set<String> FALLBACK_LOGGED_ENTITIES = ConcurrentHashMap.newKeySet();
     
     // List of all available mob config files (loaded dynamically)
     private static String[] IMPLEMENTED_MOBS = null;
@@ -209,6 +213,11 @@ public class ScalingSystem {
         }
     
     private static boolean configsLoaded = false;
+
+    private enum FallbackProfile {
+        HOSTILE,
+        PASSIVE
+    }
     
     // ==========================================================================
     //                           INITIALIZATION
@@ -323,6 +332,121 @@ public class ScalingSystem {
         }
         
         return configName != null ? MOB_CONFIGS.get(configName) : null;
+    }
+
+    private static void applyFallbackPotionProfile(MobEntity mob, MobWarData data, Identifier entityId) {
+        if (mob == null || data == null) {
+            return;
+        }
+
+        FallbackProfile profile = determineFallbackProfile(mob);
+
+        boolean skillDataUpdated = false;
+        NbtCompound skillData = data.getSkillData();
+        if (skillData == null) {
+            skillData = new NbtCompound();
+            data.setSkillData(skillData);
+            skillDataUpdated = true;
+        }
+
+        String encodedProfile = profile.name();
+        if (!encodedProfile.equals(skillData.getString(NBT_FALLBACK_PROFILE))) {
+            skillData.putString(NBT_FALLBACK_PROFILE, encodedProfile);
+            cleanupSkillDataForFallback(skillData);
+            data.setSkillPoints(0);
+            data.setSpentPoints(0);
+            skillDataUpdated = true;
+        }
+
+        abortUpgradesForMob(mob, data);
+        applyFallbackEffects(mob, profile);
+
+        if (skillDataUpdated) {
+            MobWarData.save(mob, data);
+        }
+
+        if (entityId != null && FALLBACK_LOGGED_ENTITIES.add(entityId.toString())) {
+            UniversalMobWarMod.LOGGER.info(
+                "[ScalingSystem] No config for {}. Applied {} fallback potion profile.",
+                entityId,
+                encodedProfile.toLowerCase(Locale.ROOT)
+            );
+        }
+    }
+
+    private static void cleanupSkillDataForFallback(NbtCompound skillData) {
+        if (skillData == null) {
+            return;
+        }
+        skillData.remove(NBT_CONFIG_FINGERPRINT);
+        skillData.remove(NBT_TOTAL_POINT_CACHE);
+        skillData.remove(NBT_LAST_ACCOUNTED_DAY);
+        skillData.remove(NBT_NEXT_UPGRADE_TICK);
+        skillData.remove(NBT_UPGRADE_PENDING);
+        skillData.remove(NBT_WINDOW_APPROVED);
+        skillData.remove(NBT_LAST_UPGRADE_MARKER);
+        skillData.remove(NBT_UPGRADE_WRAP_STATE);
+        skillData.putBoolean(NBT_EQUIPMENT_PRIMED, false);
+        resetEquippedFlags(skillData);
+    }
+
+    private static FallbackProfile determineFallbackProfile(MobEntity mob) {
+        return hasAttackDamageAttribute(mob) ? FallbackProfile.HOSTILE : FallbackProfile.PASSIVE;
+    }
+
+    private static boolean hasAttackDamageAttribute(MobEntity mob) {
+        if (mob == null) {
+            return false;
+        }
+        EntityAttributeInstance attackDamage = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        return attackDamage != null && attackDamage.getBaseValue() > 0.0D;
+    }
+
+    private static boolean applyFallbackEffects(MobEntity mob, FallbackProfile profile) {
+        if (mob == null || profile == null) {
+            return false;
+        }
+        boolean showParticles = !ModConfig.getInstance().disableParticles;
+        boolean applied = false;
+        switch (profile) {
+            case HOSTILE -> {
+                applied |= applyEffectIfMissing(mob, StatusEffects.STRENGTH, 0, showParticles);
+                applied |= applyEffectIfMissing(mob, StatusEffects.SPEED, 0, showParticles);
+                applied |= applyEffectIfMissing(mob, StatusEffects.RESISTANCE, 0, showParticles);
+                applied |= applyEffectIfMissing(mob, StatusEffects.HEALTH_BOOST, 1, showParticles);
+                if (!isUndeadMob(mob)) {
+                    applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
+                } else {
+                    applied |= applyEffectIfMissing(mob, StatusEffects.ABSORPTION, 0, showParticles);
+                }
+            }
+            case PASSIVE -> {
+                applied |= applyEffectIfMissing(mob, StatusEffects.RESISTANCE, 0, showParticles);
+                applied |= applyEffectIfMissing(mob, StatusEffects.HEALTH_BOOST, 0, showParticles);
+                if (!isUndeadMob(mob)) {
+                    applied |= applyEffectIfMissing(mob, StatusEffects.REGENERATION, 0, showParticles);
+                } else {
+                    applied |= applyEffectIfMissing(mob, StatusEffects.ABSORPTION, 0, showParticles);
+                }
+            }
+        }
+        return applied;
+    }
+
+    private static boolean applyEffectIfMissing(MobEntity mob, RegistryEntry<net.minecraft.entity.effect.StatusEffect> effect,
+            int amplifier, boolean showParticles) {
+        if (mob.hasStatusEffect(effect)) {
+            return false;
+        }
+        mob.addStatusEffect(new StatusEffectInstance(
+            effect,
+            StatusEffectInstance.INFINITE,
+            Math.max(0, amplifier),
+            false,
+            showParticles,
+            true
+        ));
+        return true;
     }
     
     /**
@@ -562,13 +686,13 @@ public class ScalingSystem {
         String entityIdStr = entityId != null ? entityId.toString() : mob.getType().toString();
 
         if (modConfig.isMobExcluded(entityIdStr)) return;
-        if (isModdedEntity(entityId)) {
-            return;
-        }
         if (!modConfig.allowBossScaling && isBossEntity(entityId)) return;
 
         JsonObject config = getConfigForMob(mob);
-        if (config == null) return;
+        if (config == null) {
+            applyFallbackPotionProfile(mob, data, entityId);
+            return;
+        }
 
         NbtCompound skillData = data.getSkillData();
         if (skillData == null) {
@@ -1058,10 +1182,6 @@ public class ScalingSystem {
 
     private static Identifier resolveEntityId(MobEntity mob) {
         return Registries.ENTITY_TYPE.getId(mob.getType());
-    }
-
-    private static boolean isModdedEntity(Identifier entityId) {
-        return entityId != null && !"minecraft".equals(entityId.getNamespace());
     }
 
     private static boolean isBossEntity(Identifier entityId) {
