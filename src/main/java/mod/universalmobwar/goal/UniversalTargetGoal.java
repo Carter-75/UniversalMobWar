@@ -11,6 +11,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.TrackTargetGoal;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -50,6 +51,18 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 	private int updateCooldown = 0; // Staggered update system for performance
 	private int allianceCheckInterval = 2000; // Dynamic alliance check interval
 	private final long allianceCheckOffset; // UUID-based offset for staggering alliance updates
+
+	// ==========================================================================
+	//                         NEUTRAL MOB HELPERS
+	// ==========================================================================
+
+	private boolean allowNeutralAggression() {
+		ModConfig config = ModConfig.getInstance();
+		if (config.neutralMobsAlwaysAggressive) {
+			return true;
+		}
+		return !(mob instanceof Angerable);
+	}
 
 	// ==========================================================================
 	//                              CONSTRUCTOR
@@ -129,6 +142,10 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		if (!isTargetingEnabled()) return false;
 		if (!(mob.getWorld() instanceof ServerWorld)) return false;
 		if (!mob.isAlive()) return false;
+		if (!allowNeutralAggression()) {
+			mob.setTarget(null);
+			return false;
+		}
 
 		// WARLORD INTEGRATION: Check if this mob is a warlord minion
 		// Uses WarlordSystem for centralized minion tracking
@@ -195,6 +212,10 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 
 	@Override
 	public void start() {
+		if (!allowNeutralAggression()) {
+			this.candidate = null;
+			return;
+		}
 		if (this.candidate != null) {
 			// WARLORD INTEGRATION: Double-check if this mob is a warlord minion before setting target
 			// Uses WarlordSystem for centralized minion tracking
@@ -227,6 +248,9 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 
 	@Override
 	public boolean shouldContinue() {
+		if (!allowNeutralAggression()) {
+			return false;
+		}
 		// Check if targeting system is still enabled
 		if (!isTargetingEnabled()) return false;
 		LivingEntity t = mob.getTarget();

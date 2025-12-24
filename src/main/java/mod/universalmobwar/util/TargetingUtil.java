@@ -1,12 +1,16 @@
 package mod.universalmobwar.util;
 
+import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.entity.MobWarlordEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.Angerable;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,7 +62,7 @@ public final class TargetingUtil {
 	 */
 	public static LivingEntity findNearestValidTarget(MobEntity self, double range, boolean ignoreSameSpecies, boolean targetPlayers) {
 		// Performance mode check: allow faster targeting when few mobs are requesting it
-		if (mod.universalmobwar.config.ModConfig.getInstance().performanceMode) {
+		if (ModConfig.getInstance().performanceMode) {
 			boolean lowLoad = queriesThisTick < (MAX_QUERIES_PER_TICK / 4);
 			if (!lowLoad && self.age % 2 != 0 && self.getTarget() == null) {
 				return null;
@@ -186,6 +190,16 @@ public final class TargetingUtil {
 		// CHEAP: Alive check (boolean field)
 		if (!target.isAlive()) return false;
 		
+		// Neutral mobs stay out unless toggle is on
+		if (!ModConfig.getInstance().neutralMobsAlwaysAggressive && target instanceof Angerable) {
+			return false;
+		}
+
+		// Iron golems still protect villagers even when neutral aggression is forced on
+		if (self instanceof IronGolemEntity && target instanceof VillagerEntity) {
+			return false;
+		}
+
 		// CHEAP: Player targeting check BEFORE expensive checks
 		if (target instanceof ServerPlayerEntity player) {
 			// Early exit if player targeting is disabled (saves expensive checks below)
