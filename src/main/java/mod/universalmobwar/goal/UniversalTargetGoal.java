@@ -143,7 +143,6 @@ public class UniversalTargetGoal extends TrackTargetGoal {
 		if (!(mob.getWorld() instanceof ServerWorld)) return false;
 		if (!mob.isAlive()) return false;
 		if (!allowNeutralAggression()) {
-			mob.setTarget(null);
 			return false;
 		}
 
