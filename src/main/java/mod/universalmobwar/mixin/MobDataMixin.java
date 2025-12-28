@@ -129,5 +129,7 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
         // Remove weapons/tools
         self.equipStack(net.minecraft.entity.EquipmentSlot.MAINHAND, net.minecraft.item.ItemStack.EMPTY);
         self.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, net.minecraft.item.ItemStack.EMPTY);
+
+        ScalingSystem.handleSpawnBootstrap(self, spawnReason, universalMobWarData);
     }
 }
