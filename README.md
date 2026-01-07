@@ -1,8 +1,8 @@
-# Universal Mob War v3.1
+# Universal Mob War v1.0
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
+![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Minecraft](https://img.shields.io/badge/minecraft-1.21.x-green) ![Loader](https://img.shields.io/badge/loader-Fabric-yellow)
 
-**Transform Minecraft into an epic battlefield where mobs evolve, fight each other, form alliances, and challenge legendary bosses!**
+**Transform Minecraft 1.21.x into an epic battlefield where mobs evolve, fight each other, form alliances, and challenge legendary bosses!**
 
 ---
 
@@ -10,13 +10,15 @@
 
 Universal Mob War completely overhauls mob behavior, creating a dynamic battlefield where mobs evolve based on world age and combat, fight each other in massive wars, form temporary alliances, and can spawn as legendary bosses.
 
+> ✅ **Targeted compatibility:** Built for Minecraft 1.21.x (tested on 1.21.1). Earlier versions and future 1.22+ updates need a dedicated port.
+
 **Key Features:**
 - 🔥 **Progressive Evolution**: Mobs earn points and spend them on upgrades using an 80%/20% buy/save system
 - ⚔️ **Inter-Mob Combat**: All mobs fight each other based on species, type, and alliances
 - 🤝 **Dynamic Alliances**: Mobs team up against common enemies (same species = strong, different = weak)
 - 👹 **Mob Warlord Boss**: Legendary raid boss with minion armies
 - 📊 **80 Individual Mob Configs**: Each mob has its own JSON with complete upgrade paths
-- 🌍 **Universal Compatibility**: Works with ALL mobs - vanilla and modded!
+- 🌍 **Config-Driven Compatibility**: Ships with configs for every vanilla 1.21.1 mob; everything else auto-classifies for baseline potion scaling until you drop in a JSON.
 
 ---
 
@@ -363,6 +365,8 @@ mob_configs/
   - Armor progression (helmet, chestplate, leggings, boots)
   - Special abilities from mob's skill trees
 
+> ℹ️ **No matching JSON?** The scaling system auto-detects passive/neutral/hostile state, applies the matching fallback potion suite, and still respects targeting rules. Drop a JSON alongside it when you want full equipment trees and custom abilities.
+
 ### Mob Mixin Architecture
 
 Each mob has a dedicated mixin file with **fully embedded progression logic**:
@@ -407,9 +411,9 @@ mixin/mob/
 
 ## 📦 Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.1
+1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft 1.21.x (tested on 1.21.1)
 2. Install [Fabric API](https://modrinth.com/mod/fabric-api) v0.102.0+
-3. Download `universal-mob-war-3.1.0.jar`
+3. Download `universal-mob-war-1.0.0.jar`
 4. Place in `mods` folder
 5. Launch and enjoy!
 
@@ -440,7 +444,7 @@ python universal_build.py --build
 # Build + push to GitHub
 python universal_build.py --deploy
 
-# Output: build/libs/universal-mob-war-3.1.0.jar
+# Output: build/libs/universal-mob-war-1.0.0.jar
 ```
 
 **Build Script Features**:
@@ -532,7 +536,7 @@ Universal Mob War transforms Minecraft into a dynamic battlefield:
 - ✅ **6 mob-specific skill trees** with unique abilities
 - ✅ **Dynamic alliance system** (strong/weak, 5s-20s duration)
 - ✅ **Legendary Mob Warlord boss** with minion armies
-- ✅ **100% compatible** with vanilla and modded mobs
+- ✅ **Config coverage for vanilla 1.21.x mobs**; others auto-scale with fallback potions until you author a JSON
 - ✅ **Performance optimized** with multithreading and batching
 - ✅ **Fully data-driven** - all costs/skills in JSON files
 

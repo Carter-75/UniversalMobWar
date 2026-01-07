@@ -74,8 +74,9 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
      *   - Calculates points from world age
      *   - Spends points on upgrades
      *   - Applies effects
-     * 
-     * Mobs without a JSON config are simply skipped (no scaling).
+    * 
+    * Mobs without a JSON config fall back to auto-detected potion scaling so passive/neutral/hostile
+    * behaviour still lines up with the targeting system.
      */
     @Inject(method = "mobTick", at = @At("HEAD"))
     private void universalmobwar$onMobTick(CallbackInfo ci) {

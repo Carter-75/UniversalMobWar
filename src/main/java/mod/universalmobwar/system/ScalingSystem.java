@@ -13,10 +13,16 @@ import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.SpawnGroup;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.attribute.EntityAttributeInstance;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.Angerable;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -78,6 +84,10 @@ public class ScalingSystem {
     
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
+    private static final String FALLBACK_PREFIX = "__fallback__:";
+    private static final String NBT_FALLBACK_INITIALIZED = "umw_fallback_initialized";
+    private static final String NBT_FALLBACK_TYPE = "umw_fallback_type";
+    private static final String FALLBACK_FLAG_KEY = "_umw_fallback";
     private static final String ABILITY_KEY_UNDEAD_PULSE = "undead_harming_pulse";
     private static final String ABILITY_KEY_UNDEAD_BURST = "undead_harming_burst_until";
     private static final long UNDEAD_HARMING_INTERVAL_TICKS = 200L;
@@ -331,7 +341,211 @@ public class ScalingSystem {
             }
         }
         
-        return configName != null ? MOB_CONFIGS.get(configName) : null;
+        if (configName != null) {
+            JsonObject existing = MOB_CONFIGS.get(configName);
+            if (existing != null) {
+                return existing;
+            }
+        }
+
+        return getOrCreateFallbackConfig(mob);
+    }
+
+    private static JsonObject getOrCreateFallbackConfig(MobEntity mob) {
+        if (mob == null) {
+            return null;
+        }
+
+        Identifier entityId = resolveEntityId(mob);
+        String keyBase = entityId != null
+            ? entityId.toString().toLowerCase(Locale.ROOT)
+            : mob.getType().toString().toLowerCase(Locale.ROOT);
+        String fallbackKey = FALLBACK_PREFIX + keyBase;
+
+        String detectedType = determineFallbackMobType(mob);
+        JsonObject cached = MOB_CONFIGS.get(fallbackKey);
+        if (cached != null) {
+            String storedType = cached.has("mob_type") ? cached.get("mob_type").getAsString() : "hostile";
+            if (!storedType.equals(detectedType)) {
+                cached.addProperty("mob_type", detectedType);
+                CONFIG_FINGERPRINTS.put(fallbackKey, computeJsonFingerprint(cached));
+            }
+            ENTITY_TO_CONFIG.putIfAbsent(mob.getClass().getName(), fallbackKey);
+            ENTITY_TO_CONFIG.putIfAbsent(mob.getClass().getSimpleName().toLowerCase(Locale.ROOT), fallbackKey);
+            return cached;
+        }
+
+        JsonObject fallbackConfig = buildFallbackConfig(mob, detectedType, keyBase);
+        MOB_CONFIGS.put(fallbackKey, fallbackConfig);
+        ENTITY_TO_CONFIG.put(mob.getClass().getName(), fallbackKey);
+        ENTITY_TO_CONFIG.put(mob.getClass().getSimpleName().toLowerCase(Locale.ROOT), fallbackKey);
+        CONFIG_FINGERPRINTS.put(fallbackKey, computeJsonFingerprint(fallbackConfig));
+        return fallbackConfig;
+    }
+
+    private static JsonObject buildFallbackConfig(MobEntity mob, String mobType, String keyBase) {
+        JsonObject config = new JsonObject();
+        config.addProperty(FALLBACK_FLAG_KEY, true);
+        config.addProperty("mob_name", keyBase);
+        config.addProperty("entity_class", mob.getClass().getName());
+        config.addProperty("mob_type", mobType);
+        config.addProperty("tree_name", "Fallback Auto-Scaling");
+
+        JsonObject pointSystem = new JsonObject();
+        pointSystem.add("daily_scaling", new JsonArray());
+        pointSystem.addProperty("kill_scaling", 0.0d);
+        pointSystem.addProperty("buy_chance", 0.0d);
+        pointSystem.addProperty("save_chance", 1.0d);
+        config.add("point_system", pointSystem);
+
+        JsonObject tree = new JsonObject();
+        tree.add("passive_potion_effects", createPassiveFallbackEffects());
+        tree.add("hostile_neutral_potion_effects", createHostileFallbackEffects());
+        config.add("tree", tree);
+
+        return config;
+    }
+
+    private static JsonObject createPassiveFallbackEffects() {
+        JsonObject effects = new JsonObject();
+
+        JsonArray regenLevels = new JsonArray();
+        JsonObject regen = new JsonObject();
+        regen.addProperty("level", 1);
+        regen.addProperty("cost", 0);
+        regen.addProperty("regen_level", 1);
+        regen.addProperty("permanent", true);
+        regenLevels.add(regen);
+        effects.add("regeneration", regenLevels);
+
+        JsonArray healthLevels = new JsonArray();
+        JsonObject health = new JsonObject();
+        health.addProperty("level", 1);
+        health.addProperty("cost", 0);
+        health.addProperty("hp_bonus", 2);
+        health.addProperty("hp_total", 2);
+        healthLevels.add(health);
+        effects.add("health_boost", healthLevels);
+
+        JsonArray resistanceLevels = new JsonArray();
+        JsonObject resistance = new JsonObject();
+        resistance.addProperty("level", 1);
+        resistance.addProperty("cost", 0);
+        resistance.addProperty("resistance_level", 1);
+        resistance.addProperty("fire_resistance", false);
+        resistanceLevels.add(resistance);
+        effects.add("resistance", resistanceLevels);
+
+        JsonArray speedLevels = new JsonArray();
+        JsonObject speed = new JsonObject();
+        speed.addProperty("level", 1);
+        speed.addProperty("cost", 0);
+        speed.addProperty("speed_level", 1);
+        speedLevels.add(speed);
+        effects.add("speed", speedLevels);
+
+        return effects;
+    }
+
+    private static JsonObject createHostileFallbackEffects() {
+        JsonObject effects = createPassiveFallbackEffects();
+
+        JsonArray strengthLevels = new JsonArray();
+        JsonObject strength = new JsonObject();
+        strength.addProperty("level", 1);
+        strength.addProperty("cost", 0);
+        strength.addProperty("strength_level", 1);
+        strengthLevels.add(strength);
+        effects.add("strength", strengthLevels);
+
+        return effects;
+    }
+
+    private static String determineFallbackMobType(MobEntity mob) {
+        if (mob == null) {
+            return "passive";
+        }
+
+        if (mob instanceof HostileEntity) {
+            return "hostile";
+        }
+
+        if (mob.getType().isIn(EntityTypeTags.UNDEAD)) {
+            return "hostile";
+        }
+
+        SpawnGroup spawnGroup = mob.getType().getSpawnGroup();
+        if (spawnGroup == SpawnGroup.MONSTER) {
+            return "hostile";
+        }
+
+        if (mob instanceof PassiveEntity) {
+            return "passive";
+        }
+
+        if (mob instanceof Angerable) {
+            return ModConfig.getInstance().neutralMobsAlwaysAggressive ? "hostile" : "neutral";
+        }
+
+        if (spawnGroup == SpawnGroup.CREATURE ||
+            spawnGroup == SpawnGroup.WATER_CREATURE ||
+            spawnGroup == SpawnGroup.WATER_AMBIENT ||
+            spawnGroup == SpawnGroup.AXOLOTLS ||
+            spawnGroup == SpawnGroup.UNDERGROUND_WATER_CREATURE ||
+            spawnGroup == SpawnGroup.AMBIENT) {
+            return "passive";
+        }
+
+        EntityAttributeInstance attackAttr = mob.getAttributeInstance(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double attackDamage = attackAttr != null ? attackAttr.getBaseValue() : 0.0d;
+        if (attackDamage > 0.0d) {
+            return ModConfig.getInstance().neutralMobsAlwaysAggressive ? "hostile" : "neutral";
+        }
+
+        return "passive";
+    }
+
+    private static void initializeFallbackSkillData(NbtCompound skillData, String mobType) {
+        if (skillData == null) {
+            return;
+        }
+
+        boolean typeChanged = !skillData.contains(NBT_FALLBACK_TYPE) || !mobType.equals(skillData.getString(NBT_FALLBACK_TYPE));
+        boolean needsInit = typeChanged || !skillData.getBoolean(NBT_FALLBACK_INITIALIZED);
+        if (!needsInit) {
+            return;
+        }
+
+        skillData.putInt("effect_regeneration", 1);
+        skillData.putInt("effect_health_boost", 1);
+        skillData.putInt("effect_speed", 1);
+        skillData.putInt("effect_resistance", 1);
+        if ("passive".equals(mobType)) {
+            skillData.putInt("effect_strength", 0);
+        } else {
+            skillData.putInt("effect_strength", 1);
+        }
+
+        skillData.putBoolean(NBT_FALLBACK_INITIALIZED, true);
+        skillData.putString(NBT_FALLBACK_TYPE, mobType);
+    }
+
+    private static void processFallbackMob(MobEntity mob, World world, MobWarData data, JsonObject config,
+            NbtCompound skillData, long currentTick) {
+        if (mob == null || world == null || data == null || skillData == null) {
+            return;
+        }
+
+        String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : determineFallbackMobType(mob);
+        initializeFallbackSkillData(skillData, mobType);
+        refreshMissingEffects(mob, skillData, config, mobType);
+        applyEffects(mob, data, config, mobType, currentTick);
+        handleUndeadHealingPulse(mob, skillData, currentTick);
+        handleInvisibilityGlowFlicker(mob, currentTick);
+        clearUpgradeSchedule(skillData);
+        data.setSkillPoints(0.0d);
+        data.setSpentPoints(0.0d);
+        MobWarData.save(mob, data);
     }
 
     
@@ -639,6 +853,12 @@ public class ScalingSystem {
             skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
         }
         skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
+
+        boolean fallbackConfig = config.has(FALLBACK_FLAG_KEY) && config.get(FALLBACK_FLAG_KEY).getAsBoolean();
+        if (fallbackConfig) {
+            processFallbackMob(mob, world, data, config, skillData, world.getTime());
+            return;
+        }
 
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         refreshMissingEffects(mob, skillData, config, mobType);
