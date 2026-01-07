@@ -1467,11 +1467,18 @@ public class ScalingSystem {
             return;
         }
 
+        NbtCompound existingData = data.getSkillData();
+        boolean previouslyDisarmed = existingData != null && existingData.getBoolean(NBT_INITIAL_DISARMED);
+
         data.setSkillData(computedData);
         data.setSpentPoints(computation.spentPoints());
         NbtCompound skillData = data.getSkillData();
         if (skillData == null) {
             return;
+        }
+
+        if (previouslyDisarmed) {
+            skillData.putBoolean(NBT_INITIAL_DISARMED, true);
         }
 
         skillData.putInt(NBT_LAST_UPGRADE_MARKER, currentTimeOfDay);
@@ -2048,6 +2055,7 @@ public class ScalingSystem {
         applyArmor(mob, skillData, tree, "boots", EquipmentSlot.FEET, world, snapshot, forceOverride);
 
         skillData.putBoolean(NBT_EQUIPMENT_PRIMED, true);
+        skillData.putBoolean(NBT_INITIAL_DISARMED, true);
     }
     
     /**
