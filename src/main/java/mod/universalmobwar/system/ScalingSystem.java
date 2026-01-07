@@ -642,20 +642,21 @@ public class ScalingSystem {
         double killPoints = killCount * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
 
         int worldDays = resolveConfiguredWorldDays(world, modConfig);
-        int lastAccountedDay = skillData.contains(NBT_LAST_ACCOUNTED_DAY)
-            ? skillData.getInt(NBT_LAST_ACCOUNTED_DAY)
-            : worldDays;
+        boolean hasLastAccountedDay = skillData.contains(NBT_LAST_ACCOUNTED_DAY);
+        boolean hasDayPointCache = skillData.contains(NBT_TOTAL_POINT_CACHE);
+        int lastAccountedDay = hasLastAccountedDay ? skillData.getInt(NBT_LAST_ACCOUNTED_DAY) : worldDays;
         boolean skillDataDirty = false;
-        if (!skillData.contains(NBT_LAST_ACCOUNTED_DAY)) {
-            skillData.putInt(NBT_LAST_ACCOUNTED_DAY, lastAccountedDay);
-            skillDataDirty = true;
-        }
-
-        double dayPointCache = skillData.contains(NBT_TOTAL_POINT_CACHE)
+        double dayPointCache = hasDayPointCache
             ? skillData.getDouble(NBT_TOTAL_POINT_CACHE)
             : Math.max(0.0, data.getSkillPoints() - killPoints);
-        if (!skillData.contains(NBT_TOTAL_POINT_CACHE)) {
+
+        if (!hasLastAccountedDay || !hasDayPointCache) {
+            double backlogPoints = Math.max(0.0, dayPoints);
+            dayPointCache = backlogPoints;
+            lastAccountedDay = worldDays;
+            skillData.putInt(NBT_LAST_ACCOUNTED_DAY, lastAccountedDay);
             skillData.putDouble(NBT_TOTAL_POINT_CACHE, dayPointCache);
+            data.setSkillPoints(Math.max(0.0, dayPointCache + killPoints));
             skillDataDirty = true;
         }
 
