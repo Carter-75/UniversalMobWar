@@ -1439,7 +1439,9 @@ public class ScalingSystem {
         logger.replay(computation.logEntries());
 
         if (mob.getWorld() instanceof ServerWorld serverWorld) {
-            applyEquipment(mob, data, config, serverWorld, snapshot, false);
+            // Force overrides during upgrade passes so new tiers replace previously equipped items
+            // instead of being blocked by the player-override guard that protects manual gear swaps.
+            applyEquipment(mob, data, config, serverWorld, snapshot, true);
         }
 
         applyEffects(mob, data, config, mobType, currentTick);
@@ -1963,6 +1965,8 @@ public class ScalingSystem {
         if (!config.has("tree")) return;
         JsonObject tree = config.getAsJsonObject("tree");
         
+        logEquipmentDebug(mob, "equipment", "Applying equipment (forceOverride=" + forceOverride + ")");
+
         // Apply weapon
         if (tree.has("weapon")) {
             JsonElement weaponElement = tree.get("weapon");
@@ -1971,12 +1975,18 @@ public class ScalingSystem {
                 boolean scopedWeapon = hasMultipleWeaponOptions(weaponElement);
                 String weaponKey = scopedWeapon ? getWeaponScopeIdentifier(weapon) : "";
                 applyWeapon(mob, skillData, weapon, world, scopedWeapon, weaponKey, snapshot, forceOverride);
+            } else {
+                logEquipmentDebug(mob, "weapon", "Weapon config missing after locking—skipping equip");
             }
+        } else {
+            logEquipmentDebug(mob, "weapon", "Mob tree does not define weapon entry");
         }
         
         // Apply shield
         if (tree.has("shield")) {
             applyShield(mob, skillData, tree.getAsJsonObject("shield"), world, snapshot, forceOverride);
+        } else {
+            logEquipmentDebug(mob, "shield", "Mob tree does not define shield entry");
         }
         
         // Apply armor
@@ -1996,6 +2006,12 @@ public class ScalingSystem {
             EquipmentSnapshot snapshot, boolean forceOverride) {
         String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
         int weaponTierLevel = skillData.getInt("weapon_tier");
+        if (weaponTierLevel <= 0) {
+            logEquipmentDebug(mob, "weapon", "No weapon tier purchased yet—skipping equip");
+            skillData.putBoolean("weapon_equipped", false);
+            setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+            return;
+        }
         String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
         String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponScopeKey);
         String dropMasteryKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponScopeKey);
@@ -2010,9 +2026,7 @@ public class ScalingSystem {
         ItemStack weapon = getExpectedWeaponStack(weaponConfig, weaponTierLevel);
 
         if (weapon == null || weapon.isEmpty()) {
-            if (weaponTierLevel > 0) {
-                logEquipmentDebug(mob, "weapon", "Unable to create item for type " + weaponType + " at tier " + weaponTierLevel);
-            }
+            logEquipmentDebug(mob, "weapon", "Unable to create item for type " + weaponType + " at tier " + weaponTierLevel);
             return;
         }
 
@@ -2020,7 +2034,9 @@ public class ScalingSystem {
         if (!current.isEmpty() && !current.isOf(weapon.getItem())) {
             if (forceOverride) {
                 mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                logEquipmentDebug(mob, "weapon", "Force override cleared mismatched item");
             } else {
+                logEquipmentDebug(mob, "weapon", "Detected mismatched player item; marking override");
                 setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
                 skillData.putBoolean("weapon_equipped", true);
                 return;
@@ -2044,6 +2060,7 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
+        logEquipmentDebug(mob, "weapon", "Equipped tier " + weaponTierLevel + " item " + weapon.getItem());
         skillData.putBoolean("weapon_equipped", true);
         applyDropChance(mob, EquipmentSlot.MAINHAND, skillData.getInt(dropMasteryKey));
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, scopedWeapon ? weaponScopeKey : "");
@@ -2057,6 +2074,7 @@ public class ScalingSystem {
             EquipmentSnapshot snapshot, boolean forceOverride) {
         int hasShield = skillData.getInt("has_shield");
         if (hasShield <= 0) {
+            logEquipmentDebug(mob, "shield", "Shield not purchased—clearing slot");
             skillData.putBoolean("shield_equipped", false);
             setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
             return;
@@ -2066,7 +2084,9 @@ public class ScalingSystem {
         if (!current.isEmpty() && !current.isOf(Items.SHIELD)) {
             if (forceOverride) {
                 mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+                logEquipmentDebug(mob, "shield", "Force override cleared mismatched item");
             } else {
+                logEquipmentDebug(mob, "shield", "Detected mismatched player item; marking override");
                 setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
                 skillData.putBoolean("shield_equipped", true);
                 return;
@@ -2092,6 +2112,7 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(EquipmentSlot.OFFHAND, shield);
+        logEquipmentDebug(mob, "shield", "Equipped shield with enchants/masteries applied");
         skillData.putBoolean("shield_equipped", true);
         applyDropChance(mob, EquipmentSlot.OFFHAND, skillData.getInt("shield_drop_mastery"));
     }
@@ -2111,6 +2132,7 @@ public class ScalingSystem {
         
         int tier = skillData.getInt(slotName + "_tier");
         if (tier <= 0) {
+            logEquipmentDebug(mob, slotName, "Tier 0 -> clearing slot");
             skillData.putBoolean(slotName + "_equipped", false);
             setPlayerOverride(skillData, getArmorOverrideKey(slotName), false);
             mob.equipStack(slot, ItemStack.EMPTY);
@@ -2131,6 +2153,7 @@ public class ScalingSystem {
         ItemStack armor = getExpectedArmorStack(armorConfig, slot, tier);
         if (armor == null || armor.isEmpty()) {
             logEquipmentDebug(mob, slotName, "No ItemStack mapping for configured tier");
+            logEquipmentDebug(mob, slotName, "Failed to build armor ItemStack for tier " + tier);
             return;
         }
 
@@ -2138,7 +2161,9 @@ public class ScalingSystem {
         if (!current.isEmpty() && !current.isOf(armor.getItem())) {
             if (forceOverride) {
                 mob.equipStack(slot, ItemStack.EMPTY);
+                logEquipmentDebug(mob, slotName, "Force override cleared mismatched item");
             } else {
+                logEquipmentDebug(mob, slotName, "Detected mismatched player item; marking override");
                 skillData.putBoolean(slotName + "_equipped", true);
                 setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
                 return;
@@ -2165,6 +2190,7 @@ public class ScalingSystem {
         
         // Equip it
         mob.equipStack(slot, armor);
+        logEquipmentDebug(mob, slotName, "Equipped tier " + tier + " item " + armor.getItem());
         skillData.putBoolean(slotName + "_equipped", true);
         applyDropChance(mob, slot, skillData.getInt(slotName + "_drop_mastery"));
     }
