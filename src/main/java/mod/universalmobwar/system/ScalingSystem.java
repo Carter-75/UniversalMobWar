@@ -83,7 +83,7 @@ public class ScalingSystem {
     private static final long UNDEAD_HARMING_INTERVAL_TICKS = 200L;
     private static final String ABILITY_KEY_INVIS_GLOW_NEXT = "invisibility_on_hit_glow_next";
     private static final String ABILITY_KEY_INVIS_GLOW_UNTIL = "invisibility_on_hit_glow_until";
-    private static final long INVIS_GLOW_INTERVAL_TICKS = 15L;
+    private static final long INVIS_GLOW_INTERVAL_TICKS = 40L;
     private static final int INVIS_GLOW_DURATION_TICKS = 8;
     private static final double DEFAULT_DAILY_POINTS = 0.1d;
     private static final DayRange[] DEFAULT_DAILY_SCALING = new DayRange[] {
