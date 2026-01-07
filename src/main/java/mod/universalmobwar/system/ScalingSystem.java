@@ -81,6 +81,8 @@ public class ScalingSystem {
     private static final String ABILITY_KEY_UNDEAD_PULSE = "undead_harming_pulse";
     private static final String ABILITY_KEY_UNDEAD_BURST = "undead_harming_burst_until";
     private static final long UNDEAD_HARMING_INTERVAL_TICKS = 200L;
+    private static final String ABILITY_KEY_INVIS_READY_TICK = "invisibility_on_hit_ready_tick";
+    private static final String ABILITY_KEY_INVIS_LEGACY = "invisibility_on_hit";
     private static final String ABILITY_KEY_INVIS_GLOW_NEXT = "invisibility_on_hit_glow_next";
     private static final String ABILITY_KEY_INVIS_GLOW_UNTIL = "invisibility_on_hit_glow_until";
     private static final long INVIS_GLOW_INTERVAL_TICKS = 40L;
@@ -2722,24 +2724,38 @@ public class ScalingSystem {
                 int duration = levelData.has("duration") ? levelData.get("duration").getAsInt() : 5;
                 int cooldown = levelData.has("cooldown") ? levelData.get("cooldown").getAsInt() : 60;
                 
-                // Check cooldown
+                // Check cooldown (cooldown timer starts after invisibility expires)
                 UUID mobUuid = mob.getUuid();
                 Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
-                long lastUse = cooldowns.getOrDefault("invisibility_on_hit", 0L);
-                
-                if (currentTick - lastUse >= cooldown * 20L) { // cooldown is in seconds
+
+                long configuredCooldownTicks = Math.max(0L, (long)Math.max(0, cooldown) * 20L);
+                long nextReadyTick = cooldowns.getOrDefault(ABILITY_KEY_INVIS_READY_TICK, 0L);
+                if (nextReadyTick == 0L && cooldowns.containsKey(ABILITY_KEY_INVIS_LEGACY)) {
+                    long legacyLastUse = cooldowns.get(ABILITY_KEY_INVIS_LEGACY);
+                    nextReadyTick = legacyLastUse + configuredCooldownTicks;
+                }
+
+                if (currentTick >= nextReadyTick) {
                     // Roll chance
                     if (mob.getRandom().nextDouble() < chance) {
+                        int safeDurationSeconds = Math.max(1, duration);
+                        long requestedDurationTicks = Math.max(1L, safeDurationSeconds) * 20L;
+                        int invisDurationTicks = (int)Math.min(Integer.MAX_VALUE, requestedDurationTicks);
+
                         mob.addStatusEffect(new StatusEffectInstance(
                             StatusEffects.INVISIBILITY,
-                            StatusEffectInstance.INFINITE,
+                            invisDurationTicks,
                             0,
                             false,
                             false,
                             true
                         ));
-                        cooldowns.put("invisibility_on_hit", currentTick);
-                        startInvisibilityGlowFlicker(mob, cooldowns, currentTick, duration);
+
+                        long effectEndsAtTick = currentTick + invisDurationTicks;
+                        cooldowns.put(ABILITY_KEY_INVIS_READY_TICK, effectEndsAtTick + configuredCooldownTicks);
+                        cooldowns.remove(ABILITY_KEY_INVIS_LEGACY);
+
+                        startInvisibilityGlowFlicker(mob, cooldowns, currentTick, safeDurationSeconds);
                     }
                 }
             }
