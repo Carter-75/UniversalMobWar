@@ -1860,10 +1860,6 @@ public class ScalingSystem {
         if (mob == null || skillData == null) {
             return;
         }
-        ModConfig config = ModConfig.getInstance();
-        if (!config.enableUndeadHealingPulse) {
-            return;
-        }
         if (!isUndeadMob(mob)) {
             return;
         }
@@ -2643,8 +2639,7 @@ public class ScalingSystem {
      * Call this from a damage event handler
      */
     public static void handleDamageAbilities(MobEntity mob, MobWarData data, long currentTick) {
-        ModConfig modConfig = ModConfig.getInstance();
-        if (!modConfig.isScalingActive()) return;
+        if (!ModConfig.getInstance().isScalingActive()) return;
         
         JsonObject config = getConfigForMob(mob);
         if (config == null) return;
@@ -2720,7 +2715,7 @@ public class ScalingSystem {
                             true
                         ));
                         cooldowns.put("on_damage_regen", currentTick);
-                        if (modConfig.enableUndeadHealingPulse && isUndeadMob(mob)) {
+                        if (isUndeadMob(mob)) {
                             long burstWindowTicks = Math.max(20L, duration * 20L);
                             cooldowns.put(ABILITY_KEY_UNDEAD_BURST, currentTick + burstWindowTicks);
                         }
