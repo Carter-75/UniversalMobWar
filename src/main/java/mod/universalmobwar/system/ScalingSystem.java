@@ -115,12 +115,14 @@ public class ScalingSystem {
     private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
+    private static final String NBT_NEXT_BUDGET_CHECK_TICK = "umw_next_budget_check_tick";
     private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
     private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
     private static final String NBT_WEAPON_LAST_ITEM = "umw_weapon_last_item";
     private static final String NBT_SHIELD_LAST_ITEM = "umw_shield_last_item";
     private static final String NBT_ARMOR_LAST_ITEM_SUFFIX = "_umw_last_item";
     private static final long DAILY_UPGRADE_INTERVAL_TICKS = 24000L;
+    private static final long BUDGET_RECHECK_INTERVAL_TICKS = 200L;
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
@@ -717,8 +719,13 @@ public class ScalingSystem {
         boolean upgradePending = skillData.getBoolean(NBT_UPGRADE_PENDING);
         boolean windowApproved = skillData.getBoolean(NBT_WINDOW_APPROVED);
         boolean upgradeScheduleReady = isUpgradeScheduleReady(skillData, currentTick);
+        boolean shouldScheduleNow = shouldRequestUpgrade && !upgradePending;
+        if (shouldScheduleNow && isBudgetProbeThrottled(skillData, currentTick)) {
+            shouldScheduleNow = false;
+        }
 
-        if (forceImmediateUpgrade && shouldRequestUpgrade && !upgradePending) {
+        boolean forceUpgradePass = forceImmediateUpgrade && shouldRequestUpgrade && !upgradePending;
+        if (forceUpgradePass && hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
             ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
             boolean handled = false;
             if (asyncEnabled) {
@@ -753,6 +760,7 @@ public class ScalingSystem {
                 );
             }
             if (handled) {
+                clearBudgetProbeThrottle(skillData);
                 MobWarData.save(mob, data);
                 return;
             }
@@ -763,12 +771,15 @@ public class ScalingSystem {
             windowApproved = true;
         }
 
-        if (shouldRequestUpgrade && !upgradePending) {
+        if (shouldScheduleNow && hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
             boolean approveNow = readyForNextCycle || firstUpgradeCycle;
             scheduleUpgradePass(skillData, currentTick, modConfig, approveNow);
             upgradePending = true;
             windowApproved = approveNow;
+            clearBudgetProbeThrottle(skillData);
             MobWarData.save(mob, data);
+        } else if (shouldScheduleNow) {
+            throttleBudgetProbe(skillData, currentTick);
         }
 
         boolean canSyncEquipment = !upgradeScheduleReady
@@ -780,6 +791,12 @@ public class ScalingSystem {
             long windowDelayTicks = Math.max(1L, computeTicksUntilUpgradeWindow(skillData, currentTimeOfDay, currentTick));
             skillData.putBoolean(NBT_WINDOW_APPROVED, false);
             deferUpgradePass(skillData, currentTick, windowDelayTicks);
+            upgradeScheduleReady = false;
+        }
+
+        if (upgradeScheduleReady && !hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
+            clearUpgradeSchedule(skillData);
+            throttleBudgetProbe(skillData, currentTick);
             upgradeScheduleReady = false;
         }
 
@@ -1142,6 +1159,29 @@ public class ScalingSystem {
         skillData.putBoolean(NBT_UPGRADE_PENDING, false);
         skillData.putBoolean(NBT_WINDOW_APPROVED, false);
         skillData.remove(NBT_NEXT_UPGRADE_TICK);
+    }
+
+    private static boolean isBudgetProbeThrottled(NbtCompound skillData, long currentTick) {
+        if (skillData == null || !skillData.contains(NBT_NEXT_BUDGET_CHECK_TICK)) {
+            return false;
+        }
+        long nextProbe = skillData.getLong(NBT_NEXT_BUDGET_CHECK_TICK);
+        return nextProbe > currentTick;
+    }
+
+    private static void throttleBudgetProbe(NbtCompound skillData, long currentTick) {
+        if (skillData == null) {
+            return;
+        }
+        long nextProbe = Math.max(currentTick + BUDGET_RECHECK_INTERVAL_TICKS, currentTick + 1L);
+        skillData.putLong(NBT_NEXT_BUDGET_CHECK_TICK, nextProbe);
+    }
+
+    private static void clearBudgetProbeThrottle(NbtCompound skillData) {
+        if (skillData == null) {
+            return;
+        }
+        skillData.remove(NBT_NEXT_BUDGET_CHECK_TICK);
     }
 
     private static void lockEquipmentForUpgrade(NbtCompound skillData) {
@@ -1616,6 +1656,14 @@ public class ScalingSystem {
         }
         
         return affordable;
+    }
+
+    private static boolean hasAffordableUpgradeAvailable(UUID mobUuid, JsonObject config, String mobType,
+            NbtCompound skillData, int budget) {
+        if (budget <= 0) {
+            return false;
+        }
+        return !getAffordableUpgrades(mobUuid, config, mobType, skillData, budget).isEmpty();
     }
     
     /**
