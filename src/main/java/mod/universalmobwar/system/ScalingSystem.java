@@ -117,6 +117,9 @@ public class ScalingSystem {
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
     private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
     private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
+    private static final String NBT_WEAPON_LAST_ITEM = "umw_weapon_last_item";
+    private static final String NBT_SHIELD_LAST_ITEM = "umw_shield_last_item";
+    private static final String NBT_ARMOR_LAST_ITEM_SUFFIX = "_umw_last_item";
     private static final long DAILY_UPGRADE_INTERVAL_TICKS = 24000L;
 
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
@@ -1857,6 +1860,10 @@ public class ScalingSystem {
         if (mob == null || skillData == null) {
             return;
         }
+        ModConfig config = ModConfig.getInstance();
+        if (!config.enableUndeadHealingPulse) {
+            return;
+        }
         if (!isUndeadMob(mob)) {
             return;
         }
@@ -2011,8 +2018,10 @@ public class ScalingSystem {
             logEquipmentDebug(mob, "weapon", "No weapon tier purchased yet—skipping equip");
             skillData.putBoolean("weapon_equipped", false);
             setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+            trackEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, ItemStack.EMPTY);
             return;
         }
+        boolean previouslyEquipped = skillData.getBoolean("weapon_equipped");
         String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponScopeKey);
         String durabilityKey = getWeaponScopedKey("weapon_durability_mastery", scopedWeapon, weaponScopeKey);
         String dropMasteryKey = getWeaponScopedKey("weapon_drop_mastery", scopedWeapon, weaponScopeKey);
@@ -2032,14 +2041,17 @@ public class ScalingSystem {
         }
 
         ItemStack current = mob.getEquippedStack(EquipmentSlot.MAINHAND);
+        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, current);
+        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
         if (!current.isEmpty() && !current.isOf(weapon.getItem())) {
-            if (forceOverride) {
+            if (allowOverwrite) {
                 mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                logEquipmentDebug(mob, "weapon", "Force override cleared mismatched item");
+                logEquipmentDebug(mob, "weapon", "Cleared previously equipped item to apply new tier");
             } else {
                 logEquipmentDebug(mob, "weapon", "Detected mismatched player item; marking override");
                 setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
                 skillData.putBoolean("weapon_equipped", true);
+                trackEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, ItemStack.EMPTY);
                 return;
             }
         }
@@ -2063,6 +2075,7 @@ public class ScalingSystem {
         mob.equipStack(EquipmentSlot.MAINHAND, weapon);
         logEquipmentDebug(mob, "weapon", "Equipped tier " + weaponTierLevel + " item " + weapon.getItem());
         skillData.putBoolean("weapon_equipped", true);
+        trackEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, weapon);
         applyDropChance(mob, EquipmentSlot.MAINHAND, skillData.getInt(dropMasteryKey));
         skillData.putString(NBT_WEAPON_ACTIVE_KEY, scopedWeapon ? weaponScopeKey : "");
         skillData.putBoolean(NBT_WEAPON_ACTIVE_SCOPED, scopedWeapon);
@@ -2078,18 +2091,23 @@ public class ScalingSystem {
             logEquipmentDebug(mob, "shield", "Shield not purchased—clearing slot");
             skillData.putBoolean("shield_equipped", false);
             setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+            trackEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, ItemStack.EMPTY);
             return;
         }
 
+        boolean previouslyEquipped = skillData.getBoolean("shield_equipped");
         ItemStack current = mob.getEquippedStack(EquipmentSlot.OFFHAND);
+        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, current);
+        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
         if (!current.isEmpty() && !current.isOf(Items.SHIELD)) {
-            if (forceOverride) {
+            if (allowOverwrite) {
                 mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-                logEquipmentDebug(mob, "shield", "Force override cleared mismatched item");
+                logEquipmentDebug(mob, "shield", "Cleared previously equipped item to apply purchased shield");
             } else {
                 logEquipmentDebug(mob, "shield", "Detected mismatched player item; marking override");
                 setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
                 skillData.putBoolean("shield_equipped", true);
+                trackEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, ItemStack.EMPTY);
                 return;
             }
         }
@@ -2115,6 +2133,7 @@ public class ScalingSystem {
         mob.equipStack(EquipmentSlot.OFFHAND, shield);
         logEquipmentDebug(mob, "shield", "Equipped shield with enchants/masteries applied");
         skillData.putBoolean("shield_equipped", true);
+        trackEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, shield);
         applyDropChance(mob, EquipmentSlot.OFFHAND, skillData.getInt("shield_drop_mastery"));
     }
     
@@ -2137,6 +2156,7 @@ public class ScalingSystem {
             skillData.putBoolean(slotName + "_equipped", false);
             setPlayerOverride(skillData, getArmorOverrideKey(slotName), false);
             mob.equipStack(slot, ItemStack.EMPTY);
+            trackEquippedItem(skillData, getArmorTrackingKey(slotName), ItemStack.EMPTY);
             return;
         }
 
@@ -2159,14 +2179,19 @@ public class ScalingSystem {
         }
 
         ItemStack current = mob.getEquippedStack(slot);
+        String trackingKey = getArmorTrackingKey(slotName);
+        boolean previouslyEquipped = skillData.getBoolean(slotName + "_equipped");
+        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, trackingKey, current);
+        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
         if (!current.isEmpty() && !current.isOf(armor.getItem())) {
-            if (forceOverride) {
+            if (allowOverwrite) {
                 mob.equipStack(slot, ItemStack.EMPTY);
-                logEquipmentDebug(mob, slotName, "Force override cleared mismatched item");
+                logEquipmentDebug(mob, slotName, "Cleared previously equipped item to apply new tier");
             } else {
                 logEquipmentDebug(mob, slotName, "Detected mismatched player item; marking override");
                 skillData.putBoolean(slotName + "_equipped", true);
                 setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
+                trackEquippedItem(skillData, trackingKey, ItemStack.EMPTY);
                 return;
             }
         }
@@ -2193,6 +2218,7 @@ public class ScalingSystem {
         mob.equipStack(slot, armor);
         logEquipmentDebug(mob, slotName, "Equipped tier " + tier + " item " + armor.getItem());
         skillData.putBoolean(slotName + "_equipped", true);
+        trackEquippedItem(skillData, trackingKey, armor);
         applyDropChance(mob, slot, skillData.getInt(slotName + "_drop_mastery"));
     }
 
@@ -2253,6 +2279,39 @@ public class ScalingSystem {
 
     private static String getArmorOverrideKey(String slotPrefix) {
         return slotPrefix + "_player_override";
+    }
+
+    private static String getArmorTrackingKey(String slotPrefix) {
+        return slotPrefix + NBT_ARMOR_LAST_ITEM_SUFFIX;
+    }
+
+    private static boolean isScalingEquippedItem(NbtCompound skillData, String trackingKey, ItemStack stack) {
+        if (skillData == null || trackingKey == null || stack == null || stack.isEmpty()) {
+            return false;
+        }
+        if (!skillData.contains(trackingKey)) {
+            return false;
+        }
+        String trackedId = skillData.getString(trackingKey);
+        if (trackedId == null || trackedId.isEmpty()) {
+            return false;
+        }
+        Identifier stackId = Registries.ITEM.getId(stack.getItem());
+        return stackId != null && trackedId.equals(stackId.toString());
+    }
+
+    private static void trackEquippedItem(NbtCompound skillData, String trackingKey, ItemStack stack) {
+        if (skillData == null || trackingKey == null) {
+            return;
+        }
+        if (stack == null || stack.isEmpty()) {
+            skillData.remove(trackingKey);
+            return;
+        }
+        Identifier stackId = Registries.ITEM.getId(stack.getItem());
+        if (stackId != null) {
+            skillData.putString(trackingKey, stackId.toString());
+        }
     }
     
     /**
@@ -2584,7 +2643,8 @@ public class ScalingSystem {
      * Call this from a damage event handler
      */
     public static void handleDamageAbilities(MobEntity mob, MobWarData data, long currentTick) {
-        if (!ModConfig.getInstance().isScalingActive()) return;
+        ModConfig modConfig = ModConfig.getInstance();
+        if (!modConfig.isScalingActive()) return;
         
         JsonObject config = getConfigForMob(mob);
         if (config == null) return;
@@ -2660,7 +2720,7 @@ public class ScalingSystem {
                             true
                         ));
                         cooldowns.put("on_damage_regen", currentTick);
-                        if (isUndeadMob(mob)) {
+                        if (modConfig.enableUndeadHealingPulse && isUndeadMob(mob)) {
                             long burstWindowTicks = Math.max(20L, duration * 20L);
                             cooldowns.put(ABILITY_KEY_UNDEAD_BURST, currentTick + burstWindowTicks);
                         }
