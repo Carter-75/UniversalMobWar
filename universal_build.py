@@ -31,6 +31,7 @@ import json
 import subprocess
 import argparse
 import re
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -76,6 +77,8 @@ class UniversalBuildSystem:
         self.root = Path(__file__).parent.resolve()
         self.log_file = self.root / "universal_build.log"
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.latest_jar = None
+        self.test_instance_dir = Path.home() / ".universalmobwar-test-instance"
         
         # System connection status - all 4 systems now have main files in system/ folder
         self.systems = {
@@ -648,6 +651,7 @@ class UniversalBuildSystem:
                     msg = f"JAR created: {jar_file.name} ({jar_size:.2f} MB)"
                     success(msg)
                     self.log_to_file(f"✅ {msg}")
+                    self.latest_jar = jar_file
                     self.build_succeeded = True
                     return True
                 else:
@@ -865,6 +869,53 @@ class UniversalBuildSystem:
         
         success(f"Complete log: universal_build.log")
 
+    def prompt_for_test_launch(self):
+        """Offer to launch a persistent Minecraft test instance."""
+        if not sys.stdin.isatty():
+            info("Skipping Minecraft launch prompt (non-interactive terminal)")
+            return
+        print()
+        try:
+            response = input("Launch Minecraft test instance with the latest build? [y/N]: ").strip().lower()
+        except EOFError:
+            warning("Input unavailable; skipping Minecraft launch")
+            return
+        if response in ("y", "yes"):
+            self.launch_test_instance()
+        else:
+            info("Skipping Minecraft launch")
+
+    def launch_test_instance(self):
+        """Launch Fabric's dev client with a dedicated game directory."""
+        header("MINECRAFT TEST INSTANCE")
+        instance_dir = self.test_instance_dir
+        mods_dir = instance_dir / "mods"
+        saves_dir = instance_dir / "saves"
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        saves_dir.mkdir(parents=True, exist_ok=True)
+        if self.latest_jar and self.latest_jar.exists():
+            for stray in mods_dir.glob("universalmobwar*.jar"):
+                try:
+                    stray.unlink()
+                except OSError as exc:
+                    warning(f"Could not remove old jar {stray.name}: {exc}")
+            target = mods_dir / self.latest_jar.name
+            shutil.copy2(self.latest_jar, target)
+            success(f"Synced {self.latest_jar.name} into {mods_dir}")
+        else:
+            warning("No freshly built jar found; dev runtime will still load project classes")
+        gradlew_path = self.root / ("gradlew.bat" if os.name == "nt" else "gradlew")
+        if not gradlew_path.exists():
+            error("Gradle wrapper missing; cannot launch Minecraft client")
+            return
+        info(f"Worlds and configs persist under: {instance_dir}")
+        info("Close the Minecraft window to return to the build script")
+        args_value = f"--gameDir \"{instance_dir}\" --username UMWTester"
+        try:
+            subprocess.run([str(gradlew_path), "runClient", f"--args={args_value}"], cwd=self.root)
+        except KeyboardInterrupt:
+            warning("Minecraft client interrupted by user")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Universal Mob War - Ultimate Build & Deploy System"
@@ -934,6 +985,8 @@ def main():
     
     # Generate final report
     builder.generate_report()
+    if args.full:
+        builder.prompt_for_test_launch()
     
     success("═" * 80)
     success("  ALL OPERATIONS COMPLETED SUCCESSFULLY! 🎉")
