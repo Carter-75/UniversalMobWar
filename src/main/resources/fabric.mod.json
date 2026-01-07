@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "universalmobwar",
-	"version": "3.1.0",
+	"version": "1.0.0",
 	"name": "Universal Mob War",
 	"description": "Mobs attack each other and evolve with 100% progressive costs! Features: alliance system, mob leveling (0→8000 pts), equipment progression (Wood→Netherite), 47 progressive skills, 22 mixins. Total chaos with TRUE RPG progression!",
 	"authors": ["Carter"],
