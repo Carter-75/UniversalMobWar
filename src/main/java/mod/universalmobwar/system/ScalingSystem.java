@@ -616,13 +616,10 @@ public class ScalingSystem {
             }
         }
         if (!weaponMissing && weaponMismatch) {
-            if (!weaponOverride) {
-                setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
-                weaponOverride = true;
-            }
-            if (!hasWeaponEquipped) {
-                skillData.putBoolean("weapon_equipped", true);
-                hasWeaponEquipped = true;
+            setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
+            weaponOverride = false;
+            if (serverWorld != null && lockedWeapon != null) {
+                applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey, null, true);
             }
         }
         if (weaponMissing && weaponOverride) {
@@ -634,7 +631,7 @@ public class ScalingSystem {
             if (handleWeaponBreak(mob, data) && serverWorld != null && lockedWeapon != null) {
                 applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey, null, false);
             }
-        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null && !weaponOverride) {
+        } else if (!hasWeaponEquipped && shouldHaveWeapon && serverWorld != null && lockedWeapon != null) {
             applyWeapon(mob, skillData, lockedWeapon, serverWorld, scopedWeapon, weaponScopeKey, null, false);
         }
 
@@ -654,13 +651,10 @@ public class ScalingSystem {
                 shieldOverride = false;
             }
         } else if (!shieldMissing && !shieldMatches) {
-            if (!shieldOverride) {
-                setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
-                shieldOverride = true;
-            }
-            if (!hasShieldEquipped) {
-                skillData.putBoolean("shield_equipped", true);
-                hasShieldEquipped = true;
+            setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
+            shieldOverride = false;
+            if (serverWorld != null && tree.has("shield")) {
+                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, true);
             }
         }
         if (shieldMissing && shieldOverride) {
@@ -673,7 +667,7 @@ public class ScalingSystem {
             }
         } else if (!hasShieldEquipped && shouldHaveShield && !shieldMissing && currentShield.isOf(Items.SHIELD)) {
             skillData.putBoolean("shield_equipped", true);
-        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield") && !shieldOverride) {
+        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield")) {
             applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, false);
         }
 
@@ -708,6 +702,19 @@ public class ScalingSystem {
         mob.equipStack(EquipmentSlot.CHEST, ItemStack.EMPTY);
         mob.equipStack(EquipmentSlot.LEGS, ItemStack.EMPTY);
         mob.equipStack(EquipmentSlot.FEET, ItemStack.EMPTY);
+    }
+
+    private static void dropAndClearSlot(MobEntity mob, EquipmentSlot slot) {
+        if (mob == null || slot == null || mob.getWorld().isClient()) {
+            return;
+        }
+        ItemStack current = mob.getEquippedStack(slot);
+        if (current == null || current.isEmpty()) {
+            return;
+        }
+        ItemStack toDrop = current.copy();
+        mob.equipStack(slot, ItemStack.EMPTY);
+        mob.dropStack(toDrop);
     }
 
     private static void abortUpgradesForMob(MobEntity mob, MobWarData data) {
@@ -2315,19 +2322,9 @@ public class ScalingSystem {
         }
 
         ItemStack current = mob.getEquippedStack(EquipmentSlot.MAINHAND);
-        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, current);
-        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
-        if (!current.isEmpty() && !current.isOf(weapon.getItem())) {
-            if (allowOverwrite) {
-                mob.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-                logEquipmentDebug(mob, "weapon", "Cleared previously equipped item to apply new tier");
-            } else {
-                logEquipmentDebug(mob, "weapon", "Detected mismatched player item; marking override");
-                setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, true);
-                skillData.putBoolean("weapon_equipped", true);
-                trackEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, ItemStack.EMPTY);
-                return;
-            }
+        if (!current.isEmpty()) {
+            dropAndClearSlot(mob, EquipmentSlot.MAINHAND);
+            logEquipmentDebug(mob, "weapon", "Dropped blocking item in MAINHAND to enforce configured weapon");
         }
 
         skillData.putBoolean("weapon_equipped", false);
@@ -2371,19 +2368,9 @@ public class ScalingSystem {
 
         boolean previouslyEquipped = skillData.getBoolean("shield_equipped");
         ItemStack current = mob.getEquippedStack(EquipmentSlot.OFFHAND);
-        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, current);
-        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
-        if (!current.isEmpty() && !current.isOf(Items.SHIELD)) {
-            if (allowOverwrite) {
-                mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-                logEquipmentDebug(mob, "shield", "Cleared previously equipped item to apply purchased shield");
-            } else {
-                logEquipmentDebug(mob, "shield", "Detected mismatched player item; marking override");
-                setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, true);
-                skillData.putBoolean("shield_equipped", true);
-                trackEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, ItemStack.EMPTY);
-                return;
-            }
+        if (!current.isEmpty()) {
+            dropAndClearSlot(mob, EquipmentSlot.OFFHAND);
+            logEquipmentDebug(mob, "shield", "Dropped blocking item in OFFHAND to enforce configured shield");
         }
 
         skillData.putBoolean("shield_equipped", false);
@@ -2455,19 +2442,9 @@ public class ScalingSystem {
         ItemStack current = mob.getEquippedStack(slot);
         String trackingKey = getArmorTrackingKey(slotName);
         boolean previouslyEquipped = skillData.getBoolean(slotName + "_equipped");
-        boolean scalingSuppliedCurrent = isScalingEquippedItem(skillData, trackingKey, current);
-        boolean allowOverwrite = forceOverride || scalingSuppliedCurrent || previouslyEquipped;
-        if (!current.isEmpty() && !current.isOf(armor.getItem())) {
-            if (allowOverwrite) {
-                mob.equipStack(slot, ItemStack.EMPTY);
-                logEquipmentDebug(mob, slotName, "Cleared previously equipped item to apply new tier");
-            } else {
-                logEquipmentDebug(mob, slotName, "Detected mismatched player item; marking override");
-                skillData.putBoolean(slotName + "_equipped", true);
-                setPlayerOverride(skillData, getArmorOverrideKey(slotName), true);
-                trackEquippedItem(skillData, trackingKey, ItemStack.EMPTY);
-                return;
-            }
+        if (!current.isEmpty()) {
+            dropAndClearSlot(mob, slot);
+            logEquipmentDebug(mob, slotName, "Dropped blocking item in " + slot.getName() + " to enforce configured armor");
         }
 
         skillData.putBoolean(slotName + "_equipped", false);
@@ -2503,21 +2480,48 @@ public class ScalingSystem {
         if (!skillData.getBoolean(NBT_EQUIPMENT_PRIMED)) {
             return false;
         }
-        if (skillData.getInt("weapon_tier") > 0 && mob.getEquippedStack(EquipmentSlot.MAINHAND).isEmpty()) {
-            return true;
+        if (skillData.getInt("weapon_tier") > 0) {
+            ItemStack weapon = mob.getEquippedStack(EquipmentSlot.MAINHAND);
+            if (weapon.isEmpty()) {
+                return true;
+            }
+            if (!isScalingEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, weapon)) {
+                return true;
+            }
         }
-        if (skillData.getInt("has_shield") > 0 && mob.getEquippedStack(EquipmentSlot.OFFHAND).isEmpty()) {
-            return true;
+        if (skillData.getInt("has_shield") > 0) {
+            ItemStack shield = mob.getEquippedStack(EquipmentSlot.OFFHAND);
+            if (shield.isEmpty()) {
+                return true;
+            }
+            if (!isScalingEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, shield)) {
+                return true;
+            }
         }
         if (isArmorSlotMissing(mob, skillData, EquipmentSlot.HEAD, "helmet")) return true;
         if (isArmorSlotMissing(mob, skillData, EquipmentSlot.CHEST, "chestplate")) return true;
         if (isArmorSlotMissing(mob, skillData, EquipmentSlot.LEGS, "leggings")) return true;
         if (isArmorSlotMissing(mob, skillData, EquipmentSlot.FEET, "boots")) return true;
+        if (isArmorSlotMismatched(mob, skillData, EquipmentSlot.HEAD, "helmet")) return true;
+        if (isArmorSlotMismatched(mob, skillData, EquipmentSlot.CHEST, "chestplate")) return true;
+        if (isArmorSlotMismatched(mob, skillData, EquipmentSlot.LEGS, "leggings")) return true;
+        if (isArmorSlotMismatched(mob, skillData, EquipmentSlot.FEET, "boots")) return true;
         return false;
     }
 
     private static boolean isArmorSlotMissing(MobEntity mob, NbtCompound skillData, EquipmentSlot slot, String slotPrefix) {
         return skillData.getInt(slotPrefix + "_tier") > 0 && mob.getEquippedStack(slot).isEmpty();
+    }
+
+    private static boolean isArmorSlotMismatched(MobEntity mob, NbtCompound skillData, EquipmentSlot slot, String slotPrefix) {
+        if (skillData.getInt(slotPrefix + "_tier") <= 0) {
+            return false;
+        }
+        ItemStack stack = mob.getEquippedStack(slot);
+        if (stack.isEmpty()) {
+            return false;
+        }
+        return !isScalingEquippedItem(skillData, getArmorTrackingKey(slotPrefix), stack);
     }
 
     private static void logEquipmentDebug(MobEntity mob, String slotLabel, String message) {
@@ -3753,11 +3757,9 @@ public class ScalingSystem {
         }
 
         if (hasItem && !matchesExpected) {
-            if (!overrideActive) {
-                setPlayerOverride(skillData, overrideKey, true);
-            }
-            if (!markedEquipped) {
-                skillData.putBoolean(slotPrefix + "_equipped", true);
+            setPlayerOverride(skillData, overrideKey, false);
+            if (world != null) {
+                applyArmor(mob, skillData, tree, slotPrefix, slot, world, null, true);
             }
             return;
         }
@@ -3768,7 +3770,8 @@ public class ScalingSystem {
         }
 
         if (overrideActive) {
-            return;
+            setPlayerOverride(skillData, overrideKey, false);
+            overrideActive = false;
         }
 
         if (markedEquipped) {
