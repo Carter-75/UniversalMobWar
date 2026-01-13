@@ -726,6 +726,24 @@ public class ScalingSystem {
             return;
         }
         ItemStack toDrop = current.copy();
+
+        // Defensive: normalize enchantment RegistryEntry references to the server's registry instance
+        // before spawning the ItemEntity (which triggers ItemStack network serialization).
+        // This reduces the chance of "Can't find id" crashes when the equipped stack originated from
+        // a different RegistryManager (e.g., picked up loot from other mods / datapacks).
+        if (mob.getWorld() instanceof ServerWorld serverWorld) {
+            try {
+                Registry<Enchantment> enchantRegistry = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+                ItemEnchantmentsComponent existing = toDrop.getOrDefault(
+                    DataComponentTypes.ENCHANTMENTS,
+                    ItemEnchantmentsComponent.DEFAULT
+                );
+                ItemEnchantmentsComponent normalized = normalizeEnchantmentsComponent(existing, enchantRegistry);
+                toDrop.set(DataComponentTypes.ENCHANTMENTS, normalized);
+            } catch (Exception ignored) {
+                // Best-effort only; dropping the stack is still preferable to crashing.
+            }
+        }
         mob.equipStack(slot, ItemStack.EMPTY);
         mob.dropStack(toDrop);
     }
