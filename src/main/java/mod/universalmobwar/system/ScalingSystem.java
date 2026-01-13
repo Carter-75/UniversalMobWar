@@ -97,6 +97,11 @@ public class ScalingSystem {
     
     // Track cooldowns for special abilities (mobUUID -> ability -> lastUseTick)
     private static final Map<UUID, Map<String, Long>> ABILITY_COOLDOWNS = new ConcurrentHashMap<>();
+
+    // Track per-target immunity for special abilities (targetUUID -> ability -> lastAppliedTick)
+    // Prevents the same target from being repeatedly affected in a short window.
+    private static final Map<UUID, Map<String, Long>> ABILITY_TARGET_IMMUNITIES = new ConcurrentHashMap<>();
+    private static final long ABILITY_TARGET_IMMUNITY_TICKS = 10L * 20L; // 10 seconds
     private static final String FALLBACK_PREFIX = "__fallback__:";
     private static final String NBT_FALLBACK_INITIALIZED = "umw_fallback_initialized";
     private static final String NBT_FALLBACK_TYPE = "umw_fallback_type";
@@ -3956,26 +3961,37 @@ public class ScalingSystem {
                 
                 double chance = levelData.has("chance") ? levelData.get("chance").getAsDouble() : 0.2;
                 int blindDuration = levelData.has("blind_duration") ? levelData.get("blind_duration").getAsInt() : 2;
-                int cooldown = levelData.has("cooldown") ? levelData.get("cooldown").getAsInt() : 12;
+                // Force a consistent cooldown to avoid frequent spam.
+                // (Config still holds the per-level values, but we clamp it to 30s here.)
+                long cooldownTicks = 30L * 20L;
                 
                 // Check cooldown
                 UUID mobUuid = mob.getUuid();
                 Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
                 long lastUse = cooldowns.getOrDefault("shadow_step", 0L);
                 
-                if (currentTick - lastUse >= cooldown * 20L) {
+                if (currentTick - lastUse >= cooldownTicks) {
                     if (mob.getRandom().nextDouble() < chance) {
                         // Apply blindness to all entities in 3 block radius of where Enderman teleported FROM
                         double radius = 3.0;
-                        world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class, 
+                        boolean appliedAny = false;
+                        for (net.minecraft.entity.LivingEntity entity : world.getEntitiesByClass(
+                            net.minecraft.entity.LivingEntity.class,
                             new net.minecraft.util.math.Box(fromPos).expand(radius),
-                            entity -> entity != mob && entity instanceof net.minecraft.entity.player.PlayerEntity)
-                            .forEach(entity -> {
-                                entity.addStatusEffect(new StatusEffectInstance(
-                                    StatusEffects.BLINDNESS, blindDuration * 20, 0, false, true, true));
-                            });
-                        
-                        cooldowns.put("shadow_step", currentTick);
+                            entity -> entity != mob && entity instanceof net.minecraft.entity.player.PlayerEntity
+                        )) {
+                            if (isTargetImmune(entity, "shadow_step", currentTick)) {
+                                continue;
+                            }
+                            entity.addStatusEffect(new StatusEffectInstance(
+                                StatusEffects.BLINDNESS, blindDuration * 20, 0, false, true, true));
+                            markTargetAffected(entity, "shadow_step", currentTick);
+                            appliedAny = true;
+                        }
+
+                        if (appliedAny) {
+                            cooldowns.put("shadow_step", currentTick);
+                        }
                     }
                 }
             }
@@ -4011,12 +4027,12 @@ public class ScalingSystem {
                 int weaknessDuration = levelData.has("weakness_duration") ? levelData.get("weakness_duration").getAsInt() : 6;
                 int levitationDuration = levelData.has("levitation_duration") ? levelData.get("levitation_duration").getAsInt() : 0;
                 
-                // Check cooldown (3 seconds)
+                // Check cooldown (30 seconds)
                 UUID mobUuid = mob.getUuid();
                 Map<String, Long> cooldowns = ABILITY_COOLDOWNS.computeIfAbsent(mobUuid, k -> new HashMap<>());
                 long lastUse = cooldowns.getOrDefault("void_grasp", 0L);
                 
-                if (currentTick - lastUse >= 60L) { // 3 second cooldown
+                if (currentTick - lastUse >= 30L * 20L) {
                     // Find entities in range
                     var nearbyEntities = world.getEntitiesByClass(net.minecraft.entity.LivingEntity.class,
                         mob.getBoundingBox().expand(range),
@@ -4026,7 +4042,11 @@ public class ScalingSystem {
                         // Roll chance
                         if (mob.getRandom().nextDouble() < chance) {
                             // Apply effects to all entities in range
-                            nearbyEntities.forEach(entity -> {
+                            boolean appliedAny = false;
+                            for (net.minecraft.entity.LivingEntity entity : nearbyEntities) {
+                                if (isTargetImmune(entity, "void_grasp", currentTick)) {
+                                    continue;
+                                }
                                 // Always apply weakness
                                 entity.addStatusEffect(new StatusEffectInstance(
                                     StatusEffects.WEAKNESS, weaknessDuration * 20, weaknessLevel - 1, false, true, true));
@@ -4036,14 +4056,49 @@ public class ScalingSystem {
                                     entity.addStatusEffect(new StatusEffectInstance(
                                         StatusEffects.LEVITATION, levitationDuration * 20, 0, false, true, true));
                                 }
-                            });
-                            
-                            cooldowns.put("void_grasp", currentTick);
+
+                                markTargetAffected(entity, "void_grasp", currentTick);
+                                appliedAny = true;
+                            }
+
+                            if (appliedAny) {
+                                cooldowns.put("void_grasp", currentTick);
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    private static boolean isTargetImmune(net.minecraft.entity.LivingEntity target, String abilityKey, long currentTick) {
+        UUID targetUuid = target.getUuid();
+        Map<String, Long> immunities = ABILITY_TARGET_IMMUNITIES.get(targetUuid);
+        if (immunities == null) {
+            return false;
+        }
+
+        Long lastApplied = immunities.get(abilityKey);
+        if (lastApplied == null) {
+            return false;
+        }
+
+        if (currentTick - lastApplied < ABILITY_TARGET_IMMUNITY_TICKS) {
+            return true;
+        }
+
+        // Expired; clean up.
+        immunities.remove(abilityKey);
+        if (immunities.isEmpty()) {
+            ABILITY_TARGET_IMMUNITIES.remove(targetUuid);
+        }
+        return false;
+    }
+
+    private static void markTargetAffected(net.minecraft.entity.LivingEntity target, String abilityKey, long currentTick) {
+        UUID targetUuid = target.getUuid();
+        Map<String, Long> immunities = ABILITY_TARGET_IMMUNITIES.computeIfAbsent(targetUuid, k -> new HashMap<>());
+        immunities.put(abilityKey, currentTick);
     }
     
     // ==========================================================================
