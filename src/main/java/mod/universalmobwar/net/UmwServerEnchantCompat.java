@@ -54,7 +54,8 @@ public final class UmwServerEnchantCompat {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             SERVER = server;
             // Until we receive the client's registry list, assume vanilla-only to prevent join-time crashes.
-            CLIENT_ENCHANTMENTS.put(handler.player.getUuid(), null);
+            // ConcurrentHashMap does not permit null values, so use an empty-set sentinel.
+            CLIENT_ENCHANTMENTS.put(handler.player.getUuid(), Collections.emptySet());
             recomputeAllowlist(handler.player);
         });
 
@@ -89,7 +90,8 @@ public final class UmwServerEnchantCompat {
         // Intersect with each client's reported ids. If client hasn't reported yet (null), treat as vanilla-only.
         Set<Identifier> intersection = new HashSet<>(serverIds);
         for (Set<Identifier> clientIds : CLIENT_ENCHANTMENTS.values()) {
-            if (clientIds == null) {
+            // Empty-set is our "not reported yet" sentinel; treat it as vanilla-only.
+            if (clientIds == null || clientIds.isEmpty()) {
                 // vanilla-only: keep only minecraft namespace
                 intersection.removeIf(id -> id == null || !"minecraft".equals(id.getNamespace()));
                 continue;
