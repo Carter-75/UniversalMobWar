@@ -4,6 +4,7 @@
 	"package": "mod.universalmobwar.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"RegistryEntryEncodingFixMixin",
 		"GameRulesAccessor$BooleanRuleInvoker",
 		"GameRulesAccessor$IntRuleInvoker",
 		"GameRulesAccessor$GameRulesInvoker",
