@@ -20,7 +20,8 @@
 Usage:
     ./universal_build.py                    # Full validation only
     ./universal_build.py --check            # Validation only
-    ./universal_build.py --build            # Validation + Build
+    ./universal_build.py --build            # Validation + Build (no clean)
+    ./universal_build.py --build --clean    # Validation + Clean + Build
     ./universal_build.py --deploy           # Build + Commit + Push
     ./universal_build.py --full             # Complete: Validate + Build + Deploy
 """
@@ -571,7 +572,7 @@ class UniversalBuildSystem:
                 error("Minecraft version mismatch!")
                 self.errors.append("Wrong Minecraft version")
     
-    def build_project(self):
+    def build_project(self, clean: bool = False):
         """Build with Gradle"""
         header("GRADLE BUILD")
         self.log_to_file("\n" + "=" * 80)
@@ -605,23 +606,61 @@ class UniversalBuildSystem:
             self.log_to_file("❌ Gradle wrapper missing")
             return False
         gradlew = str(gradlew_path)
-        
-        # Clean
-        info("Running gradle clean...")
-        self.log_to_file("Running gradle clean...")
+
+        # Use a project-local Gradle user home to avoid Windows file locks in the global
+        # user cache (commonly caused by IDE tooling touching Loom/Yarn jars).
+        gradle_user_home = self.root / ".gradle-user-home"
         try:
-            result = subprocess.run([gradlew, "clean"], cwd=self.root, capture_output=True, text=True, timeout=300)
-            if result.returncode == 0:
-                success("Clean completed")
-                self.log_to_file("✅ Clean completed")
-            else:
-                error(f"Clean failed: {result.stderr}")
-                self.log_to_file(f"❌ Clean failed: {result.stderr}")
-                return False
-        except Exception as e:
-            error(f"Clean failed: {e}")
-            self.log_to_file(f"❌ Clean failed: {e}")
-            return False
+            gradle_user_home.mkdir(exist_ok=True)
+        except Exception:
+            # If this fails, we still attempt to build using the default Gradle user home.
+            gradle_user_home = None
+
+        gradle_env = os.environ.copy()
+        if gradle_user_home is not None:
+            gradle_env["GRADLE_USER_HOME"] = str(gradle_user_home)
+        
+        # Clean (optional)
+        if clean:
+            info("Running gradle clean...")
+            self.log_to_file("Running gradle clean...")
+            try:
+                result = subprocess.run(
+                    [gradlew, "clean", "--no-daemon"],
+                    cwd=self.root,
+                    capture_output=True,
+                    text=True,
+                    env=gradle_env,
+                    timeout=300
+                )
+                if result.returncode == 0:
+                    success("Clean completed")
+                    self.log_to_file("✅ Clean completed")
+                else:
+                    stderr = (result.stderr or "").strip()
+                    error(f"Clean failed: {stderr}")
+                    self.log_to_file(f"❌ Clean failed: {stderr}")
+
+                    # Common Windows issue: VS Code Java language server locks Loom/Yarn jars.
+                    # If this happens, continuing without a clean is typically safe.
+                    lock_hint = "process cannot access the file" in stderr.lower() and "mappings.jar" in stderr.lower()
+                    if lock_hint:
+                        warning("Clean failed due to a file lock (likely VS Code Java extension). Continuing with build...")
+                        self.log_to_file("⚠️  Clean failed due to file lock; continuing with build")
+                    else:
+                        return False
+            except Exception as e:
+                msg = str(e)
+                error(f"Clean failed: {msg}")
+                self.log_to_file(f"❌ Clean failed: {msg}")
+                if "mappings.jar" in msg.lower():
+                    warning("Clean failed due to a file lock (likely VS Code Java extension). Continuing with build...")
+                    self.log_to_file("⚠️  Clean failed due to file lock; continuing with build")
+                else:
+                    return False
+        else:
+            info("Skipping gradle clean (use --clean to force)")
+            self.log_to_file("Skipping gradle clean (use --clean to force)")
         
         # Build
         info("Running gradle build...")
@@ -632,9 +671,9 @@ class UniversalBuildSystem:
                 cwd=self.root,
                 capture_output=True,
                 text=True,
+                env=gradle_env,
                 timeout=600
             )
-            
             if result.returncode == 0:
                 success("Build successful!")
                 self.log_to_file("✅ Build successful!")
@@ -912,7 +951,14 @@ class UniversalBuildSystem:
         info("Close the Minecraft window to return to the build script")
         args_value = f"--gameDir \"{instance_dir}\" --username UMWTester"
         try:
-            subprocess.run([str(gradlew_path), "runClient", f"--args={args_value}"], cwd=self.root)
+            gradle_user_home = self.root / ".gradle-user-home"
+            gradle_env = os.environ.copy()
+            gradle_env["GRADLE_USER_HOME"] = str(gradle_user_home)
+            subprocess.run(
+                [str(gradlew_path), "runClient", f"--args={args_value}"],
+                cwd=self.root,
+                env=gradle_env
+            )
         except KeyboardInterrupt:
             warning("Minecraft client interrupted by user")
 
@@ -945,8 +991,19 @@ def main():
         default="Automated build and deployment",
         help="Git commit message"
     )
+
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Run 'gradle clean' before building (can fail on Windows if VS Code locks Loom/Yarn jars)"
+    )
     
     args = parser.parse_args()
+
+    # A full run should start from a clean slate.
+    # (We still tolerate the common Windows VS Code Java lock issue inside build_project.)
+    if args.full and not args.clean:
+        args.clean = True
     
     # Print banner
     print()
@@ -971,7 +1028,7 @@ def main():
     
     # Build if requested
     if args.build or args.deploy or args.full:
-        if not builder.build_project():
+        if not builder.build_project(clean=args.clean):
             error("Build failed!")
             builder.generate_report()
             sys.exit(1)

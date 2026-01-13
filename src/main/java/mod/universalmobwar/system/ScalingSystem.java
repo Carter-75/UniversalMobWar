@@ -28,6 +28,8 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
@@ -67,6 +69,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 public class ScalingSystem {
+
+    private static final int BASE_ENCHANT_COST = 3;
+    private static final int ENCHANT_COST_BUMP_ROLL_OUT_OF = 100; // 1% chance
+    private static final int ENCHANT_WEIGHT_NORMAL = 4;
+    private static final int ENCHANT_WEIGHT_CURSE = 1;
+    private static final String ENCHANT_ID_SEPARATOR = "__";
 
     private static final Gson GSON = new Gson();
     
@@ -917,6 +925,15 @@ public class ScalingSystem {
         long currentTick = world.getTime();
         int currentTimeOfDay = getCurrentTimeOfDay(world);
         UUID mobUuid = mob.getUuid();
+
+        Registry<Enchantment> enchantRegistry = null;
+        if (world instanceof ServerWorld serverWorld) {
+            try {
+                enchantRegistry = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+            } catch (Exception ignored) {
+                enchantRegistry = null;
+            }
+        }
         handleUndeadHealingPulse(mob, skillData, currentTick);
         handleInvisibilityGlowFlicker(mob, currentTick);
 
@@ -954,7 +971,7 @@ public class ScalingSystem {
         }
 
         boolean forceUpgradePass = forceImmediateUpgrade && shouldRequestUpgrade && !upgradePending;
-        if (forceUpgradePass && hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
+        if (forceUpgradePass && hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
             ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
             boolean handled = false;
             if (asyncEnabled) {
@@ -1000,7 +1017,7 @@ public class ScalingSystem {
             windowApproved = true;
         }
 
-        if (shouldScheduleNow && hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
+        if (shouldScheduleNow && hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
             boolean approveNow = readyForNextCycle || firstUpgradeCycle;
             scheduleUpgradePass(skillData, currentTick, modConfig, approveNow);
             upgradePending = true;
@@ -1023,7 +1040,7 @@ public class ScalingSystem {
             upgradeScheduleReady = false;
         }
 
-        if (upgradeScheduleReady && !hasAffordableUpgradeAvailable(mobUuid, config, mobType, skillData, budget)) {
+        if (upgradeScheduleReady && !hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
             clearUpgradeSchedule(skillData);
             throttleBudgetProbe(skillData, currentTick);
             upgradeScheduleReady = false;
@@ -1455,11 +1472,21 @@ public class ScalingSystem {
         PENDING_EQUIPMENT_SNAPSHOTS.put(mobUuid, snapshot);
         lockEquipmentForUpgrade(skillData);
         long seed = computeUpgradeSeed(mobUuid, currentTick, budget);
+
+        Registry<Enchantment> enchantRegistry = null;
+        if (mob.getWorld() instanceof ServerWorld serverWorld) {
+            try {
+                enchantRegistry = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+            } catch (Exception ignored) {
+                enchantRegistry = null;
+            }
+        }
         MobUpgradeJob job = new MobUpgradeJob(
             mobUuid,
             config,
             mobType,
             skillData.copy(),
+            enchantRegistry,
             budget,
             totalPoints,
             spentPoints,
@@ -1501,11 +1528,21 @@ public class ScalingSystem {
         EquipmentSnapshot snapshot = EquipmentSnapshot.capture(mob, skillData);
         lockEquipmentForUpgrade(skillData);
         long seed = computeUpgradeSeed(mob.getUuid(), currentTick, budget);
+
+        Registry<Enchantment> enchantRegistry = null;
+        if (mob.getWorld() instanceof ServerWorld serverWorld) {
+            try {
+                enchantRegistry = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+            } catch (Exception ignored) {
+                enchantRegistry = null;
+            }
+        }
         UpgradeComputationResult computation = calculateUpgradeResult(
             mob.getUuid(),
             skillData.copy(),
             config,
             mobType,
+            enchantRegistry,
             budget,
             totalPoints,
             spentPoints,
@@ -1561,6 +1598,7 @@ public class ScalingSystem {
             NbtCompound skillData,
             JsonObject config,
             String mobType,
+            Registry<Enchantment> enchantRegistry,
             int budget,
             double totalPoints,
             double spentPoints,
@@ -1615,7 +1653,13 @@ public class ScalingSystem {
         while (iterations < iterationCap) {
             iterations++;
 
-            List<UpgradeOption> affordable = getAffordableUpgrades(mobUuid, config, mobType, skillData, budget);
+            List<UpgradeOption> affordable = getAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget);
+
+            // Debug visibility: log enchant option counts once per upgrade pass so you can
+            // verify in-game that each slot's option list eventually reaches 0.
+            if (iterations == 1) {
+                logEnchantOptionCounts(logBuffer, affordable, skillData);
+            }
 
             if (affordable.isEmpty()) {
                 exitReason = "No affordable upgrades remaining";
@@ -1635,10 +1679,16 @@ public class ScalingSystem {
                 continue;
             }
 
-            UpgradeOption chosen = affordable.get(random.nextInt(affordable.size()));
+            UpgradeOption chosen = chooseWeightedUpgrade(affordable, random);
+            if (chosen == null) {
+                exitReason = "No upgrade chosen";
+                logBuffer.log(exitReason);
+                break;
+            }
             int previousLevel = skillData.getInt(chosen.key);
             skillData.putInt(chosen.key, chosen.newLevel);
             handleTierPromotion(skillData, chosen.key, previousLevel, chosen.newLevel);
+            maybeBumpEnchantCost(skillData, chosen.key, random, logBuffer);
             spentPoints += chosen.cost;
             budget -= chosen.cost;
             purchasedUpgrade = true;
@@ -1651,6 +1701,33 @@ public class ScalingSystem {
 
         logBuffer.logCompletion(purchasedUpgrade, budget, exitReason);
         return new UpgradeComputationResult(skillData, spentPoints, purchasedUpgrade, Math.max(budget, 0), logBuffer.entries());
+    }
+
+    private static UpgradeOption chooseWeightedUpgrade(List<UpgradeOption> options, Random random) {
+        if (options == null || options.isEmpty() || random == null) {
+            return null;
+        }
+        int totalWeight = 0;
+        for (UpgradeOption option : options) {
+            if (option == null) {
+                continue;
+            }
+            totalWeight += Math.max(1, option.weight);
+        }
+        if (totalWeight <= 0) {
+            return options.get(random.nextInt(options.size()));
+        }
+        int roll = random.nextInt(totalWeight);
+        for (UpgradeOption option : options) {
+            if (option == null) {
+                continue;
+            }
+            roll -= Math.max(1, option.weight);
+            if (roll < 0) {
+                return option;
+            }
+        }
+        return options.get(options.size() - 1);
     }
 
     private static void spawnUpgradeParticles(MobEntity mob) {
@@ -1735,7 +1812,7 @@ public class ScalingSystem {
      * Get list of affordable upgrades from the mob's JSON config
      */
     private static List<UpgradeOption> getAffordableUpgrades(UUID mobUuid, JsonObject config, String mobType, 
-            NbtCompound skillData, int budget) {
+            Registry<Enchantment> enchantRegistry, NbtCompound skillData, int budget) {
         
         List<UpgradeOption> affordable = new ArrayList<>();
         
@@ -1808,7 +1885,7 @@ public class ScalingSystem {
                 } else if (lockedWeapon.has("tiers")) {
                     JsonArray tiers = lockedWeapon.getAsJsonArray("tiers");
                     if (tiers.size() > 0 && currentTier < tiers.size()) {
-                        if (meetsTierUpgradePrereqs(skillData, "weapon", lockedWeapon, weaponEnchantPrefix, weaponDropKey, weaponDurabilityKey)) {
+                        if (meetsTierUpgradePrereqs(skillData, "weapon", lockedWeapon, enchantRegistry, weaponEnchantPrefix, weaponDropKey, weaponDurabilityKey)) {
                             JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                             int tierCost = nextTier.get("cost").getAsInt();
                             if (tierCost <= budget) {
@@ -1821,10 +1898,10 @@ public class ScalingSystem {
             
             // Only upgrade the locked weapon's enchants and masteries
             
-            // Weapon enchants (only after the mob owns the weapon)
-            if (lockedWeapon != null && currentTier > 0 && lockedWeapon.has("enchants")) {
-                JsonObject enchants = lockedWeapon.getAsJsonObject("enchants");
-                addUpgradesFromSection(enchants, skillData, budget, affordable, weaponEnchantPrefix);
+            // Weapon enchants (dynamic: all registry enchants that can apply)
+            if (lockedWeapon != null && currentTier > 0) {
+                ItemStack expectedWeapon = getExpectedWeaponStack(lockedWeapon, currentTier);
+                addDynamicEnchantmentUpgrades(expectedWeapon, enchantRegistry, skillData, budget, affordable, weaponEnchantPrefix, "weapon");
             }
             
             // Weapon masteries require an equipped weapon
@@ -1847,10 +1924,9 @@ public class ScalingSystem {
                 }
             }
             
-            // Shield enchants (only if has shield)
-            if (hasShield > 0 && shield.has("enchants")) {
-                JsonObject enchants = shield.getAsJsonObject("enchants");
-                addUpgradesFromSection(enchants, skillData, budget, affordable, "shield_enchant_");
+            // Shield enchants (dynamic: all registry enchants that can apply)
+            if (hasShield > 0) {
+                addDynamicEnchantmentUpgrades(new ItemStack(Items.SHIELD), enchantRegistry, skillData, budget, affordable, "shield_enchant_", "shield");
             }
             
             if (hasShield > 0) {
@@ -1872,16 +1948,25 @@ public class ScalingSystem {
                     if (currentTier < tiers.size()) {
                         JsonObject nextTier = tiers.get(currentTier).getAsJsonObject();
                         int cost = nextTier.get("cost").getAsInt();
-                        if (cost <= budget && meetsTierUpgradePrereqs(skillData, slot, armor, slot + "_enchant_")) {
+                        if (cost <= budget && meetsTierUpgradePrereqs(skillData, slot, armor, enchantRegistry, slot + "_enchant_")) {
                             affordable.add(new UpgradeOption(slot + "_tier", currentTier + 1, cost));
                         }
                     }
                 }
 
-                // Armor enchants
-                if (currentTier > 0 && armor.has("enchants")) {
-                    JsonObject enchants = armor.getAsJsonObject("enchants");
-                    addUpgradesFromSection(enchants, skillData, budget, affordable, slot + "_enchant_");
+                // Armor enchants (dynamic: all registry enchants that can apply)
+                if (currentTier > 0) {
+                    EquipmentSlot equipmentSlot = switch (slot) {
+                        case "helmet" -> EquipmentSlot.HEAD;
+                        case "chestplate" -> EquipmentSlot.CHEST;
+                        case "leggings" -> EquipmentSlot.LEGS;
+                        case "boots" -> EquipmentSlot.FEET;
+                        default -> null;
+                    };
+                    if (equipmentSlot != null) {
+                        ItemStack expectedArmor = getExpectedArmorStack(armor, equipmentSlot, currentTier);
+                        addDynamicEnchantmentUpgrades(expectedArmor, enchantRegistry, skillData, budget, affordable, slot + "_enchant_", slot);
+                    }
                 }
                 
                 if (currentTier > 0) {
@@ -1895,11 +1980,11 @@ public class ScalingSystem {
     }
 
     private static boolean hasAffordableUpgradeAvailable(UUID mobUuid, JsonObject config, String mobType,
-            NbtCompound skillData, int budget) {
+            Registry<Enchantment> enchantRegistry, NbtCompound skillData, int budget) {
         if (budget <= 0) {
             return false;
         }
-        return !getAffordableUpgrades(mobUuid, config, mobType, skillData, budget).isEmpty();
+        return !getAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget).isEmpty();
     }
     
     /**
@@ -2330,10 +2415,8 @@ public class ScalingSystem {
         skillData.putBoolean("weapon_equipped", false);
         setPlayerOverride(skillData, OVERRIDE_KEY_WEAPON, false);
         
-        // Apply enchants
-        if (weaponConfig.has("enchants")) {
-            applyEnchantments(weapon, skillData, weaponConfig.getAsJsonObject("enchants"), enchantPrefix, world);
-        }
+        // Apply enchants from skill data (supports modded enchants)
+        applyEnchantmentsFromSkillData(weapon, skillData, enchantPrefix, world);
         
         // Apply durability mastery or preserve previous damage if mastery unchanged
         ItemStack previousWeapon = snapshot != null ? snapshot.getMainHand() : ItemStack.EMPTY;
@@ -2378,10 +2461,8 @@ public class ScalingSystem {
 
         ItemStack shield = new ItemStack(Items.SHIELD);
         
-        // Apply enchants
-        if (shieldConfig.has("enchants")) {
-            applyEnchantments(shield, skillData, shieldConfig.getAsJsonObject("enchants"), "shield_enchant_", world);
-        }
+        // Apply enchants from skill data (supports modded enchants)
+        applyEnchantmentsFromSkillData(shield, skillData, "shield_enchant_", world);
         
         // Apply durability mastery or preserve damage
         ItemStack previousShield = snapshot != null ? snapshot.getOffHand() : ItemStack.EMPTY;
@@ -2450,10 +2531,8 @@ public class ScalingSystem {
         skillData.putBoolean(slotName + "_equipped", false);
         setPlayerOverride(skillData, getArmorOverrideKey(slotName), false);
         
-        // Apply enchants
-        if (armorConfig.has("enchants")) {
-            applyEnchantments(armor, skillData, armorConfig.getAsJsonObject("enchants"), slotName + "_enchant_", world);
-        }
+        // Apply enchants from skill data (supports modded enchants)
+        applyEnchantmentsFromSkillData(armor, skillData, slotName + "_enchant_", world);
         
         String durabilityKey = slotName + "_durability_mastery";
         ItemStack previousArmor = snapshot != null ? snapshot.getArmor(slot) : ItemStack.EMPTY;
@@ -2593,27 +2672,486 @@ public class ScalingSystem {
     }
     
     /**
-     * Apply enchantments from JSON config to an item
+     * Apply enchantments from NBT skill data to an item.
+     *
+     * New format keys are: {prefix}{namespace}__{path}
+     * Legacy format keys (minecraft-only) are: {prefix}{path}
      */
-    private static void applyEnchantments(ItemStack item, NbtCompound skillData, JsonObject enchantsConfig, 
+    private static void applyEnchantmentsFromSkillData(ItemStack item, NbtCompound skillData,
             String prefix, ServerWorld world) {
-        
-        var enchantRegistry = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+
+        if (item == null || item.isEmpty() || skillData == null || prefix == null || world == null) {
+            return;
+        }
+
+        Registry<Enchantment> enchantRegistry = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
         ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(
             item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT));
-        
-        for (String enchantName : enchantsConfig.keySet()) {
-            int level = skillData.getInt(prefix + enchantName);
-            if (level <= 0) continue;
-            
-            // Map JSON enchant name to Minecraft enchantment
-            RegistryEntry<Enchantment> enchant = getEnchantmentByName(enchantName, enchantRegistry);
-            if (enchant != null) {
-                builder.add(enchant, level);
+
+        Set<String> keys = new HashSet<>(skillData.getKeys());
+        List<String> legacyKeysToRemove = new ArrayList<>();
+
+        for (String key : keys) {
+            if (!key.startsWith(prefix)) {
+                continue;
+            }
+            int storedLevel = skillData.getInt(key);
+            if (storedLevel <= 0) {
+                continue;
+            }
+
+            String suffix = key.substring(prefix.length());
+            Identifier enchantId = decodeEnchantmentIdSuffix(suffix);
+            if (enchantId == null) {
+                continue;
+            }
+
+            RegistryEntry<Enchantment> entry = getEnchantmentEntry(enchantRegistry, enchantId);
+            if (entry == null) {
+                continue;
+            }
+
+            Enchantment enchantment = entry.value();
+            if (enchantment == null || !enchantment.isAcceptableItem(item)) {
+                continue;
+            }
+
+            int clamped = Math.min(storedLevel, Math.max(1, enchantment.getMaxLevel()));
+            builder.add(entry, clamped);
+
+            // Migrate legacy minecraft keys to the new id-based format.
+            if (!suffix.contains(ENCHANT_ID_SEPARATOR) && "minecraft".equals(enchantId.getNamespace())) {
+                String encodedKey = prefix + encodeEnchantmentId(enchantId);
+                if (!skillData.contains(encodedKey)) {
+                    skillData.putInt(encodedKey, storedLevel);
+                }
+                legacyKeysToRemove.add(key);
             }
         }
-        
+
+        for (String legacy : legacyKeysToRemove) {
+            skillData.remove(legacy);
+        }
+
         item.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+    }
+
+    private static RegistryEntry<Enchantment> getEnchantmentEntry(Registry<Enchantment> registry, Identifier id) {
+        if (registry == null || id == null) {
+            return null;
+        }
+        try {
+            RegistryKey<Enchantment> key = RegistryKey.of(RegistryKeys.ENCHANTMENT, id);
+            return registry.getEntry(key).orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String encodeEnchantmentId(Identifier id) {
+        if (id == null) {
+            return "";
+        }
+        return id.getNamespace() + ENCHANT_ID_SEPARATOR + id.getPath();
+    }
+
+    private static Identifier decodeEnchantmentIdSuffix(String suffix) {
+        if (suffix == null || suffix.isEmpty()) {
+            return null;
+        }
+        int sep = suffix.indexOf(ENCHANT_ID_SEPARATOR);
+        if (sep <= 0) {
+            // Legacy format: treat suffix as minecraft path
+            try {
+                return Identifier.of("minecraft", suffix);
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+        String ns = suffix.substring(0, sep);
+        String path = suffix.substring(sep + ENCHANT_ID_SEPARATOR.length());
+        if (ns.isEmpty() || path.isEmpty()) {
+            return null;
+        }
+        try {
+            return Identifier.of(ns, path);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static int getStoredEnchantLevel(NbtCompound skillData, String prefix, Identifier id) {
+        if (skillData == null || prefix == null || id == null) {
+            return 0;
+        }
+        String encodedKey = prefix + encodeEnchantmentId(id);
+        if (skillData.contains(encodedKey)) {
+            return skillData.getInt(encodedKey);
+        }
+        // Backward compatibility for old configs that stored minecraft enchantments by path only.
+        if ("minecraft".equals(id.getNamespace())) {
+            String legacyKey = prefix + id.getPath();
+            if (skillData.contains(legacyKey)) {
+                return skillData.getInt(legacyKey);
+            }
+        }
+        return 0;
+    }
+
+    private static boolean isEnchantUpgradeKey(String key) {
+        return key != null && key.contains("_enchant_");
+    }
+
+    private static String getEnchantSlotGroupFromKey(String enchantKey) {
+        if (enchantKey == null) {
+            return "";
+        }
+        if (enchantKey.startsWith("weapon_enchant_")) {
+            return "weapon";
+        }
+        if (enchantKey.startsWith("shield_enchant_")) {
+            return "shield";
+        }
+        if (enchantKey.startsWith("helmet_enchant_")) {
+            return "helmet";
+        }
+        if (enchantKey.startsWith("chestplate_enchant_")) {
+            return "chestplate";
+        }
+        if (enchantKey.startsWith("leggings_enchant_")) {
+            return "leggings";
+        }
+        if (enchantKey.startsWith("boots_enchant_")) {
+            return "boots";
+        }
+        return "";
+    }
+
+    private static String getEnchantCostBumpKey(String slotGroup) {
+        if (slotGroup == null || slotGroup.isEmpty()) {
+            return "enchant_cost_bump";
+        }
+        return "enchant_cost_bump_" + slotGroup;
+    }
+
+    private static int getEnchantUpgradeCost(NbtCompound skillData, String slotGroup) {
+        if (skillData == null) {
+            return BASE_ENCHANT_COST;
+        }
+        int bump = Math.max(0, skillData.getInt(getEnchantCostBumpKey(slotGroup)));
+        return Math.max(0, BASE_ENCHANT_COST + bump);
+    }
+
+    private static void maybeBumpEnchantCost(NbtCompound skillData, String enchantUpgradeKey, Random random, UpgradeLogBuffer logBuffer) {
+        if (skillData == null || random == null || enchantUpgradeKey == null) {
+            return;
+        }
+        if (!isEnchantUpgradeKey(enchantUpgradeKey)) {
+            return;
+        }
+        if (random.nextInt(ENCHANT_COST_BUMP_ROLL_OUT_OF) != 0) {
+            return;
+        }
+        String slotGroup = getEnchantSlotGroupFromKey(enchantUpgradeKey);
+        if (slotGroup.isEmpty()) {
+            return;
+        }
+        String bumpKey = getEnchantCostBumpKey(slotGroup);
+        int bump = Math.max(0, skillData.getInt(bumpKey));
+        skillData.putInt(bumpKey, bump + 1);
+        if (logBuffer != null) {
+            logBuffer.log("Enchant cost bump: " + slotGroup + " is now +" + (bump + 1));
+        }
+    }
+
+    private static void logEnchantOptionCounts(UpgradeLogBuffer logBuffer, List<UpgradeOption> options, NbtCompound skillData) {
+        if (logBuffer == null || options == null) {
+            return;
+        }
+
+        int weapon = 0;
+        int shield = 0;
+        int helmet = 0;
+        int chestplate = 0;
+        int leggings = 0;
+        int boots = 0;
+
+        for (UpgradeOption option : options) {
+            if (option == null || !isEnchantUpgradeKey(option.key)) {
+                continue;
+            }
+            String slotGroup = getEnchantSlotGroupFromKey(option.key);
+            switch (slotGroup) {
+                case "weapon" -> weapon++;
+                case "shield" -> shield++;
+                case "helmet" -> helmet++;
+                case "chestplate" -> chestplate++;
+                case "leggings" -> leggings++;
+                case "boots" -> boots++;
+                default -> {
+                }
+            }
+        }
+
+        int total = weapon + shield + helmet + chestplate + leggings + boots;
+        logBuffer.log(
+            "Enchant options: "
+                + "weapon=" + weapon + "(cost=" + getEnchantUpgradeCost(skillData, "weapon") + ") "
+                + "shield=" + shield + "(cost=" + getEnchantUpgradeCost(skillData, "shield") + ") "
+                + "helmet=" + helmet + "(cost=" + getEnchantUpgradeCost(skillData, "helmet") + ") "
+                + "chestplate=" + chestplate + "(cost=" + getEnchantUpgradeCost(skillData, "chestplate") + ") "
+                + "leggings=" + leggings + "(cost=" + getEnchantUpgradeCost(skillData, "leggings") + ") "
+                + "boots=" + boots + "(cost=" + getEnchantUpgradeCost(skillData, "boots") + ")"
+        );
+    }
+
+    private static boolean isCompatibleWithApplied(RegistryEntry<Enchantment> candidate, List<RegistryEntry<Enchantment>> applied) {
+        if (candidate == null || applied == null) {
+            return true;
+        }
+        for (RegistryEntry<Enchantment> existing : applied) {
+            if (existing == null) {
+                continue;
+            }
+            if (!areEnchantmentsCompatible(candidate, existing)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean hasRemainingEnchantOptions(NbtCompound skillData, ItemStack stack, String enchantPrefix,
+            Registry<Enchantment> registry) {
+        if (skillData == null || stack == null || stack.isEmpty() || enchantPrefix == null || registry == null) {
+            return false;
+        }
+        List<RegistryEntry<Enchantment>> applied = new ArrayList<>();
+
+        for (String key : skillData.getKeys()) {
+            if (!key.startsWith(enchantPrefix)) {
+                continue;
+            }
+            int level = skillData.getInt(key);
+            if (level <= 0) {
+                continue;
+            }
+            Identifier enchantId = decodeEnchantmentIdSuffix(key.substring(enchantPrefix.length()));
+            if (enchantId == null) {
+                continue;
+            }
+            RegistryEntry<Enchantment> entry = getEnchantmentEntry(registry, enchantId);
+            if (entry != null) {
+                applied.add(entry);
+            }
+        }
+
+        for (RegistryKey<Enchantment> enchantKey : registry.getKeys()) {
+            Identifier id = enchantKey.getValue();
+            RegistryEntry<Enchantment> entry = registry.getEntry(enchantKey).orElse(null);
+            if (entry == null) {
+                continue;
+            }
+            Enchantment enchantment = entry.value();
+            if (enchantment == null || !enchantment.isAcceptableItem(stack)) {
+                continue;
+            }
+            int currentLevel = getStoredEnchantLevel(skillData, enchantPrefix, id);
+            int maxLevel = Math.max(0, enchantment.getMaxLevel());
+            if (maxLevel <= 0 || currentLevel >= maxLevel) {
+                continue;
+            }
+            if (currentLevel == 0 && !isCompatibleWithApplied(entry, applied)) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static void addDynamicEnchantmentUpgrades(ItemStack stack, Registry<Enchantment> registry, NbtCompound skillData,
+            int budget, List<UpgradeOption> affordable,
+            String enchantPrefix, String slotGroup) {
+
+        if (stack == null || stack.isEmpty() || registry == null || skillData == null || affordable == null || enchantPrefix == null) {
+            return;
+        }
+
+        int cost = getEnchantUpgradeCost(skillData, slotGroup);
+        if (cost <= 0 || cost > budget) {
+            return;
+        }
+
+        List<RegistryEntry<Enchantment>> applied = new ArrayList<>();
+        for (String key : skillData.getKeys()) {
+            if (!key.startsWith(enchantPrefix)) {
+                continue;
+            }
+            int level = skillData.getInt(key);
+            if (level <= 0) {
+                continue;
+            }
+            Identifier enchantId = decodeEnchantmentIdSuffix(key.substring(enchantPrefix.length()));
+            if (enchantId == null) {
+                continue;
+            }
+            RegistryEntry<Enchantment> entry = getEnchantmentEntry(registry, enchantId);
+            if (entry != null) {
+                applied.add(entry);
+            }
+        }
+
+        for (RegistryKey<Enchantment> enchantKey : registry.getKeys()) {
+            Identifier id = enchantKey.getValue();
+            RegistryEntry<Enchantment> entry = registry.getEntry(enchantKey).orElse(null);
+            if (entry == null) {
+                continue;
+            }
+            Enchantment enchantment = entry.value();
+            if (enchantment == null || !enchantment.isAcceptableItem(stack)) {
+                continue;
+            }
+            int maxLevel = Math.max(0, enchantment.getMaxLevel());
+            if (maxLevel <= 0) {
+                continue;
+            }
+
+            int currentLevel = getStoredEnchantLevel(skillData, enchantPrefix, id);
+            if (currentLevel >= maxLevel) {
+                continue;
+            }
+
+            int newLevel = currentLevel <= 0 ? 1 : currentLevel + 1;
+            if (newLevel > maxLevel) {
+                continue;
+            }
+
+            if (currentLevel <= 0 && !isCompatibleWithApplied(entry, applied)) {
+                continue;
+            }
+
+            int weight = isCurseEnchantment(entry) ? ENCHANT_WEIGHT_CURSE : ENCHANT_WEIGHT_NORMAL;
+            String upgradeKey = enchantPrefix + encodeEnchantmentId(id);
+            affordable.add(new UpgradeOption(upgradeKey, newLevel, cost, weight));
+        }
+    }
+
+    private static volatile java.lang.reflect.Method ENCHANT_CAN_COMBINE_ENCHANTMENT;
+    private static volatile java.lang.reflect.Method ENCHANT_CAN_COMBINE_ENTRY;
+    private static volatile java.lang.reflect.Method ENCHANT_IS_CURSED;
+
+    private static boolean areEnchantmentsCompatible(RegistryEntry<Enchantment> first, RegistryEntry<Enchantment> second) {
+        if (first == null || second == null) {
+            return true;
+        }
+
+        Enchantment firstEnchant = first.value();
+        Enchantment secondEnchant = second.value();
+        if (firstEnchant == null || secondEnchant == null) {
+            return false;
+        }
+
+        java.lang.reflect.Method combineEntry = ENCHANT_CAN_COMBINE_ENTRY;
+        if (combineEntry == null) {
+            combineEntry = resolveEnchantCombineEntryMethod();
+        }
+        if (combineEntry != null) {
+            try {
+                boolean a = (boolean) combineEntry.invoke(firstEnchant, second);
+                boolean b = (boolean) combineEntry.invoke(secondEnchant, first);
+                return a && b;
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        java.lang.reflect.Method combineEnchant = ENCHANT_CAN_COMBINE_ENCHANTMENT;
+        if (combineEnchant == null) {
+            combineEnchant = resolveEnchantCombineEnchantmentMethod();
+        }
+        if (combineEnchant != null) {
+            try {
+                boolean a = (boolean) combineEnchant.invoke(firstEnchant, secondEnchant);
+                boolean b = (boolean) combineEnchant.invoke(secondEnchant, firstEnchant);
+                return a && b;
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        // If the API surface differs, be conservative.
+        return false;
+    }
+
+    private static java.lang.reflect.Method resolveEnchantCombineEntryMethod() {
+        try {
+            java.lang.reflect.Method method = Enchantment.class.getMethod("canCombine", RegistryEntry.class);
+            ENCHANT_CAN_COMBINE_ENTRY = method;
+            return method;
+        } catch (Exception ignored) {
+            ENCHANT_CAN_COMBINE_ENTRY = null;
+            return null;
+        }
+    }
+
+    private static java.lang.reflect.Method resolveEnchantCombineEnchantmentMethod() {
+        try {
+            java.lang.reflect.Method method = Enchantment.class.getMethod("canCombine", Enchantment.class);
+            ENCHANT_CAN_COMBINE_ENCHANTMENT = method;
+            return method;
+        } catch (Exception ignored) {
+            ENCHANT_CAN_COMBINE_ENCHANTMENT = null;
+            return null;
+        }
+    }
+
+    private static boolean isCurseEnchantment(RegistryEntry<Enchantment> entry) {
+        if (entry == null) {
+            return false;
+        }
+
+        // Prefer tags when available (covers modded curses too).
+        try {
+            Class<?> enchantmentTags = Class.forName("net.minecraft.registry.tag.EnchantmentTags");
+            java.lang.reflect.Field curseField;
+            try {
+                curseField = enchantmentTags.getField("CURSE");
+            } catch (NoSuchFieldException ignored) {
+                curseField = enchantmentTags.getField("CURSES");
+            }
+            Object tagKey = curseField.get(null);
+            Class<?> tagKeyClass = Class.forName("net.minecraft.registry.tag.TagKey");
+            java.lang.reflect.Method isIn = RegistryEntry.class.getMethod("isIn", tagKeyClass);
+            Object result = isIn.invoke(entry, tagKey);
+            if (result instanceof Boolean) {
+                return (Boolean) result;
+            }
+        } catch (Exception ignored) {
+            // Fall through
+        }
+
+        // Fallback to method-based detection if present.
+        java.lang.reflect.Method cursedMethod = ENCHANT_IS_CURSED;
+        if (cursedMethod == null) {
+            try {
+                cursedMethod = Enchantment.class.getMethod("isCursed");
+                ENCHANT_IS_CURSED = cursedMethod;
+            } catch (Exception ignored) {
+                ENCHANT_IS_CURSED = null;
+                cursedMethod = null;
+            }
+        }
+        if (cursedMethod != null) {
+            try {
+                Object result = cursedMethod.invoke(entry.value());
+                if (result instanceof Boolean) {
+                    return (Boolean) result;
+                }
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        return false;
     }
     
     /**
@@ -3665,6 +4203,9 @@ public class ScalingSystem {
         } else {
             skillData.putInt("weapon_tier", 0);
         }
+        if (skillData.getInt("weapon_tier") <= 0) {
+            skillData.putInt(getEnchantCostBumpKey("weapon"), 0);
+        }
         boolean scopedWeapon = skillData.getBoolean(NBT_WEAPON_ACTIVE_SCOPED);
         String weaponKey = skillData.getString(NBT_WEAPON_ACTIVE_KEY);
         String enchantPrefix = getWeaponEnchantPrefix(scopedWeapon, weaponKey);
@@ -3687,6 +4228,7 @@ public class ScalingSystem {
             return false;
         }
         skillData.putInt("has_shield", 0);
+        skillData.putInt(getEnchantCostBumpKey("shield"), 0);
         clearEnchantsWithPrefix(skillData, "shield_enchant_");
         resetMasteries(skillData, "shield");
         skillData.putBoolean("shield_equipped", false);
@@ -3707,6 +4249,9 @@ public class ScalingSystem {
             skillData.putInt(tierKey, tier - 1);
         } else {
             skillData.putInt(tierKey, 0);
+        }
+        if (skillData.getInt(tierKey) <= 0) {
+            skillData.putInt(getEnchantCostBumpKey(slotPrefix), 0);
         }
         clearEnchantsWithPrefix(skillData, slotPrefix + "_enchant_");
         resetMasteries(skillData, slotPrefix);
@@ -3836,11 +4381,18 @@ public class ScalingSystem {
     private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig, String enchantPrefix) {
         String dropKey = slotPrefix + "_drop_mastery";
         String durabilityKey = slotPrefix + "_durability_mastery";
-        return meetsTierUpgradePrereqs(skillData, slotPrefix, slotConfig, enchantPrefix, dropKey, durabilityKey);
+        return meetsTierUpgradePrereqs(skillData, slotPrefix, slotConfig, null, enchantPrefix, dropKey, durabilityKey);
     }
 
     private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig,
-            String enchantPrefix, String dropKey, String durabilityKey) {
+            Registry<Enchantment> enchantRegistry, String enchantPrefix) {
+        String dropKey = slotPrefix + "_drop_mastery";
+        String durabilityKey = slotPrefix + "_durability_mastery";
+        return meetsTierUpgradePrereqs(skillData, slotPrefix, slotConfig, enchantRegistry, enchantPrefix, dropKey, durabilityKey);
+    }
+
+        private static boolean meetsTierUpgradePrereqs(NbtCompound skillData, String slotPrefix, JsonObject slotConfig,
+            Registry<Enchantment> enchantRegistry, String enchantPrefix, String dropKey, String durabilityKey) {
         int currentTier = skillData.getInt(slotPrefix + "_tier");
         if (currentTier <= 0) {
             return true; // base acquisition
@@ -3851,15 +4403,27 @@ public class ScalingSystem {
         if (!hasMasteryAtMax(skillData, durabilityKey, slotConfig, "durability_mastery")) {
             return false;
         }
-        if (slotConfig != null && slotConfig.has("enchants")) {
-            JsonObject enchants = slotConfig.getAsJsonObject("enchants");
-            for (String key : enchants.keySet()) {
-                JsonArray levels = enchants.getAsJsonArray(key);
-                if (skillData.getInt(enchantPrefix + key) < levels.size()) {
-                    return false;
-                }
+
+        ItemStack currentItem = ItemStack.EMPTY;
+        if ("weapon".equals(slotPrefix)) {
+            currentItem = getExpectedWeaponStack(slotConfig, skillData.getInt("weapon_tier"));
+        } else if (isArmorSlotPrefix(slotPrefix)) {
+            EquipmentSlot equipmentSlot = switch (slotPrefix) {
+                case "helmet" -> EquipmentSlot.HEAD;
+                case "chestplate" -> EquipmentSlot.CHEST;
+                case "leggings" -> EquipmentSlot.LEGS;
+                case "boots" -> EquipmentSlot.FEET;
+                default -> null;
+            };
+            if (equipmentSlot != null) {
+                currentItem = getExpectedArmorStack(slotConfig, equipmentSlot, currentTier);
             }
         }
+
+        if (currentItem != null && !currentItem.isEmpty() && hasRemainingEnchantOptions(skillData, currentItem, enchantPrefix, enchantRegistry)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -4039,6 +4603,7 @@ public class ScalingSystem {
         private final JsonObject config;
         private final String mobType;
         private final NbtCompound skillData;
+        private final Registry<Enchantment> enchantRegistry;
         private final int budget;
         private final double totalPoints;
         private final double spentPoints;
@@ -4052,6 +4617,7 @@ public class ScalingSystem {
                 JsonObject config,
                 String mobType,
                 NbtCompound skillData,
+                Registry<Enchantment> enchantRegistry,
                 int budget,
                 double totalPoints,
                 double spentPoints,
@@ -4063,6 +4629,7 @@ public class ScalingSystem {
             this.config = config;
             this.mobType = mobType;
             this.skillData = skillData;
+            this.enchantRegistry = enchantRegistry;
             this.budget = budget;
             this.totalPoints = totalPoints;
             this.spentPoints = spentPoints;
@@ -4080,6 +4647,7 @@ public class ScalingSystem {
                 skillData,
                 config,
                 mobType,
+                enchantRegistry,
                 budget,
                 totalPoints,
                 spentPoints,
@@ -4305,11 +4873,17 @@ public class ScalingSystem {
         final String key;
         final int newLevel;
         final int cost;
+        final int weight;
         
         UpgradeOption(String key, int newLevel, int cost) {
+            this(key, newLevel, cost, 1);
+        }
+
+        UpgradeOption(String key, int newLevel, int cost, int weight) {
             this.key = key;
             this.newLevel = newLevel;
             this.cost = cost;
+            this.weight = Math.max(1, weight);
         }
     }
 }
