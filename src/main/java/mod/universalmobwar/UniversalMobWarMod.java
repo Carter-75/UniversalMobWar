@@ -8,6 +8,7 @@ import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.net.UmwServerEnchantCompat;
 // Evolution system handled globally via MobDataMixin + ScalingSystem
 import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.util.TargetingUtil;
@@ -97,6 +98,8 @@ public class UniversalMobWarMod implements ModInitializer {
 		// Register and load config
 		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 		ModConfig config = ModConfig.getInstance();
+
+		UmwServerEnchantCompat.init();
 		ServerLifecycleEvents.SERVER_STARTED.register(UniversalMobWarMod::syncGameRulesWithConfig);
 		
 		// Register Skill Tree Events (Projectiles, etc.)

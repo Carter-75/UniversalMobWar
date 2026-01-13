@@ -121,6 +121,9 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 3)
     public int manualWorldDayOverride = -1; // -1 = use actual world time
 
+    @ConfigEntry.Gui.Tooltip(count = 5)
+    public boolean allowModdedEnchantments = true;
+
     // ==========================================================================
     //                       SECTION 4: MOB WARLORD SYSTEM
     // Controls the raid boss feature

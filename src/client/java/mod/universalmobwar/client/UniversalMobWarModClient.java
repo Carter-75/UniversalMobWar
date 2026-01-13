@@ -13,6 +13,8 @@ public class UniversalMobWarModClient implements ClientModInitializer {
     
     @Override
     public void onInitializeClient() {
+        UmwClientEnchantCompat.init();
+
         // Register custom witch renderer for the Mob Warlord
         EntityRendererRegistry.register(UniversalMobWarMod.MOB_WARLORD, MobWarlordRenderer::new);
         

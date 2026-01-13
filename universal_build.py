@@ -992,17 +992,23 @@ def main():
         help="Git commit message"
     )
 
-    parser.add_argument(
+    clean_group = parser.add_mutually_exclusive_group()
+    clean_group.add_argument(
         "--clean",
         action="store_true",
         help="Run 'gradle clean' before building (can fail on Windows if VS Code locks Loom/Yarn jars)"
     )
+    clean_group.add_argument(
+        "--no-clean",
+        action="store_true",
+        help="Skip 'gradle clean' (useful for fast iteration on Windows)"
+    )
     
     args = parser.parse_args()
 
-    # A full run should start from a clean slate.
+    # A full run should start from a clean slate by default.
     # (We still tolerate the common Windows VS Code Java lock issue inside build_project.)
-    if args.full and not args.clean:
+    if args.full and not args.no_clean:
         args.clean = True
     
     # Print banner

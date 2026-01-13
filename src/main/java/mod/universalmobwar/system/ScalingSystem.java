@@ -70,6 +70,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ScalingSystem {
 
+    private static volatile Set<Identifier> ENCHANTMENT_NETWORK_ALLOWLIST = null;
+    private static final Set<Identifier> LOGGED_DISALLOWED_ENCHANTMENTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     private static final int BASE_ENCHANT_COST = 3;
     private static final int ENCHANT_COST_BUMP_ROLL_OUT_OF = 100; // 1% chance
     private static final int ENCHANT_WEIGHT_NORMAL = 4;
@@ -2685,8 +2688,17 @@ public class ScalingSystem {
         }
 
         Registry<Enchantment> enchantRegistry = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
-        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(
-            item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT));
+        ItemEnchantmentsComponent existing = item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(existing);
+
+        // Remove disallowed enchantments from existing data so we don't send them over the wire.
+        builder.remove(entry -> {
+            if (entry == null) {
+                return true;
+            }
+            Identifier id = enchantRegistry.getId(entry.value());
+            return !isEnchantmentAllowed(id);
+        });
 
         Set<String> keys = new HashSet<>(skillData.getKeys());
         List<String> legacyKeysToRemove = new ArrayList<>();
@@ -2703,6 +2715,10 @@ public class ScalingSystem {
             String suffix = key.substring(prefix.length());
             Identifier enchantId = decodeEnchantmentIdSuffix(suffix);
             if (enchantId == null) {
+                continue;
+            }
+
+            if (!isEnchantmentAllowed(enchantId)) {
                 continue;
             }
 
@@ -2734,6 +2750,37 @@ public class ScalingSystem {
         }
 
         item.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+    }
+
+    public static void setEnchantmentNetworkAllowlist(Set<Identifier> allowlist) {
+        ENCHANTMENT_NETWORK_ALLOWLIST = allowlist;
+        LOGGED_DISALLOWED_ENCHANTMENTS.clear();
+    }
+
+    private static boolean isEnchantmentAllowed(Identifier enchantId) {
+        if (enchantId == null) {
+            return false;
+        }
+
+        ModConfig config = ModConfig.getInstance();
+        if (!config.allowModdedEnchantments) {
+            return "minecraft".equals(enchantId.getNamespace());
+        }
+
+        Set<Identifier> allowlist = ENCHANTMENT_NETWORK_ALLOWLIST;
+        if (allowlist == null) {
+            // No clients / no negotiated allowlist yet.
+            return true;
+        }
+
+        boolean allowed = allowlist.contains(enchantId);
+        if (!allowed && (config.debugLogging || config.debugUpgradeLog) && LOGGED_DISALLOWED_ENCHANTMENTS.add(enchantId)) {
+            UniversalMobWarMod.LOGGER.warn(
+                "[ScalingSystem][EnchantCompat] Skipping enchantment {} (not supported by all connected clients)",
+                enchantId
+            );
+        }
+        return allowed;
     }
 
     private static RegistryEntry<Enchantment> getEnchantmentEntry(Registry<Enchantment> registry, Identifier id) {
@@ -2939,6 +2986,9 @@ public class ScalingSystem {
             if (enchantId == null) {
                 continue;
             }
+            if (!isEnchantmentAllowed(enchantId)) {
+                continue;
+            }
             RegistryEntry<Enchantment> entry = getEnchantmentEntry(registry, enchantId);
             if (entry != null) {
                 applied.add(entry);
@@ -2947,6 +2997,9 @@ public class ScalingSystem {
 
         for (RegistryKey<Enchantment> enchantKey : registry.getKeys()) {
             Identifier id = enchantKey.getValue();
+            if (!isEnchantmentAllowed(id)) {
+                continue;
+            }
             RegistryEntry<Enchantment> entry = registry.getEntry(enchantKey).orElse(null);
             if (entry == null) {
                 continue;
@@ -2994,6 +3047,9 @@ public class ScalingSystem {
             if (enchantId == null) {
                 continue;
             }
+            if (!isEnchantmentAllowed(enchantId)) {
+                continue;
+            }
             RegistryEntry<Enchantment> entry = getEnchantmentEntry(registry, enchantId);
             if (entry != null) {
                 applied.add(entry);
@@ -3002,6 +3058,9 @@ public class ScalingSystem {
 
         for (RegistryKey<Enchantment> enchantKey : registry.getKeys()) {
             Identifier id = enchantKey.getValue();
+            if (!isEnchantmentAllowed(id)) {
+                continue;
+            }
             RegistryEntry<Enchantment> entry = registry.getEntry(enchantKey).orElse(null);
             if (entry == null) {
                 continue;
