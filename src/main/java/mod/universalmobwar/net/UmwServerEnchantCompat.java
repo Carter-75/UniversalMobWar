@@ -53,23 +53,69 @@ public final class UmwServerEnchantCompat {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             SERVER = server;
-            // Until we receive the client's registry list, assume vanilla-only to prevent join-time crashes.
-            // ConcurrentHashMap does not permit null values, so use an empty-set sentinel.
-            CLIENT_ENCHANTMENTS.put(handler.player.getUuid(), Collections.emptySet());
-            recomputeAllowlist(handler.player);
+            try {
+                ServerPlayerEntity player = handler.player;
+                if (player == null) {
+                    UniversalMobWarMod.LOGGER.warn("[EnchantCompat] JOIN fired with null player; skipping");
+                    recomputeAllowlist(null);
+                    return;
+                }
+
+                UUID uuid = player.getUuid();
+                if (uuid == null) {
+                    UniversalMobWarMod.LOGGER.warn("[EnchantCompat] Player UUID is null for {}; skipping", player.getName().getString());
+                    recomputeAllowlist(player);
+                    return;
+                }
+
+                // Until we receive the client's registry list, assume vanilla-only to prevent join-time crashes.
+                // ConcurrentHashMap does not permit null values, so use an empty-set sentinel.
+                CLIENT_ENCHANTMENTS.put(uuid, Collections.emptySet());
+                recomputeAllowlist(player);
+            } catch (Throwable t) {
+                // Never fail the login pipeline due to an optional compat layer.
+                UniversalMobWarMod.LOGGER.error("[EnchantCompat] Exception during JOIN handler; continuing login", t);
+            }
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             SERVER = server;
-            CLIENT_ENCHANTMENTS.remove(handler.player.getUuid());
-            recomputeAllowlist(handler.player);
+            try {
+                ServerPlayerEntity player = handler.player;
+                if (player == null) {
+                    recomputeAllowlist(null);
+                    return;
+                }
+
+                UUID uuid = player.getUuid();
+                if (uuid != null) {
+                    CLIENT_ENCHANTMENTS.remove(uuid);
+                }
+                recomputeAllowlist(player);
+            } catch (Throwable t) {
+                UniversalMobWarMod.LOGGER.error("[EnchantCompat] Exception during DISCONNECT handler", t);
+            }
         });
 
         ServerPlayNetworking.registerGlobalReceiver(UmwClientEnchantmentsPayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
-            Set<Identifier> ids = new HashSet<>(payload.enchantmentIds());
-            CLIENT_ENCHANTMENTS.put(player.getUuid(), Collections.unmodifiableSet(ids));
-            recomputeAllowlist(player);
+            try {
+                ServerPlayerEntity player = context.player();
+                if (player == null) {
+                    return;
+                }
+
+                UUID uuid = player.getUuid();
+                if (uuid == null) {
+                    return;
+                }
+
+                Set<Identifier> ids = new HashSet<>(payload.enchantmentIds());
+                ids.removeIf(id -> id == null);
+                CLIENT_ENCHANTMENTS.put(uuid, Collections.unmodifiableSet(ids));
+                recomputeAllowlist(player);
+            } catch (Throwable t) {
+                UniversalMobWarMod.LOGGER.error("[EnchantCompat] Exception handling client enchantments payload", t);
+            }
         });
     }
 
