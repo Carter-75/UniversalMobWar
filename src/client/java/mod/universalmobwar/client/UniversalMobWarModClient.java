@@ -3,6 +3,7 @@ package mod.universalmobwar.client;
 import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.net.UmwRequiredClientPayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -21,6 +22,11 @@ public class UniversalMobWarModClient implements ClientModInitializer {
         } catch (IllegalArgumentException alreadyRegistered) {
             // ok
         }
+
+        // Also register a receiver so servers can reliably detect support via canSend(...).
+        ClientPlayNetworking.registerGlobalReceiver(UmwRequiredClientPayload.ID, (payload, context) -> {
+            // no-op: presence is the signal
+        });
 
         UmwClientEnchantCompat.init();
 
