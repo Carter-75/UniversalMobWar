@@ -8,6 +8,7 @@ import mod.universalmobwar.goal.StalemateBreakerGoal;
 import mod.universalmobwar.goal.UniversalTargetGoal;
 import mod.universalmobwar.mixin.GameRulesAccessor;
 import mod.universalmobwar.mixin.MobEntityAccessor;
+import mod.universalmobwar.net.UmwRequiredClientPayload;
 import mod.universalmobwar.net.UmwServerEnchantCompat;
 // Evolution system handled globally via MobDataMixin + ScalingSystem
 import mod.universalmobwar.system.AllianceSystem;
@@ -19,7 +20,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -95,6 +98,14 @@ public class UniversalMobWarMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Register an empty S2C payload solely so the server can verify the client has this mod.
+		// This makes "server has mod, client doesn't" a hard-fail join (as requested).
+		try {
+			PayloadTypeRegistry.playS2C().register(UmwRequiredClientPayload.ID, UmwRequiredClientPayload.CODEC);
+		} catch (IllegalArgumentException alreadyRegistered) {
+			// Tolerate double-init in dev / hot reload scenarios.
+		}
+
 		// Register and load config
 		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
 		ModConfig config = ModConfig.getInstance();
@@ -119,6 +130,13 @@ public class UniversalMobWarMod implements ModInitializer {
 
 		// Send welcome message to players when they join
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			// If the client doesn't have this mod installed, they won't advertise our payload,
+			// and we reject the connection with a clear message.
+			if (!ServerPlayNetworking.canSend(handler.player, UmwRequiredClientPayload.ID)) {
+				handler.disconnect(Text.literal("Universal Mob War is required to join this server."));
+				return;
+			}
+
 			handler.player.sendMessage(Text.literal(""), false);
 			handler.player.sendMessage(
 				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
@@ -126,7 +144,7 @@ public class UniversalMobWarMod implements ModInitializer {
 			);
 			handler.player.sendMessage(
 				Text.literal("    UNIVERSAL MOB WAR").styled(style -> style.withColor(Formatting.RED).withBold(true))
-					.append(Text.literal(" v2.0 - EVOLUTION UPDATE!").styled(style -> style.withColor(Formatting.YELLOW))),
+					,
 				false
 			);
 			handler.player.sendMessage(
