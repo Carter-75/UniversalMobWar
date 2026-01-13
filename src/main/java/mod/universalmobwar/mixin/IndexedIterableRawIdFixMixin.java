@@ -1,6 +1,7 @@
 package mod.universalmobwar.mixin;
 
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.collection.IndexedIterable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -8,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
@@ -131,6 +133,35 @@ public interface IndexedIterableRawIdFixMixin {
             }
         }
 
+        // Fallback: handle Registry$1 (anonymous inner class capturing the outer Registry).
+        try {
+            Registry<?> outerRegistry = tryGetOuterRegistry(self);
+            if (outerRegistry != null) {
+                Optional<? extends RegistryEntry.Reference<?>> resolved = outerRegistry.getEntry((RegistryKey) key);
+                return resolved.orElse(null);
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static Registry<?> tryGetOuterRegistry(IndexedIterable self) {
+        try {
+            for (Field field : self.getClass().getDeclaredFields()) {
+                if (!Registry.class.isAssignableFrom(field.getType())) {
+                    continue;
+                }
+                field.setAccessible(true);
+                Object value = field.get(self);
+                if (value instanceof Registry<?> registry) {
+                    return registry;
+                }
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
         return null;
     }
 }
