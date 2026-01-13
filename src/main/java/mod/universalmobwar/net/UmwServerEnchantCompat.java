@@ -29,8 +29,15 @@ public final class UmwServerEnchantCompat {
     }
 
     public static void init() {
-        // Register payload type
-        PayloadTypeRegistry.playC2S().register(UmwClientEnchantmentsPayload.ID, UmwClientEnchantmentsPayload.CODEC);
+        // Register payload type (can be invoked in both client+server runtimes; tolerate double init)
+        try {
+            PayloadTypeRegistry.playC2S().register(UmwClientEnchantmentsPayload.ID, UmwClientEnchantmentsPayload.CODEC);
+        } catch (IllegalArgumentException alreadyRegistered) {
+            UniversalMobWarMod.LOGGER.debug(
+                "[EnchantCompat] Payload type already registered: {}",
+                UmwClientEnchantmentsPayload.ID.id()
+            );
+        }
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             SERVER = server;
