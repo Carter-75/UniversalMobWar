@@ -40,6 +40,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.world.World;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -2688,17 +2690,16 @@ public class ScalingSystem {
         }
 
         Registry<Enchantment> enchantRegistry = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
-        ItemEnchantmentsComponent existing = item.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
-        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(existing);
+        ItemEnchantmentsComponent existing = item.getOrDefault(
+            DataComponentTypes.ENCHANTMENTS,
+            ItemEnchantmentsComponent.DEFAULT
+        );
 
-        // Remove disallowed enchantments from existing data so we don't send them over the wire.
-        builder.remove(entry -> {
-            if (entry == null) {
-                return true;
-            }
-            Identifier id = enchantRegistry.getId(entry.value());
-            return !isEnchantmentAllowed(id);
-        });
+        // Normalize the existing component so ALL kept entries come from THIS registry instance.
+        // This avoids "Can't find id" crashes during packet encoding when another mod serializes
+        // ItemStacks using a different RegistryManager than the one that created the RegistryEntry.
+        ItemEnchantmentsComponent normalizedExisting = normalizeEnchantmentsComponent(existing, enchantRegistry);
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(normalizedExisting);
 
         Set<String> keys = new HashSet<>(skillData.getKeys());
         List<String> legacyKeysToRemove = new ArrayList<>();
@@ -2781,6 +2782,65 @@ public class ScalingSystem {
             );
         }
         return allowed;
+    }
+
+    private static ItemEnchantmentsComponent normalizeEnchantmentsComponent(
+        ItemEnchantmentsComponent existing,
+        Registry<Enchantment> enchantRegistry
+    ) {
+        if (existing == null || enchantRegistry == null) {
+            return ItemEnchantmentsComponent.DEFAULT;
+        }
+
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
+
+        // Re-add enchantments using registry entries from THIS registry manager.
+        // This specifically prevents holding onto RegistryEntry instances originating from a
+        // different registry (common when other mods / datapacks / client registries touched the stack).
+        try {
+            for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : existing.getEnchantmentEntries()) {
+                RegistryEntry<Enchantment> original = entry.getKey();
+                if (original == null) {
+                    continue;
+                }
+
+                Identifier id = null;
+                try {
+                    id = original.getKey().map(RegistryKey::getValue).orElse(null);
+                } catch (Exception ignored) {
+                    id = null;
+                }
+                if (id == null) {
+                    // Fallback: try resolving by value object.
+                    try {
+                        id = enchantRegistry.getId(original.value());
+                    } catch (Exception ignored) {
+                        id = null;
+                    }
+                }
+
+                if (!isEnchantmentAllowed(id)) {
+                    continue;
+                }
+
+                RegistryEntry<Enchantment> normalized = getEnchantmentEntry(enchantRegistry, id);
+                if (normalized == null) {
+                    continue;
+                }
+
+                int level = Math.max(1, entry.getIntValue());
+                Enchantment enchantment = normalized.value();
+                if (enchantment == null) {
+                    continue;
+                }
+                int clamped = Math.min(level, Math.max(1, enchantment.getMaxLevel()));
+                builder.add(normalized, clamped);
+            }
+        } catch (Exception ignored) {
+            // If the underlying API surface differs, fail safely by dropping existing enchantments.
+        }
+
+        return builder.build();
     }
 
     private static RegistryEntry<Enchantment> getEnchantmentEntry(Registry<Enchantment> registry, Identifier id) {
