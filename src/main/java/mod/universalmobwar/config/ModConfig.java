@@ -124,6 +124,20 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean allowBossScaling = true;
 
+    @ConfigEntry.Category("scaling")
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public boolean scaleMobXpDropsWithSpentPoints = true;
+
+    @ConfigEntry.Category("scaling")
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 100000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int spentPointsPerXpBonusStep = 100; // 100 spent points = +bonusPercentPerXpStep%
+
+    @ConfigEntry.Category("scaling")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 10000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int xpBonusPercentPerStep = 50; // 50 = +50% XP per step
+
     @ConfigEntry.BoundedDiscrete(min = -1, max = 100000)
     @ConfigEntry.Gui.Tooltip(count = 3)
     public int manualWorldDayOverride = -1; // -1 = use actual world time
