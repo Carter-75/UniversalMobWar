@@ -115,6 +115,11 @@ public class ScalingSystem {
     private static final String ABILITY_KEY_INVIS_GLOW_UNTIL = "invisibility_on_hit_glow_until";
     private static final long INVIS_GLOW_INTERVAL_TICKS = 40L;
     private static final int INVIS_GLOW_DURATION_TICKS = 8;
+
+    private static final String HORDE_REINFORCEMENT_TAG = "umw_horde_reinforcement";
+    private static final String NBT_HORDE_REINFORCEMENT = "umw_horde_reinforcement";
+    private static final int HORDE_MAX_NEARBY_MOBS = 10;
+    private static final double HORDE_NEARBY_RADIUS = 50.0;
     private static final double DEFAULT_DAILY_POINTS = 0.1d;
     private static final DayRange[] DEFAULT_DAILY_SCALING = new DayRange[] {
         new DayRange(1, 10, 0.1d, 0),
@@ -2032,6 +2037,11 @@ public class ScalingSystem {
         for (String key : section.keySet()) {
             JsonElement element = section.get(key);
             if (!element.isJsonArray()) continue;
+
+            // Horde reinforcements should never be able to learn horde_summon (prevents chain-spawning).
+            if (prefix.equals("ability_") && key.equals("horde_summon") && skillData.getBoolean(NBT_HORDE_REINFORCEMENT)) {
+                continue;
+            }
             
             // Filter special abilities based on attack capability
             if (prefix.equals("ability_") && attackCapability != null && !attackCapability.equals("both")) {
@@ -3746,6 +3756,11 @@ public class ScalingSystem {
      */
     public static void handleHordeSummon(MobEntity mob, MobWarData data, ServerWorld world, long currentTick) {
         if (!ModConfig.getInstance().isScalingActive()) return;
+
+        // Horde reinforcements are not allowed to trigger horde summon (prevents recursion).
+        if (mob.getCommandTags().contains(HORDE_REINFORCEMENT_TAG) || data.getSkillData().getBoolean(NBT_HORDE_REINFORCEMENT)) {
+            return;
+        }
         
         JsonObject config = getConfigForMob(mob);
         if (config == null) return;
@@ -3773,6 +3788,33 @@ public class ScalingSystem {
 
                 if (currentTick - lastUse >= cooldownTicks) { // 60 seconds cooldown
                     if (mob.getRandom().nextDouble() < chance) {
+                        // Global limiter: if too many mobs are already actively fighting nearby, don't add more.
+                        // This is intentionally checked only right before spawning to avoid constant scanning.
+                        int nearbyHordeCapableOrUsed = 0;
+                        for (MobEntity entity : world.getEntitiesByClass(
+                            MobEntity.class,
+                            mob.getBoundingBox().expand(HORDE_NEARBY_RADIUS),
+                            entity -> entity != null && entity.isAlive()
+                        )) {
+                            try {
+                                MobWarData otherData = MobWarData.get(entity);
+                                boolean hasHorde = otherData != null && otherData.getSkillData().getInt("ability_horde_summon") > 0;
+                                Map<String, Long> otherCooldowns = ABILITY_COOLDOWNS.get(entity.getUuid());
+                                boolean hasUsedHorde = otherCooldowns != null && otherCooldowns.containsKey("horde_summon");
+
+                                if (hasHorde || hasUsedHorde) {
+                                    nearbyHordeCapableOrUsed++;
+                                    if (nearbyHordeCapableOrUsed >= HORDE_MAX_NEARBY_MOBS) {
+                                        break;
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                            }
+                        }
+                        if (nearbyHordeCapableOrUsed >= HORDE_MAX_NEARBY_MOBS) {
+                            return;
+                        }
+
                         // Spawn a copy of this mob type nearby
                         try {
                             MobEntity reinforcement = (MobEntity) mob.getType().create(world);
@@ -3788,6 +3830,16 @@ public class ScalingSystem {
                                     SpawnReason.EVENT,
                                     null
                                 );
+
+                                // Mark as horde reinforcement so it can't learn/use horde summon.
+                                reinforcement.addCommandTag(HORDE_REINFORCEMENT_TAG);
+                                try {
+                                    MobWarData reinforcementData = MobWarData.get(reinforcement);
+                                    reinforcementData.getSkillData().putBoolean(NBT_HORDE_REINFORCEMENT, true);
+                                    MobWarData.save(reinforcement, reinforcementData);
+                                } catch (Exception ignored) {
+                                }
+
                                 world.spawnEntity(reinforcement);
                                 cooldowns.put("horde_summon", currentTick);
                             }
