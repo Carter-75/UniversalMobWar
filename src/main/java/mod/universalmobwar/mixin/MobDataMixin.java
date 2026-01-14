@@ -121,6 +121,16 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
         if (spawnReason == net.minecraft.entity.SpawnReason.SPAWN_EGG) {
             self.addCommandTag("umw_player_spawned");
         }
+
+        // Tag spawner spawns so they're excluded from natural spawn caps.
+        if (spawnReason == net.minecraft.entity.SpawnReason.SPAWNER) {
+            self.addCommandTag("umw_spawner_spawned");
+        }
+
+        // Tag natural spawns so we can apply a cap only to natural spawning.
+        if (spawnReason == net.minecraft.entity.SpawnReason.NATURAL) {
+            self.addCommandTag("umw_natural_spawned");
+        }
         
         // Remove armor (head, chest, legs, boots)
         self.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);

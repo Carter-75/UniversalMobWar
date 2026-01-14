@@ -52,6 +52,13 @@ public class ModConfig implements ConfigData {
     
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean disableNaturalMobSpawns = false;
+
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public boolean limitNaturalMobSpawns = true;
+
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 1000)
+    @ConfigEntry.Gui.Tooltip(count = 3)
+    public int naturalSpawnCapPerSimulationDistance = 5; // cap = multiplier * simulationDistance
     
     @ConfigEntry.BoundedDiscrete(min = 1, max = 5000)
     @ConfigEntry.Gui.Tooltip(count = 2)

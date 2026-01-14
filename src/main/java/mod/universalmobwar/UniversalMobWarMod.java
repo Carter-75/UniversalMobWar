@@ -12,6 +12,7 @@ import mod.universalmobwar.net.UmwRequiredClientPayload;
 import mod.universalmobwar.net.UmwServerEnchantCompat;
 // Evolution system handled globally via MobDataMixin + ScalingSystem
 import mod.universalmobwar.system.AllianceSystem;
+import mod.universalmobwar.system.NaturalSpawnLimiter;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
@@ -155,6 +156,11 @@ public class UniversalMobWarMod implements ModInitializer {
 
 		// Attach our targeting goal to every MobEntity when it loads into a server world.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+			// Track naturally spawned mobs for spawn limiting.
+			if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
+				NaturalSpawnLimiter.onMobLoaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
+			}
+
 			if (!(entity instanceof MobEntity mob)) return;
 
 			// Evolution System now handled globally via MobDataMixin + ScalingSystem
@@ -188,6 +194,12 @@ public class UniversalMobWarMod implements ModInitializer {
 				
 				// Add stalemate breaker goal (Priority 0 to ensure it always runs)
 				goalSelector.add(0, new StalemateBreakerGoal(mob));
+			}
+		});
+
+		ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+			if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
+				NaturalSpawnLimiter.onMobUnloaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
 			}
 		});
 
