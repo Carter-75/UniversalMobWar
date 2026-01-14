@@ -136,7 +136,7 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Category("scaling")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 10000)
     @ConfigEntry.Gui.Tooltip(count = 4)
-    public int xpBonusPercentPerStep = 50; // 50 = +50% XP per step
+    public int xpBonusPercentPerStep = 150; // 150 = +150% XP per step
 
     @ConfigEntry.BoundedDiscrete(min = -1, max = 100000)
     @ConfigEntry.Gui.Tooltip(count = 3)
