@@ -613,6 +613,7 @@ public class ScalingSystem {
         }
         JsonObject tree = config.getAsJsonObject("tree");
         ServerWorld serverWorld = mob.getWorld() instanceof ServerWorld sw ? sw : null;
+        JsonElement shieldElement = tree.has("shield") ? tree.get("shield") : null;
 
         JsonElement weaponElement = tree.has("weapon") ? tree.get("weapon") : null;
         JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mob) : null;
@@ -620,13 +621,14 @@ public class ScalingSystem {
         String weaponScopeKey = scopedWeapon ? getWeaponScopeIdentifier(lockedWeapon) : "";
 
         boolean hasWeaponEquipped = skillData.getBoolean("weapon_equipped");
-        boolean shouldHaveWeapon = skillData.getInt("weapon_tier") > 0;
+        int weaponTier = skillData.getInt("weapon_tier");
+        boolean shouldHaveWeapon = weaponTier > 0;
         boolean weaponOverride = isPlayerOverrideActive(skillData, OVERRIDE_KEY_WEAPON);
         ItemStack currentWeapon = mob.getEquippedStack(EquipmentSlot.MAINHAND);
         boolean weaponMissing = currentWeapon.isEmpty();
         boolean weaponMismatch = false;
         if (!weaponMissing && lockedWeapon != null && shouldHaveWeapon) {
-            weaponMismatch = !isExpectedWeaponItem(currentWeapon, lockedWeapon, skillData.getInt("weapon_tier"));
+            weaponMismatch = !isExpectedWeaponItem(currentWeapon, lockedWeapon, weaponTier);
         }
         boolean weaponMatches = !weaponMissing && !weaponMismatch && lockedWeapon != null && shouldHaveWeapon;
         if (weaponMatches) {
@@ -660,7 +662,8 @@ public class ScalingSystem {
         }
 
         boolean hasShieldEquipped = skillData.getBoolean("shield_equipped");
-        boolean shouldHaveShield = skillData.getInt("has_shield") > 0;
+        int hasShieldTier = skillData.getInt("has_shield");
+        boolean shouldHaveShield = hasShieldTier > 0;
         boolean shieldOverride = isPlayerOverrideActive(skillData, OVERRIDE_KEY_SHIELD);
         ItemStack currentShield = mob.getEquippedStack(EquipmentSlot.OFFHAND);
         boolean shieldMissing = currentShield.isEmpty();
@@ -677,8 +680,8 @@ public class ScalingSystem {
         } else if (!shieldMissing && !shieldMatches) {
             setPlayerOverride(skillData, OVERRIDE_KEY_SHIELD, false);
             shieldOverride = false;
-            if (serverWorld != null && tree.has("shield")) {
-                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, true);
+            if (serverWorld != null && shieldElement != null) {
+                applyShield(mob, skillData, shieldElement.getAsJsonObject(), serverWorld, null, true);
             }
         }
         if (shieldMissing && shieldOverride) {
@@ -686,19 +689,19 @@ public class ScalingSystem {
             shieldOverride = false;
         }
         if (hasShieldEquipped && shieldMissing) {
-            if (handleShieldBreak(mob, data) && serverWorld != null && tree.has("shield")) {
-                applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, false);
+            if (handleShieldBreak(mob, data) && serverWorld != null && shieldElement != null) {
+                applyShield(mob, skillData, shieldElement.getAsJsonObject(), serverWorld, null, false);
             }
         } else if (!hasShieldEquipped && shouldHaveShield && !shieldMissing && currentShield.isOf(Items.SHIELD)) {
             skillData.putBoolean("shield_equipped", true);
-        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && tree.has("shield")) {
-            applyShield(mob, skillData, tree.getAsJsonObject("shield"), serverWorld, null, false);
+        } else if (!hasShieldEquipped && shouldHaveShield && serverWorld != null && shieldElement != null) {
+            applyShield(mob, skillData, shieldElement.getAsJsonObject(), serverWorld, null, false);
         }
 
-        monitorArmorSlot(mob, data, tree, EquipmentSlot.HEAD, "helmet", serverWorld);
-        monitorArmorSlot(mob, data, tree, EquipmentSlot.CHEST, "chestplate", serverWorld);
-        monitorArmorSlot(mob, data, tree, EquipmentSlot.LEGS, "leggings", serverWorld);
-        monitorArmorSlot(mob, data, tree, EquipmentSlot.FEET, "boots", serverWorld);
+        monitorArmorSlot(mob, data, skillData, tree, EquipmentSlot.HEAD, "helmet", serverWorld);
+        monitorArmorSlot(mob, data, skillData, tree, EquipmentSlot.CHEST, "chestplate", serverWorld);
+        monitorArmorSlot(mob, data, skillData, tree, EquipmentSlot.LEGS, "leggings", serverWorld);
+        monitorArmorSlot(mob, data, skillData, tree, EquipmentSlot.FEET, "boots", serverWorld);
 
         if (stateChanged) {
             MobWarData.save(mob, data);
@@ -4527,16 +4530,17 @@ public class ScalingSystem {
         return true;
     }
 
-    private static void monitorArmorSlot(MobEntity mob, MobWarData data, JsonObject tree, EquipmentSlot slot, String slotPrefix, ServerWorld world) {
-        NbtCompound skillData = data.getSkillData();
-        int tier = skillData.getInt(slotPrefix + "_tier");
-        boolean markedEquipped = skillData.getBoolean(slotPrefix + "_equipped");
+    private static void monitorArmorSlot(MobEntity mob, MobWarData data, NbtCompound skillData, JsonObject tree, EquipmentSlot slot, String slotPrefix, ServerWorld world) {
+        String tierKey = slotPrefix + "_tier";
+        String equippedKey = slotPrefix + "_equipped";
+        int tier = skillData.getInt(tierKey);
+        boolean markedEquipped = skillData.getBoolean(equippedKey);
         String overrideKey = getArmorOverrideKey(slotPrefix);
         boolean overrideActive = isPlayerOverrideActive(skillData, overrideKey);
 
         if (tier <= 0) {
             if (markedEquipped) {
-                skillData.putBoolean(slotPrefix + "_equipped", false);
+                skillData.putBoolean(equippedKey, false);
             }
             setPlayerOverride(skillData, overrideKey, false);
             if (!mob.getEquippedStack(slot).isEmpty()) {
@@ -4545,10 +4549,11 @@ public class ScalingSystem {
             return;
         }
 
-        JsonObject armorConfig = tree.has(slotPrefix) ? tree.getAsJsonObject(slotPrefix) : null;
+        JsonElement armorElement = tree.has(slotPrefix) ? tree.get(slotPrefix) : null;
+        JsonObject armorConfig = armorElement != null ? armorElement.getAsJsonObject() : null;
         if (armorConfig == null) {
             logEquipmentDebug(mob, slotPrefix, "Config missing entry for this slot");
-            skillData.putBoolean(slotPrefix + "_equipped", false);
+            skillData.putBoolean(equippedKey, false);
             return;
         }
 
@@ -4558,7 +4563,7 @@ public class ScalingSystem {
 
         if (hasItem && matchesExpected) {
             if (!markedEquipped) {
-                skillData.putBoolean(slotPrefix + "_equipped", true);
+                skillData.putBoolean(equippedKey, true);
                 markedEquipped = true;
             }
             if (overrideActive) {
