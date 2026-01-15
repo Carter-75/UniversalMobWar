@@ -7,6 +7,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.entity.passive.IronGolemEntity;
@@ -47,7 +48,39 @@ public final class TargetingUtil {
 		}
 	}
 	
-	private static final Map<String, ChunkEntityCache> ENTITY_CACHE = new ConcurrentHashMap<>();
+	private static final class ChunkCacheKey {
+		final Identifier dimensionId;
+		final int chunkX;
+		final int chunkZ;
+
+		ChunkCacheKey(Identifier dimensionId, int chunkX, int chunkZ) {
+			this.dimensionId = dimensionId;
+			this.chunkX = chunkX;
+			this.chunkZ = chunkZ;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) return true;
+			if (!(obj instanceof ChunkCacheKey other)) return false;
+			if (this.chunkX != other.chunkX) return false;
+			if (this.chunkZ != other.chunkZ) return false;
+			return java.util.Objects.equals(this.dimensionId, other.dimensionId);
+		}
+
+		@Override
+		public int hashCode() {
+			int result = 17;
+			result = 31 * result + (dimensionId != null ? dimensionId.hashCode() : 0);
+			result = 31 * result + chunkX;
+			result = 31 * result + chunkZ;
+			return result;
+		}
+	}
+
+	private static final ChunkCacheKey UNKNOWN_CACHE_KEY = new ChunkCacheKey(null, 0, 0);
+
+	private static final Map<ChunkCacheKey, ChunkEntityCache> ENTITY_CACHE = new ConcurrentHashMap<>();
 	private static final long CACHE_DURATION_MS = 2000; // Increased to 2 seconds for better performance
 	private static long lastCacheCleanup = 0;
 	
@@ -88,7 +121,7 @@ public final class TargetingUtil {
 		}
 		
 		// Check cache first
-		String cacheKey = getCacheKey(self);
+		ChunkCacheKey cacheKey = getCacheKey(self);
 		ChunkEntityCache cache = ENTITY_CACHE.get(cacheKey);
 		
 		List<LivingEntity> cachedEntities;
@@ -169,13 +202,12 @@ public final class TargetingUtil {
 	/**
 	 * Generates cache key based on chunk position.
 	 */
-	private static String getCacheKey(MobEntity self) {
+	private static ChunkCacheKey getCacheKey(MobEntity self) {
 		if (!(self.getWorld() instanceof ServerWorld world)) {
-			return "unknown";
+			return UNKNOWN_CACHE_KEY;
 		}
-		
 		ChunkPos chunkPos = new ChunkPos(self.getBlockPos());
-		return world.getRegistryKey().getValue().toString() + "_" + chunkPos.x + "_" + chunkPos.z;
+		return new ChunkCacheKey(world.getRegistryKey().getValue(), chunkPos.x, chunkPos.z);
 	}
 	
 	/**

@@ -1038,8 +1038,18 @@ public class ScalingSystem {
             shouldScheduleNow = false;
         }
 
+        // This scan is expensive and referenced multiple times below.
+        boolean affordableUpgradeAvailable = hasAffordableUpgradeAvailable(
+            mobUuid,
+            config,
+            mobType,
+            enchantRegistry,
+            skillData,
+            budget
+        );
+
         boolean forceUpgradePass = forceImmediateUpgrade && shouldRequestUpgrade && !upgradePending;
-        if (forceUpgradePass && hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
+        if (forceUpgradePass && affordableUpgradeAvailable) {
             ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
             boolean handled = false;
             if (asyncEnabled) {
@@ -1085,7 +1095,7 @@ public class ScalingSystem {
             windowApproved = true;
         }
 
-        if (shouldScheduleNow && hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
+        if (shouldScheduleNow && affordableUpgradeAvailable) {
             boolean approveNow = readyForNextCycle || firstUpgradeCycle;
             scheduleUpgradePass(skillData, currentTick, modConfig, approveNow);
             upgradePending = true;
@@ -1108,7 +1118,7 @@ public class ScalingSystem {
             upgradeScheduleReady = false;
         }
 
-        if (upgradeScheduleReady && !hasAffordableUpgradeAvailable(mobUuid, config, mobType, enchantRegistry, skillData, budget)) {
+        if (upgradeScheduleReady && !affordableUpgradeAvailable) {
             clearUpgradeSchedule(skillData);
             throttleBudgetProbe(skillData, currentTick);
             upgradeScheduleReady = false;
@@ -1881,44 +1891,57 @@ public class ScalingSystem {
      */
     private static List<UpgradeOption> getAffordableUpgrades(UUID mobUuid, JsonObject config, String mobType, 
             Registry<Enchantment> enchantRegistry, NbtCompound skillData, int budget) {
-        
+
         List<UpgradeOption> affordable = new ArrayList<>();
-        
-        if (!config.has("tree")) return affordable;
+        collectAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget, affordable);
+        return affordable;
+    }
+
+    private static void collectAffordableUpgrades(UUID mobUuid, JsonObject config, String mobType,
+            Registry<Enchantment> enchantRegistry, NbtCompound skillData, int budget, List<UpgradeOption> affordable) {
+
+        if (affordable == null || config == null) {
+            return;
+        }
+
+        if (!config.has("tree")) {
+            return;
+        }
+
         JsonObject tree = config.getAsJsonObject("tree");
         JsonElement weaponElement = tree.has("weapon") ? tree.get("weapon") : null;
         JsonObject lockedWeapon = weaponElement != null ? getLockedWeaponForMob(weaponElement, mobUuid) : null;
-        
+
         // Check potion effects based on mob type
         String effectsKey = mobType.equals("passive") ? "passive_potion_effects" : "hostile_neutral_potion_effects";
-        
+
         if (tree.has(effectsKey)) {
             JsonObject effects = tree.getAsJsonObject(effectsKey);
             addUpgradesFromSection(effects, skillData, budget, affordable, "effect_");
         }
-        
+
         // Determine locked weapon type or attack capability (needed for special abilities filtering)
         String attackCapability = null; // "ranged", "melee", or "both"
-        
+
         if (lockedWeapon != null && lockedWeapon.has("weapon_type")) {
             String weaponType = lockedWeapon.get("weapon_type").getAsString();
             attackCapability = isRangedWeaponType(weaponType) ? "ranged" : "melee";
         }
-        
+
         // If no weapon defined but has special_abilities, check mob's natural attack type
         if (attackCapability == null && tree.has("special_abilities")) {
             JsonObject abilities = tree.getAsJsonObject("special_abilities");
-            
+
             // If mob has ranged abilities defined, it's a ranged attacker (blaze, ghast, shulker, etc.)
-            boolean hasRangedAbilities = abilities.has("piercing_shot") || 
-                                         abilities.has("multishot") || 
+            boolean hasRangedAbilities = abilities.has("piercing_shot") ||
+                                         abilities.has("multishot") ||
                                          abilities.has("ranged_potion_mastery");
-            
+
             // If mob has melee abilities defined, it's a melee attacker
-            boolean hasMeleeAbilities = abilities.has("hunger_attack") || 
-                                       abilities.has("cleave") || 
+            boolean hasMeleeAbilities = abilities.has("hunger_attack") ||
+                                       abilities.has("cleave") ||
                                        abilities.has("life_steal");
-            
+
             if (hasRangedAbilities && hasMeleeAbilities) {
                 attackCapability = "both"; // Can use all abilities
             } else if (hasRangedAbilities) {
@@ -1929,13 +1952,13 @@ public class ScalingSystem {
                 attackCapability = "both"; // Unknown, allow all
             }
         }
-        
+
         // Check special abilities (filtered by attack capability)
         if (tree.has("special_abilities")) {
             JsonObject abilities = tree.getAsJsonObject("special_abilities");
             addUpgradesFromSection(abilities, skillData, budget, affordable, "ability_", attackCapability);
         }
-        
+
         // Check weapon upgrades
         if (weaponElement != null) {
             int currentTier = skillData.getInt("weapon_tier");
@@ -1963,26 +1986,26 @@ public class ScalingSystem {
                     }
                 }
             }
-            
+
             // Only upgrade the locked weapon's enchants and masteries
-            
+
             // Weapon enchants (dynamic: all registry enchants that can apply)
             if (lockedWeapon != null && currentTier > 0) {
                 ItemStack expectedWeapon = getExpectedWeaponStack(lockedWeapon, currentTier);
                 addDynamicEnchantmentUpgrades(expectedWeapon, enchantRegistry, skillData, budget, affordable, weaponEnchantPrefix, "weapon");
             }
-            
+
             // Weapon masteries require an equipped weapon
             if (lockedWeapon != null && currentTier > 0) {
                 addMasteryUpgrades(lockedWeapon, "drop_mastery", skillData, budget, affordable, weaponDropKey);
                 addMasteryUpgrades(lockedWeapon, "durability_mastery", skillData, budget, affordable, weaponDurabilityKey);
             }
         }
-        
+
         // Check shield upgrades
         if (tree.has("shield")) {
             JsonObject shield = tree.getAsJsonObject("shield");
-            
+
             // Base shield cost
             int hasShield = skillData.getInt("has_shield");
             if (hasShield == 0 && shield.has("base_cost")) {
@@ -1991,23 +2014,23 @@ public class ScalingSystem {
                     affordable.add(new UpgradeOption("has_shield", 1, cost));
                 }
             }
-            
+
             // Shield enchants (dynamic: all registry enchants that can apply)
             if (hasShield > 0) {
                 addDynamicEnchantmentUpgrades(new ItemStack(Items.SHIELD), enchantRegistry, skillData, budget, affordable, "shield_enchant_", "shield");
             }
-            
+
             if (hasShield > 0) {
                 addMasteryUpgrades(shield, "drop_mastery", skillData, budget, affordable, "shield_drop_mastery");
                 addMasteryUpgrades(shield, "durability_mastery", skillData, budget, affordable, "shield_durability_mastery");
             }
         }
-        
+
         // Check armor upgrades
         for (String slot : new String[]{"helmet", "chestplate", "leggings", "boots"}) {
             if (tree.has(slot)) {
                 JsonObject armor = tree.getAsJsonObject(slot);
-                
+
                 // Armor tiers
                 int currentTier = skillData.getInt(slot + "_tier");
 
@@ -2036,15 +2059,54 @@ public class ScalingSystem {
                         addDynamicEnchantmentUpgrades(expectedArmor, enchantRegistry, skillData, budget, affordable, slot + "_enchant_", slot);
                     }
                 }
-                
+
                 if (currentTier > 0) {
                     addMasteryUpgrades(armor, "drop_mastery", skillData, budget, affordable, slot + "_drop_mastery");
                     addMasteryUpgrades(armor, "durability_mastery", skillData, budget, affordable, slot + "_durability_mastery");
                 }
             }
         }
-        
-        return affordable;
+    }
+
+    private static final class FoundAffordableUpgrade extends RuntimeException {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
+    }
+
+    private static final FoundAffordableUpgrade FOUND_AFFORDABLE_UPGRADE = new FoundAffordableUpgrade();
+
+    private static final class EarlyExitUpgradeCollector extends ArrayList<UpgradeOption> {
+        @Override
+        public boolean add(UpgradeOption option) {
+            super.add(option);
+            throw FOUND_AFFORDABLE_UPGRADE;
+        }
+
+        @Override
+        public void add(int index, UpgradeOption element) {
+            super.add(index, element);
+            throw FOUND_AFFORDABLE_UPGRADE;
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends UpgradeOption> c) {
+            if (c == null || c.isEmpty()) {
+                return false;
+            }
+            super.addAll(c);
+            throw FOUND_AFFORDABLE_UPGRADE;
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends UpgradeOption> c) {
+            if (c == null || c.isEmpty()) {
+                return false;
+            }
+            super.addAll(index, c);
+            throw FOUND_AFFORDABLE_UPGRADE;
+        }
     }
 
     private static boolean hasAffordableUpgradeAvailable(UUID mobUuid, JsonObject config, String mobType,
@@ -2052,7 +2114,13 @@ public class ScalingSystem {
         if (budget <= 0) {
             return false;
         }
-        return !getAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget).isEmpty();
+        // Use the exact same logic as getAffordableUpgrades, but stop as soon as one option is discovered.
+        try {
+            collectAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget, new EarlyExitUpgradeCollector());
+            return false;
+        } catch (FoundAffordableUpgrade ignored) {
+            return true;
+        }
     }
     
     /**
