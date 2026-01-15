@@ -111,38 +111,59 @@ public final class TargetingUtil {
 			ENTITY_CACHE.put(cacheKey, new ChunkEntityCache(new ArrayList<>(cachedEntities), currentTime));
 		}
 		
-		// Filter cached entities for THIS specific mob
-		List<LivingEntity> entities = new ArrayList<>();
+		// Filter cached entities for THIS specific mob and pick the best target in one pass.
+		// This preserves the exact ordering semantics of the previous stable sort:
+		//   1) Warlords first
+		//   2) Then by squared distance
+		//   3) Stable tie-break (first encountered wins)
+		LivingEntity best = null;
+		boolean bestNotWarlord = true;
+		double bestDistanceSq = 0.0;
+		int validCount = 0;
 		for (LivingEntity entity : cachedEntities) {
-			if (isValidTarget(self, entity, ignoreSameSpecies, targetPlayers)) {
-				entities.add(entity);
+			if (!isValidTarget(self, entity, ignoreSameSpecies, targetPlayers)) {
+				continue;
 			}
-		}
-		
-		// OPTIMIZATION: Early exit if no entities found
-		if (entities.isEmpty()) return null;
-		
-		// OPTIMIZATION: If only 1 entity, skip all sorting logic
-		if (entities.size() == 1) {
-			return entities.get(0);
-		}
 
-		// OPTIMIZATION: Early exit if Warlord found in first 5 entities (avoids sorting entire list)
-		for (int i = 0; i < Math.min(5, entities.size()); i++) {
-			LivingEntity entity = entities.get(i);
-			if (entity instanceof MobWarlordEntity) {
+			// Track valid entity count for the old early-exit optimization.
+			validCount++;
+			if (validCount <= 5 && entity instanceof MobWarlordEntity) {
 				return entity;
 			}
+
+			boolean currentNotWarlord = !(entity instanceof MobWarlordEntity);
+			double currentDistanceSq = entity.squaredDistanceTo(self);
+			if (best == null) {
+				best = entity;
+				bestNotWarlord = currentNotWarlord;
+				bestDistanceSq = currentDistanceSq;
+				continue;
+			}
+
+			// Comparator equivalent to:
+			//   Comparator.comparing((LivingEntity e) -> !(e instanceof MobWarlordEntity))
+			//             .thenComparingDouble(e -> e.squaredDistanceTo(self))
+			int warlordCmp = Boolean.compare(currentNotWarlord, bestNotWarlord);
+			if (warlordCmp < 0) {
+				best = entity;
+				bestNotWarlord = currentNotWarlord;
+				bestDistanceSq = currentDistanceSq;
+				continue;
+			}
+			if (warlordCmp > 0) {
+				continue;
+			}
+
+			int distCmp = Double.compare(currentDistanceSq, bestDistanceSq);
+			if (distCmp < 0) {
+				best = entity;
+				bestNotWarlord = currentNotWarlord;
+				bestDistanceSq = currentDistanceSq;
+			}
+			// If equal, keep existing 'best' to preserve stability.
 		}
 
-		// OPTIMIZATION: Only sort if we have 2+ entities (sorting is expensive)
-		// Strategic priority sorting: Warlords first, then by distance
-		entities.sort(Comparator
-			.comparing((LivingEntity e) -> !(e instanceof MobWarlordEntity))
-			.thenComparingDouble(e -> e.squaredDistanceTo(self))
-		);
-		
-		return entities.get(0);
+		return best;
 	}
 	
 	/**

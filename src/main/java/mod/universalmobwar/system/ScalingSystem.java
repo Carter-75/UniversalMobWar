@@ -903,9 +903,8 @@ public class ScalingSystem {
                     data.setSkillData(skillData);
                 }
             }
-        } else {
-            skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
         }
+        // Always store the effective fingerprint so config changes can be detected cheaply on future ticks.
         skillData.putLong(NBT_CONFIG_FINGERPRINT, configFingerprint);
 
         boolean fallbackConfig = config.has(FALLBACK_FLAG_KEY) && config.get(FALLBACK_FLAG_KEY).getAsBoolean();
@@ -917,7 +916,6 @@ public class ScalingSystem {
         String mobType = config.has("mob_type") ? config.get("mob_type").getAsString() : "hostile";
         refreshMissingEffects(mob, skillData, config, mobType);
 
-        double dayPoints = calculateWorldAgePoints(world, config, modConfig);
         int killCount = data.getKillCount();
         double killScaling = getKillScalingFactor(config);
         double killPoints = killCount * killScaling * Math.max(0.0, modConfig.getKillScalingMultiplier());
@@ -932,6 +930,9 @@ public class ScalingSystem {
             : Math.max(0.0, data.getSkillPoints() - killPoints);
 
         if (!hasLastAccountedDay || !hasDayPointCache) {
+            // Only compute world-age points when we are (re)building the day-point cache.
+            // This avoids doing JSON range processing on every single mob tick.
+            double dayPoints = calculateWorldAgePoints(world, config, modConfig);
             double backlogPoints = Math.max(0.0, dayPoints);
             dayPointCache = backlogPoints;
             lastAccountedDay = worldDays;
