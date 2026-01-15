@@ -118,6 +118,7 @@ public class ScalingSystem {
 
     private static final String HORDE_REINFORCEMENT_TAG = "umw_horde_reinforcement";
     private static final String NBT_HORDE_REINFORCEMENT = "umw_horde_reinforcement";
+    private static final String EQUIPMENT_REPLACEMENT_ONCE_TAG = "umw_equipment_replaced_once";
     private static final int HORDE_MAX_NEARBY_MOBS = 10;
     private static final double HORDE_NEARBY_RADIUS = 50.0;
     private static final double DEFAULT_DAILY_POINTS = 0.1d;
@@ -727,13 +728,16 @@ public class ScalingSystem {
         mob.equipStack(EquipmentSlot.FEET, ItemStack.EMPTY);
     }
 
-    private static void dropAndClearSlot(MobEntity mob, EquipmentSlot slot) {
+    private static boolean dropAndClearSlotOnce(MobEntity mob, EquipmentSlot slot) {
         if (mob == null || slot == null || mob.getWorld().isClient()) {
-            return;
+            return false;
         }
         ItemStack current = mob.getEquippedStack(slot);
         if (current == null || current.isEmpty()) {
-            return;
+            return true;
+        }
+        if (mob.getCommandTags().contains(EQUIPMENT_REPLACEMENT_ONCE_TAG)) {
+            return false;
         }
         ItemStack toDrop = current.copy();
 
@@ -756,6 +760,8 @@ public class ScalingSystem {
         }
         mob.equipStack(slot, ItemStack.EMPTY);
         mob.dropStack(toDrop);
+        mob.addCommandTag(EQUIPMENT_REPLACEMENT_ONCE_TAG);
+        return true;
     }
 
     private static void abortUpgradesForMob(MobEntity mob, MobWarData data) {
@@ -2445,9 +2451,14 @@ public class ScalingSystem {
         }
 
         ItemStack current = mob.getEquippedStack(EquipmentSlot.MAINHAND);
-        if (!current.isEmpty()) {
-            dropAndClearSlot(mob, EquipmentSlot.MAINHAND);
-            logEquipmentDebug(mob, "weapon", "Dropped blocking item in MAINHAND to enforce configured weapon");
+        boolean blockingItem = !current.isEmpty() && !isScalingEquippedItem(skillData, NBT_WEAPON_LAST_ITEM, current);
+        if (blockingItem) {
+            if (!dropAndClearSlotOnce(mob, EquipmentSlot.MAINHAND)) {
+                // Only drop/replace a blocking item once per entity. If it happens again later,
+                // treat it as a permanent manual override and do not replace their held item.
+                return;
+            }
+            logEquipmentDebug(mob, "weapon", "Dropped blocking item in MAINHAND to enforce configured weapon (one-time)");
         }
 
         skillData.putBoolean("weapon_equipped", false);
@@ -2489,9 +2500,14 @@ public class ScalingSystem {
 
         boolean previouslyEquipped = skillData.getBoolean("shield_equipped");
         ItemStack current = mob.getEquippedStack(EquipmentSlot.OFFHAND);
-        if (!current.isEmpty()) {
-            dropAndClearSlot(mob, EquipmentSlot.OFFHAND);
-            logEquipmentDebug(mob, "shield", "Dropped blocking item in OFFHAND to enforce configured shield");
+        boolean blockingItem = !current.isEmpty() && !isScalingEquippedItem(skillData, NBT_SHIELD_LAST_ITEM, current);
+        if (blockingItem) {
+            if (!dropAndClearSlotOnce(mob, EquipmentSlot.OFFHAND)) {
+                // Only drop/replace a blocking item once per entity. If it happens again later,
+                // treat it as a permanent manual override and do not replace their offhand item.
+                return;
+            }
+            logEquipmentDebug(mob, "shield", "Dropped blocking item in OFFHAND to enforce configured shield (one-time)");
         }
 
         skillData.putBoolean("shield_equipped", false);
@@ -2561,9 +2577,14 @@ public class ScalingSystem {
         ItemStack current = mob.getEquippedStack(slot);
         String trackingKey = getArmorTrackingKey(slotName);
         boolean previouslyEquipped = skillData.getBoolean(slotName + "_equipped");
-        if (!current.isEmpty()) {
-            dropAndClearSlot(mob, slot);
-            logEquipmentDebug(mob, slotName, "Dropped blocking item in " + slot.getName() + " to enforce configured armor");
+        boolean blockingItem = !current.isEmpty() && !isScalingEquippedItem(skillData, trackingKey, current);
+        if (blockingItem) {
+            if (!dropAndClearSlotOnce(mob, slot)) {
+                // Only drop/replace a blocking item once per entity. If it happens again later,
+                // treat it as a permanent manual override and do not replace this slot.
+                return;
+            }
+            logEquipmentDebug(mob, slotName, "Dropped blocking item in " + slot.getName() + " to enforce configured armor (one-time)");
         }
 
         skillData.putBoolean(slotName + "_equipped", false);
