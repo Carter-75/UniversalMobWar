@@ -23,6 +23,7 @@ import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.PassiveEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -91,6 +92,11 @@ public class ScalingSystem {
     
     // Entity class name -> mob config name mapping
     private static final Map<String, String> ENTITY_TO_CONFIG = new ConcurrentHashMap<>();
+
+    // Per-tick hot path caches for config resolution
+    private static final String NO_CONFIG_MATCH = "__umw_no_config_match__";
+    private static final Map<Class<?>, String> SIMPLE_CLASS_LOOKUP_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, String> REGISTRY_NAME_LOOKUP_CACHE = new ConcurrentHashMap<>();
 
     // Cached fingerprints per mob config to detect changes without recomputing large JSON hashes every tick
     private static final Map<String, Integer> CONFIG_FINGERPRINTS = new ConcurrentHashMap<>();
@@ -345,27 +351,46 @@ public class ScalingSystem {
         if (!configsLoaded) initialize();
         
         // Try full class name first
-        String className = mob.getClass().getName();
+        Class<?> mobClass = mob.getClass();
+        String className = mobClass.getName();
         String configName = ENTITY_TO_CONFIG.get(className);
         
         if (configName == null) {
             // Try simple class name
-            String simpleName = mob.getClass().getSimpleName().toLowerCase().replace("entity", "");
+            String simpleName = SIMPLE_CLASS_LOOKUP_CACHE.computeIfAbsent(
+                mobClass,
+                clazz -> clazz.getSimpleName().toLowerCase().replace("entity", "")
+            );
             configName = ENTITY_TO_CONFIG.get(simpleName);
         }
         
         if (configName == null) {
             // Try registry name
             String registryName = mob.getType().toString().toLowerCase();
-            for (String implemented : getImplementedMobs()) {
-                if (registryName.contains(implemented)) {
-                    configName = implemented;
-                    break;
+            String cached = REGISTRY_NAME_LOOKUP_CACHE.get(registryName);
+            if (cached != null) {
+                if (!NO_CONFIG_MATCH.equals(cached)) {
+                    configName = cached;
                 }
+            } else {
+                String resolved = null;
+                for (String implemented : getImplementedMobs()) {
+                    if (registryName.contains(implemented)) {
+                        resolved = implemented;
+                        break;
+                    }
+                }
+                REGISTRY_NAME_LOOKUP_CACHE.put(registryName, resolved != null ? resolved : NO_CONFIG_MATCH);
+                configName = resolved;
             }
         }
         
         if (configName != null) {
+            // Fallback configs may need to update mob_type when ModConfig changes, so always route
+            // through the fallback handler instead of returning the cached JsonObject directly.
+            if (configName.startsWith(FALLBACK_PREFIX)) {
+                return getOrCreateFallbackConfig(mob);
+            }
             JsonObject existing = MOB_CONFIGS.get(configName);
             if (existing != null) {
                 return existing;
@@ -3450,12 +3475,60 @@ public class ScalingSystem {
         };
     }
 
+    private static Item getExpectedWeaponItem(JsonObject weaponConfig, int tierLevel) {
+        if (weaponConfig == null || tierLevel <= 0) {
+            return null;
+        }
+
+        String weaponType = weaponConfig.has("weapon_type") ? weaponConfig.get("weapon_type").getAsString() : "sword";
+
+        if (isRangedWeaponType(weaponType)) {
+            String type = weaponType == null ? "" : weaponType.toLowerCase(java.util.Locale.ROOT);
+            return switch (type) {
+                case "bow" -> Items.BOW;
+                case "crossbow" -> Items.CROSSBOW;
+                case "trident" -> Items.TRIDENT;
+                default -> null;
+            };
+        }
+
+        if (!weaponConfig.has("tiers")) {
+            return null;
+        }
+        JsonArray tiers = weaponConfig.getAsJsonArray("tiers");
+        if (tiers == null || tiers.isEmpty()) {
+            return null;
+        }
+
+        int clampedTier = Math.max(1, Math.min(tierLevel, tiers.size()));
+        JsonObject tierData = tiers.get(clampedTier - 1).getAsJsonObject();
+        if (tierData == null || !tierData.has("tier")) {
+            return null;
+        }
+
+        String tierName = tierData.get("tier").getAsString();
+        if (tierName == null) {
+            return null;
+        }
+        boolean isAxe = weaponType != null && weaponType.contains("axe");
+
+        return switch (tierName.toLowerCase()) {
+            case "wooden", "wood" -> isAxe ? Items.WOODEN_AXE : Items.WOODEN_SWORD;
+            case "stone" -> isAxe ? Items.STONE_AXE : Items.STONE_SWORD;
+            case "iron" -> isAxe ? Items.IRON_AXE : Items.IRON_SWORD;
+            case "golden", "gold" -> isAxe ? Items.GOLDEN_AXE : Items.GOLDEN_SWORD;
+            case "diamond" -> isAxe ? Items.DIAMOND_AXE : Items.DIAMOND_SWORD;
+            case "netherite" -> isAxe ? Items.NETHERITE_AXE : Items.NETHERITE_SWORD;
+            default -> null;
+        };
+    }
+
     private static boolean isExpectedWeaponItem(ItemStack equipped, JsonObject weaponConfig, int tierLevel) {
         if (equipped == null || equipped.isEmpty()) {
             return false;
         }
-        ItemStack expected = getExpectedWeaponStack(weaponConfig, tierLevel);
-        return !expected.isEmpty() && equipped.isOf(expected.getItem());
+        Item expected = getExpectedWeaponItem(weaponConfig, tierLevel);
+        return expected != null && equipped.isOf(expected);
     }
     
     /**
