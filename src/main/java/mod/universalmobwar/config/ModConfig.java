@@ -212,6 +212,25 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public int mobDataSaveDebounceMs = 200;
 
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public boolean cleanupNonPlayerGroundProjectiles = false;
+
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.BoundedDiscrete(min = 5, max = 600)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int cleanupNonPlayerGroundProjectilesIntervalSeconds = 30;
+
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 12000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int cleanupNonPlayerGroundProjectilesMinAgeTicks = 200;
+
+    @ConfigEntry.Category("performance")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 50000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int cleanupNonPlayerGroundProjectilesMaxPerWorldPerRun = 2000;
+
     // ==========================================================================
     //                              VISUALS
     // ==========================================================================

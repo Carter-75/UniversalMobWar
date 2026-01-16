@@ -13,6 +13,7 @@ import mod.universalmobwar.net.UmwServerEnchantCompat;
 // Evolution system handled globally via MobDataMixin + ScalingSystem
 import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.system.NaturalSpawnLimiter;
+import mod.universalmobwar.system.EntityCleanupSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
@@ -208,6 +209,13 @@ public class UniversalMobWarMod implements ModInitializer {
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
 				TargetingUtil.cleanupCache();
 				OperationScheduler.cleanup(); // Also cleanup operation scheduler
+			}
+
+			// PERFORMANCE: Clean up non-player ground projectiles (arrows/tridents) on an interval.
+			int intervalSeconds = Math.max(5, ModConfig.getInstance().cleanupNonPlayerGroundProjectilesIntervalSeconds);
+			int intervalTicks = intervalSeconds * 20;
+			if (server.getTicks() % intervalTicks == 0) {
+				EntityCleanupSystem.cleanupNonPlayerGroundProjectiles(server);
 			}
 			
 			// MEMORY LEAK FIX: Clean up dead mob UUIDs from AllianceSystem (every 60 seconds)
