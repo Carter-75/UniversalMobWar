@@ -219,12 +219,12 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Category("performance")
     @ConfigEntry.BoundedDiscrete(min = 5, max = 600)
     @ConfigEntry.Gui.Tooltip(count = 4)
-    public int cleanupNonPlayerGroundProjectilesIntervalSeconds = 30;
+    public int cleanupNonPlayerGroundProjectilesIntervalSeconds = 5;
 
     @ConfigEntry.Category("performance")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 12000)
     @ConfigEntry.Gui.Tooltip(count = 4)
-    public int cleanupNonPlayerGroundProjectilesMinAgeTicks = 200;
+    public int cleanupNonPlayerGroundProjectilesMinAgeTicks = 60;
 
     @ConfigEntry.Category("performance")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 50000)
