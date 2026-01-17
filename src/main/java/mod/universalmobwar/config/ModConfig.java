@@ -156,6 +156,9 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 4)
     public boolean forceSyncSpawnUpgrade = true;
 
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public boolean logSpawnPointSummary = true;
+
     @ConfigEntry.Gui.Tooltip(count = 5)
     public boolean allowModdedEnchantments = true;
 

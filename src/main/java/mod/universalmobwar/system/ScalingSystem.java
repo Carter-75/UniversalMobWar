@@ -426,6 +426,7 @@ public class ScalingSystem {
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
     private static final String NBT_SPAWN_BURST_PENDING = "umw_spawn_burst_pending";
+    private static final String NBT_SPAWN_LOGGED = "umw_spawn_point_summary_logged";
     private static final String NBT_NEXT_BUDGET_CHECK_TICK = "umw_next_budget_check_tick";
     private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
     private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
@@ -592,6 +593,86 @@ public class ScalingSystem {
         }
     }
 
+    private static JsonObject tryLoadMobConfigDirect(String resourceName) {
+        if (resourceName == null || resourceName.isBlank()) {
+            return null;
+        }
+        String path = "/mob_configs/" + resourceName + ".json";
+        try (InputStream is = ScalingSystem.class.getResourceAsStream(path)) {
+            if (is == null) {
+                return null;
+            }
+            InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+            JsonObject config = GSON.fromJson(reader, JsonObject.class);
+            if (config == null || !config.has("mob_name") || !config.has("entity_class")) {
+                return null;
+            }
+            String configMobName = config.get("mob_name").getAsString().toLowerCase(java.util.Locale.ROOT);
+            String entityClass = config.get("entity_class").getAsString();
+            MOB_CONFIGS.put(configMobName, config);
+            ENTITY_TO_CONFIG.put(entityClass, configMobName);
+            String simpleClassName = entityClass.substring(entityClass.lastIndexOf('.') + 1).toLowerCase(java.util.Locale.ROOT);
+            ENTITY_TO_CONFIG.put(simpleClassName, configMobName);
+            CONFIG_FINGERPRINTS.put(configMobName, computeJsonFingerprint(config));
+            // Preserve the discovered resource name so future loads resolve the same casing.
+            CONFIG_RESOURCE_NAMES.putIfAbsent(resourceName.toLowerCase(java.util.Locale.ROOT), resourceName);
+            return config;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static JsonObject tryLoadMobConfigForMob(MobEntity mob) {
+        if (mob == null) {
+            return null;
+        }
+
+        // Candidates are ordered from most-likely to least-likely.
+        String registry = mob.getType() != null ? mob.getType().toString() : "";
+        String registryKey = registry;
+        int colon = registryKey.indexOf(':');
+        if (colon >= 0 && colon + 1 < registryKey.length()) {
+            registryKey = registryKey.substring(colon + 1);
+        }
+
+        Class<?> mobClass = mob.getClass();
+        String simple = mobClass.getSimpleName();
+        if (simple.endsWith("Entity")) {
+            simple = simple.substring(0, simple.length() - "Entity".length());
+        }
+        String simpleLower = simple.toLowerCase(java.util.Locale.ROOT);
+
+        // Try exact-case and lowercase variants. (Resource case matters on Linux.)
+        JsonObject loaded;
+        if (!registryKey.isBlank()) {
+            loaded = tryLoadMobConfigDirect(registryKey);
+            if (loaded != null) return loaded;
+            loaded = tryLoadMobConfigDirect(capitalizeAscii(registryKey));
+            if (loaded != null) return loaded;
+        }
+        if (!simpleLower.isBlank()) {
+            loaded = tryLoadMobConfigDirect(simpleLower);
+            if (loaded != null) return loaded;
+            loaded = tryLoadMobConfigDirect(capitalizeAscii(simpleLower));
+            if (loaded != null) return loaded;
+            loaded = tryLoadMobConfigDirect(simple);
+            if (loaded != null) return loaded;
+        }
+        return null;
+    }
+
+    private static String capitalizeAscii(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        char first = value.charAt(0);
+        char upper = (first >= 'a' && first <= 'z') ? (char) (first - 32) : first;
+        if (upper == first) {
+            return value;
+        }
+        return upper + value.substring(1);
+    }
+
     private static int computeJsonFingerprint(JsonObject json) {
         if (json == null) {
             return 0;
@@ -673,6 +754,13 @@ public class ScalingSystem {
             if (existing != null) {
                 return existing;
             }
+        }
+
+        // If we couldn't resolve a config via the preloaded index (e.g., resource scan failure
+        // in some environments), try to load a matching config directly by name.
+        JsonObject direct = tryLoadMobConfigForMob(mob);
+        if (direct != null) {
+            return direct;
         }
 
         return getOrCreateFallbackConfig(mob);
@@ -1231,6 +1319,7 @@ public class ScalingSystem {
         boolean hasDayPointCache = skillData.contains(NBT_TOTAL_POINT_CACHE);
         int lastAccountedDay = hasLastAccountedDay ? skillData.getInt(NBT_LAST_ACCOUNTED_DAY) : worldDays;
         boolean skillDataDirty = false;
+        boolean rebuiltDayPointCache = false;
         double dayPointCache = hasDayPointCache
             ? skillData.getDouble(NBT_TOTAL_POINT_CACHE)
             : Math.max(0.0, data.getSkillPoints() - killPoints);
@@ -1246,6 +1335,7 @@ public class ScalingSystem {
             skillData.putDouble(NBT_TOTAL_POINT_CACHE, dayPointCache);
             data.setSkillPoints(Math.max(0.0, dayPointCache + killPoints));
             skillDataDirty = true;
+            rebuiltDayPointCache = true;
         }
 
         if (worldDays > lastAccountedDay) {
@@ -1267,6 +1357,29 @@ public class ScalingSystem {
 
         double spentPoints = data.getSpentPoints();
         int budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
+
+        // One-time spawn logging so you can verify points/budget are correct.
+        if (forceImmediateUpgrade && modConfig.logSpawnPointSummary && !skillData.getBoolean(NBT_SPAWN_LOGGED)) {
+            String mobName = config.has("mob_name") ? config.get("mob_name").getAsString() : mob.getType().toString();
+            UniversalMobWarMod.LOGGER.info(
+                "[UMW Spawn] mob={} uuid={} reason={} worldDays={} dayMult={} killMult={} killCount={} killPoints={} dayPointCache={} totalPoints={} spentPoints={} budget={} rebuiltDayCache={}",
+                mobName,
+                mob.getUuidAsString(),
+                "bootstrap",
+                worldDays,
+                modConfig.getDayScalingMultiplier(),
+                modConfig.getKillScalingMultiplier(),
+                killCount,
+                killPoints,
+                dayPointCache,
+                totalPoints,
+                spentPoints,
+                budget,
+                rebuiltDayPointCache
+            );
+            skillData.putBoolean(NBT_SPAWN_LOGGED, true);
+            skillDataDirty = true;
+        }
 
         long currentTick = world.getTime();
         long upgradeIntervalTicks = getUpgradeIntervalTicks(modConfig);
@@ -2043,6 +2156,8 @@ public class ScalingSystem {
 
             List<UpgradeOption> affordable = getAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget);
 
+            List<UpgradeOption> purchaseCandidates = affordable;
+
             // Debug visibility: log enchant option counts once per upgrade pass so you can
             // verify in-game that each slot's option list eventually reaches 0.
             if (iterations == 1) {
@@ -2067,7 +2182,7 @@ public class ScalingSystem {
                 continue;
             }
 
-            UpgradeOption chosen = chooseWeightedUpgrade(affordable, random);
+            UpgradeOption chosen = chooseWeightedUpgrade(purchaseCandidates, random);
             if (chosen == null) {
                 exitReason = "No upgrade chosen";
                 logBuffer.log(exitReason);
@@ -2715,16 +2830,31 @@ public class ScalingSystem {
         if (mob == null) {
             return;
         }
-        boolean showParticles = !ModConfig.getInstance().disableParticles;
-        mob.addStatusEffect(new StatusEffectInstance(
-            StatusEffects.INSTANT_DAMAGE,
-            1,
-            Math.max(0, amplifier),
-            false,
-            showParticles,
-            true
-        ));
+
+        // Instant effects are not reliably applied via addStatusEffect across versions.
+        // Apply as a true instant effect so undead mobs actually receive the healing.
+        try {
+            StatusEffects.INSTANT_DAMAGE.value().applyInstantEffect(
+                null,
+                null,
+                mob,
+                Math.max(0, amplifier),
+                1.0
+            );
+        } catch (Exception ignored) {
+            // Fallback: still try as a status effect instance.
+            boolean showParticles = !ModConfig.getInstance().disableParticles;
+            mob.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.INSTANT_DAMAGE,
+                1,
+                Math.max(0, amplifier),
+                false,
+                showParticles,
+                true
+            ));
+        }
     }
+
 
     private static boolean isUndeadMob(MobEntity mob) {
         return mob != null && mob.getType().isIn(EntityTypeTags.UNDEAD);
