@@ -1829,6 +1829,18 @@ public class ScalingSystem {
             long scheduled = bypassDelay
                 ? Math.max(currentTick, NEXT_UPGRADE_SLOT_TICK)
                 : Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
+
+            // If the global slot counter drifts too far ahead (e.g., thousands of mobs
+            // scheduling in a short burst), upgrades can be delayed for minutes/hours.
+            // Cap the backlog so upgrades remain reasonably consistent while still
+            // staggering work to protect TPS.
+            long maxBacklogTicks = Math.max(600L, Math.max(20L, delayTicks) * 10L);
+            if (scheduled - currentTick > maxBacklogTicks) {
+                NEXT_UPGRADE_SLOT_TICK = Math.max(preferredTick, currentTick);
+                scheduled = bypassDelay
+                    ? Math.max(currentTick, NEXT_UPGRADE_SLOT_TICK)
+                    : Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
+            }
             NEXT_UPGRADE_SLOT_TICK = scheduled + spacing;
             return scheduled;
         }
@@ -2291,7 +2303,24 @@ public class ScalingSystem {
         NbtCompound existingData = data.getSkillData();
         boolean previouslyDisarmed = existingData != null && existingData.getBoolean(NBT_INITIAL_DISARMED);
 
-        data.setSkillData(computedData);
+        // Async upgrade jobs operate on a snapshot of skillData taken when the job was submitted.
+        // Replacing the entire compound can roll back runtime/cache fields that have been updated
+        // on the main thread since then (e.g., config fingerprint, day point cache).
+        NbtCompound mergedData = existingData != null ? existingData.copy() : new NbtCompound();
+        mergeNbtCompound(mergedData, computedData);
+
+        // Preserve fields that are maintained on the hot tick path and should never roll back.
+        if (existingData != null) {
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_CONFIG_FINGERPRINT);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_LAST_ACCOUNTED_DAY);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_TOTAL_POINT_CACHE);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_NEXT_BUDGET_CHECK_TICK);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_SPAWN_LOGGED);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_FALLBACK_INITIALIZED);
+            copyNbtKeyIfPresent(existingData, mergedData, NBT_FALLBACK_TYPE);
+        }
+
+        data.setSkillData(mergedData);
         data.setSpentPoints(computation.spentPoints());
         NbtCompound skillData = data.getSkillData();
         if (skillData == null) {
@@ -2321,6 +2350,36 @@ public class ScalingSystem {
         if (computation.purchasedUpgrade()) {
             spawnUpgradeParticles(mob);
         }
+    }
+
+    private static void mergeNbtCompound(NbtCompound target, NbtCompound source) {
+        if (target == null || source == null) {
+            return;
+        }
+        for (String key : source.getKeys()) {
+            if (key == null) {
+                continue;
+            }
+            net.minecraft.nbt.NbtElement element = source.get(key);
+            if (element == null) {
+                continue;
+            }
+            target.put(key, element.copy());
+        }
+    }
+
+    private static void copyNbtKeyIfPresent(NbtCompound source, NbtCompound target, String key) {
+        if (source == null || target == null || key == null) {
+            return;
+        }
+        if (!source.contains(key)) {
+            return;
+        }
+        net.minecraft.nbt.NbtElement element = source.get(key);
+        if (element == null) {
+            return;
+        }
+        target.put(key, element.copy());
     }
     
     /**

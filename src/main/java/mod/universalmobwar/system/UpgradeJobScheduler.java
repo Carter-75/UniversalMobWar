@@ -52,7 +52,8 @@ public final class UpgradeJobScheduler {
         FutureTask<Void> task = new FutureTask<>(() -> {
             try {
                 ScalingSystem.UpgradeJobResult result = callable.call();
-                if (result != null) {
+                FutureTask<Void> self = holder[0];
+                if (result != null && self != null && activeJobs.get(mobId) == self) {
                     completedResults.put(mobId, result);
                 }
             } catch (Exception ex) {
