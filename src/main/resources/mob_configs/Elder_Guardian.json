@@ -73,6 +73,7 @@
     "leggings": {},
     "boots": {},
 
+    "special_abilities": {
       "ranged_potion_mastery": [
         { "level": 1, "cost": 10, "chance": 0.20, "effects": [{ "type": "slowness", "level": 1, "duration": 10 }] },
         { "level": 2, "cost": 15, "chance": 0.40, "effects": [{ "type": "slowness", "level": 2, "duration": 15 }, { "type": "weakness", "level": 1, "duration": 10 }] },
@@ -93,3 +94,5 @@
       ]
     }
   }
+
+}
