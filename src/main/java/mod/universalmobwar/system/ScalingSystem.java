@@ -985,6 +985,13 @@ public class ScalingSystem {
             return;
         }
 
+        // Only manage equipment for mobs that have an explicit scaling config.
+        // Otherwise we can accidentally strip gear from modded mobs that are not configured.
+        JsonObject config = getConfigForMob(mob);
+        if (config == null || !config.has("tree")) {
+            return;
+        }
+
         NbtCompound skillData = data.getSkillData();
         if (skillData == null || skillData.isEmpty()) {
             return;
@@ -998,10 +1005,6 @@ public class ScalingSystem {
             return;
         }
 
-        JsonObject config = getConfigForMob(mob);
-        if (config == null || !config.has("tree")) {
-            return;
-        }
         JsonObject tree = config.getAsJsonObject("tree");
         ServerWorld serverWorld = mob.getWorld() instanceof ServerWorld sw ? sw : null;
         JsonElement shieldElement = tree.has("shield") ? tree.get("shield") : null;
@@ -1130,7 +1133,8 @@ public class ScalingSystem {
         if (current == null || current.isEmpty()) {
             return true;
         }
-        if (mob.getCommandTags().contains(EQUIPMENT_REPLACEMENT_ONCE_TAG)) {
+        String slotTag = getEquipmentReplacementOnceTag(slot);
+        if (mob.getCommandTags().contains(slotTag)) {
             return false;
         }
         ItemStack toDrop = current.copy();
@@ -1154,8 +1158,16 @@ public class ScalingSystem {
         }
         mob.equipStack(slot, ItemStack.EMPTY);
         mob.dropStack(toDrop);
-        mob.addCommandTag(EQUIPMENT_REPLACEMENT_ONCE_TAG);
+        mob.addCommandTag(slotTag);
         return true;
+    }
+
+    private static String getEquipmentReplacementOnceTag(EquipmentSlot slot) {
+        if (slot == null) {
+            return EQUIPMENT_REPLACEMENT_ONCE_TAG;
+        }
+        // Per-slot guard: allow one-time replacement in each slot independently.
+        return EQUIPMENT_REPLACEMENT_ONCE_TAG + "_" + slot.getName();
     }
 
     private static void abortUpgradesForMob(MobEntity mob, MobWarData data) {
