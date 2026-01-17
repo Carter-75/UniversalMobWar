@@ -1,8 +1,8 @@
 {
-  "mob_name": "Shulker",
-  "entity_class": "net.minecraft.entity.mob.ShulkerEntity",
+  "mob_name": "Ghast",
+  "entity_class": "net.minecraft.entity.mob.GhastEntity",
   "mob_type": "hostile",
-  "tree_name": "Levitation Artillery",
+  "tree_name": "Ghastly Barrage",
 
   "point_system": {
     "daily_scaling": [
@@ -74,12 +74,6 @@
     "boots": {},
 
     "special_abilities": {
-      "piercing_shot": [
-        { "level": 1, "cost": 8,  "pierce_count": 1 },
-        { "level": 2, "cost": 12, "pierce_count": 2 },
-        { "level": 3, "cost": 16, "pierce_count": 3 },
-        { "level": 4, "cost": 20, "pierce_count": 4 }
-      ],
       "ranged_potion_mastery": [
         { "level": 1, "cost": 10, "chance": 0.20, "effects": [{ "type": "slowness", "level": 1, "duration": 10 }] },
         { "level": 2, "cost": 15, "chance": 0.40, "effects": [{ "type": "slowness", "level": 2, "duration": 15 }, { "type": "weakness", "level": 1, "duration": 10 }] },

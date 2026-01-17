@@ -52,6 +52,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -108,6 +109,273 @@ public class ScalingSystem {
     // Prevents the same target from being repeatedly affected in a short window.
     private static final Map<UUID, Map<String, Long>> ABILITY_TARGET_IMMUNITIES = new ConcurrentHashMap<>();
     private static final long ABILITY_TARGET_IMMUNITY_TICKS = 10L * 20L; // 10 seconds
+
+    // ======================================================================
+    //                    EXTRA SHOT (FOLLOW-UP CYCLES)
+    // ======================================================================
+
+    /**
+     * Extra-shot spawned projectiles get this tag so they don't recursively schedule more extra shots.
+     */
+    public static final String EXTRA_SHOT_CHILD_TAG = "umw_extra_shot_child";
+
+    /**
+     * Multishot spawned projectiles get this tag so they don't recursively spawn more multishots/extra shots.
+     */
+    public static final String MULTISHOT_CHILD_TAG = "umw_multishot_child";
+
+    private static final int SHOT_CYCLE_GAP_THRESHOLD_TICKS = 10;
+    private static final int SHOT_CYCLE_MIN_TICKS = 6;
+    private static final int SHOT_CYCLE_MAX_TICKS = 20 * 30; // 30s
+    private static final int DEFAULT_CYCLE_TICKS = 20 * 3; // 3s fallback until learned
+
+    private static final Object EXTRA_SHOT_LOCK = new Object();
+
+    // EntityType id -> moving-average cycle length (in server ticks)
+    private static final Map<Identifier, CycleTiming> EXTRA_SHOT_CYCLE_CACHE = new ConcurrentHashMap<>();
+
+    // Shooter UUID -> per-instance cycle tracker
+    private static final Map<UUID, ShotCycleTracker> EXTRA_SHOT_TRACKERS = new ConcurrentHashMap<>();
+
+    // Server-tick keyed queue of scheduled projectile spawns
+    private static final NavigableMap<Long, List<ScheduledProjectileSpawn>> EXTRA_SHOT_QUEUE = new TreeMap<>();
+
+    private static final class CycleTiming {
+        private final AtomicLong samples = new AtomicLong(0);
+        private volatile double averageTicks;
+
+        private CycleTiming(double initial) {
+            this.averageTicks = initial;
+            this.samples.set(1);
+        }
+
+        private void addSample(long ticks) {
+            long n = samples.incrementAndGet();
+            double alpha = 1.0 / Math.min(50.0, (double) n);
+            averageTicks = (averageTicks * (1.0 - alpha)) + (ticks * alpha);
+        }
+    }
+
+    private static final class ShotCycleTracker {
+        private long lastProjectileTick;
+        private long cycleStartTick;
+        private long lastCycleStartTick;
+    }
+
+    private static final class ScheduledProjectileSpawn {
+        private final RegistryKey<World> worldKey;
+        private final UUID shooterUuid;
+        private final Identifier projectileTypeId;
+        private final double baseSpeed;
+        private final ItemStack thrownItemStack;
+
+        private ScheduledProjectileSpawn(RegistryKey<World> worldKey, UUID shooterUuid, Identifier projectileTypeId,
+                                         double baseSpeed, ItemStack thrownItemStack) {
+            this.worldKey = worldKey;
+            this.shooterUuid = shooterUuid;
+            this.projectileTypeId = projectileTypeId;
+            this.baseSpeed = baseSpeed;
+            this.thrownItemStack = thrownItemStack;
+        }
+    }
+
+    /**
+     * Called once per server tick to execute scheduled extra-shot follow-up cycles.
+     */
+    public static void processExtraShotQueue(net.minecraft.server.MinecraftServer server) {
+        if (server == null) {
+            return;
+        }
+
+        long now = server.getTicks();
+        List<ScheduledProjectileSpawn> due;
+
+        synchronized (EXTRA_SHOT_LOCK) {
+            if (EXTRA_SHOT_QUEUE.isEmpty()) {
+                return;
+            }
+
+            NavigableMap<Long, List<ScheduledProjectileSpawn>> head = EXTRA_SHOT_QUEUE.headMap(now, true);
+            if (head.isEmpty()) {
+                return;
+            }
+
+            due = new ArrayList<>();
+            for (List<ScheduledProjectileSpawn> batch : head.values()) {
+                due.addAll(batch);
+            }
+            head.clear();
+        }
+
+        for (ScheduledProjectileSpawn spawn : due) {
+            try {
+                ServerWorld world = server.getWorld(spawn.worldKey);
+                if (world == null) {
+                    continue;
+                }
+
+                net.minecraft.entity.Entity shooterEntity = world.getEntity(spawn.shooterUuid);
+                if (!(shooterEntity instanceof MobEntity shooter) || !shooter.isAlive()) {
+                    continue;
+                }
+
+                net.minecraft.entity.LivingEntity target = shooter.getTarget();
+                net.minecraft.util.math.Vec3d origin = shooter.getEyePos();
+                net.minecraft.util.math.Vec3d direction;
+                if (target != null && target.isAlive()) {
+                    net.minecraft.util.math.Vec3d targetPos = target.getEyePos();
+                    net.minecraft.util.math.Vec3d delta = targetPos.subtract(origin);
+                    direction = delta.lengthSquared() > 1.0E-6 ? delta.normalize() : shooter.getRotationVec(1.0F);
+                } else {
+                    direction = shooter.getRotationVec(1.0F);
+                }
+
+                net.minecraft.entity.EntityType<?> projectileType = Registries.ENTITY_TYPE.get(spawn.projectileTypeId);
+                net.minecraft.entity.Entity created = projectileType.create(world);
+                if (!(created instanceof net.minecraft.entity.projectile.ProjectileEntity projectile)) {
+                    continue;
+                }
+
+                projectile.setOwner(shooter);
+                projectile.refreshPositionAndAngles(shooter.getX(), shooter.getEyeY() - 0.1, shooter.getZ(), shooter.getYaw(), shooter.getPitch());
+                projectile.addCommandTag(EXTRA_SHOT_CHILD_TAG);
+
+                if (spawn.thrownItemStack != null && projectile instanceof net.minecraft.entity.projectile.thrown.ThrownItemEntity thrown) {
+                    thrown.setItem(spawn.thrownItemStack.copy());
+                }
+
+                net.minecraft.util.math.Vec3d velocity = direction.multiply(Math.max(0.05, spawn.baseSpeed));
+                projectile.setVelocity(velocity);
+
+                if (projectile instanceof net.minecraft.entity.projectile.ExplosiveProjectileEntity explosive) {
+                    try {
+                        ((mod.universalmobwar.mixin.ExplosiveProjectileEntityAccessor) (Object) explosive)
+                            .universalmobwar$setAccelerationPower(Math.max(0.05, spawn.baseSpeed));
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                world.spawnEntity(projectile);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    /**
+     * Schedule follow-up projectile spawns for the extra_shot ability.
+     *
+     * Logic:
+     * - Learn base cycle length per mob type (cached)
+     * - Evenly split that delay: baseDelay/(level+1)
+     * - Schedule level extra cycles between now and the next natural cycle
+     * - Preserve within-cycle timing by using a relative offset from cycle start
+     */
+    public static void onMobFiredProjectileForExtraShot(MobEntity mob, MobWarData data,
+                                                       net.minecraft.entity.projectile.ProjectileEntity projectile,
+                                                       ServerWorld world, long serverTick) {
+        if (mob == null || data == null || projectile == null || world == null) {
+            return;
+        }
+        if (!ModConfig.getInstance().isScalingActive()) {
+            return;
+        }
+
+        if (projectile.getCommandTags().contains(EXTRA_SHOT_CHILD_TAG) || projectile.getCommandTags().contains(MULTISHOT_CHILD_TAG)) {
+            return;
+        }
+
+        JsonObject config = getConfigForMob(mob);
+        if (config == null || !config.has("tree")) {
+            return;
+        }
+        JsonObject tree = config.getAsJsonObject("tree");
+        if (!tree.has("special_abilities")) {
+            return;
+        }
+        JsonObject abilities = tree.getAsJsonObject("special_abilities");
+        if (!abilities.has("extra_shot")) {
+            return;
+        }
+
+        int level = data.getSkillData().getInt("ability_extra_shot");
+        if (level <= 0) {
+            return;
+        }
+
+        Identifier mobTypeId = Registries.ENTITY_TYPE.getId(mob.getType());
+        Identifier projectileTypeId = Registries.ENTITY_TYPE.getId(projectile.getType());
+
+        ShotCycleTracker tracker = EXTRA_SHOT_TRACKERS.computeIfAbsent(mob.getUuid(), id -> new ShotCycleTracker());
+        long relativeOffset;
+        long cycleStartTick;
+
+        if (tracker.lastProjectileTick <= 0L) {
+            tracker.lastProjectileTick = serverTick;
+            tracker.cycleStartTick = serverTick;
+            tracker.lastCycleStartTick = serverTick;
+            relativeOffset = 0L;
+            cycleStartTick = serverTick;
+        } else {
+            long gap = serverTick - tracker.lastProjectileTick;
+            if (gap > SHOT_CYCLE_GAP_THRESHOLD_TICKS) {
+                long previousStart = tracker.lastCycleStartTick;
+                long observedCycle = serverTick - previousStart;
+                if (observedCycle >= SHOT_CYCLE_MIN_TICKS && observedCycle <= SHOT_CYCLE_MAX_TICKS) {
+                    CycleTiming timing = EXTRA_SHOT_CYCLE_CACHE.computeIfAbsent(mobTypeId, id -> new CycleTiming(observedCycle));
+                    timing.addSample(observedCycle);
+                }
+                tracker.lastCycleStartTick = serverTick;
+                tracker.cycleStartTick = serverTick;
+                relativeOffset = 0L;
+                cycleStartTick = serverTick;
+            } else {
+                relativeOffset = Math.max(0L, serverTick - tracker.cycleStartTick);
+                cycleStartTick = tracker.cycleStartTick;
+            }
+            tracker.lastProjectileTick = serverTick;
+        }
+
+        int baseCycleTicks = DEFAULT_CYCLE_TICKS;
+        CycleTiming timing = EXTRA_SHOT_CYCLE_CACHE.get(mobTypeId);
+        if (timing != null) {
+            baseCycleTicks = (int) Math.round(Math.max(1.0, timing.averageTicks));
+        }
+
+        double baseSpeed = Math.max(0.05, projectile.getVelocity().length());
+        if (projectile instanceof net.minecraft.entity.projectile.ExplosiveProjectileEntity explosive) {
+            try {
+                double accel = ((mod.universalmobwar.mixin.ExplosiveProjectileEntityAccessor) (Object) explosive).universalmobwar$getAccelerationPower();
+                baseSpeed = Math.max(0.05, accel);
+            } catch (Throwable ignored) {
+            }
+        }
+
+        ItemStack thrownStack = null;
+        if (projectile instanceof net.minecraft.entity.projectile.thrown.ThrownItemEntity thrown) {
+            try {
+                thrownStack = thrown.getStack().copy();
+            } catch (Throwable ignored) {
+            }
+        }
+
+        double interval = (double) baseCycleTicks / (double) (level + 1);
+        if (interval < 1.0) {
+            interval = 1.0;
+        }
+
+        RegistryKey<World> worldKey = world.getRegistryKey();
+
+        synchronized (EXTRA_SHOT_LOCK) {
+            for (int i = 1; i <= level; i++) {
+                long dueTick = cycleStartTick + Math.round(i * interval) + relativeOffset;
+                if (dueTick <= serverTick) {
+                    continue;
+                }
+                EXTRA_SHOT_QUEUE.computeIfAbsent(dueTick, t -> new ArrayList<>())
+                    .add(new ScheduledProjectileSpawn(worldKey, mob.getUuid(), projectileTypeId, baseSpeed, thrownStack));
+            }
+        }
+    }
     private static final String FALLBACK_PREFIX = "__fallback__:";
     private static final String NBT_FALLBACK_INITIALIZED = "umw_fallback_initialized";
     private static final String NBT_FALLBACK_TYPE = "umw_fallback_type";
@@ -1935,7 +2203,8 @@ public class ScalingSystem {
             // If mob has ranged abilities defined, it's a ranged attacker (blaze, ghast, shulker, etc.)
             boolean hasRangedAbilities = abilities.has("piercing_shot") ||
                                          abilities.has("multishot") ||
-                                         abilities.has("ranged_potion_mastery");
+                                         abilities.has("ranged_potion_mastery") ||
+                                         abilities.has("extra_shot");
 
             // If mob has melee abilities defined, it's a melee attacker
             boolean hasMeleeAbilities = abilities.has("hunger_attack") ||
@@ -2151,7 +2420,8 @@ public class ScalingSystem {
                 // Ranged abilities
                 boolean isRangedAbility = key.equals("piercing_shot") || 
                                           key.equals("multishot") || 
-                                          key.equals("ranged_potion_mastery");
+                                          key.equals("ranged_potion_mastery") ||
+                                          key.equals("extra_shot");
                 
                 // Melee abilities
                 boolean isMeleeAbility = key.equals("hunger_attack") || 

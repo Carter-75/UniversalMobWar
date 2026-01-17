@@ -14,6 +14,7 @@ import mod.universalmobwar.net.UmwServerEnchantCompat;
 import mod.universalmobwar.system.AllianceSystem;
 import mod.universalmobwar.system.NaturalSpawnLimiter;
 import mod.universalmobwar.system.EntityCleanupSystem;
+import mod.universalmobwar.system.ScalingSystem;
 import mod.universalmobwar.util.TargetingUtil;
 import mod.universalmobwar.util.OperationScheduler;
 import net.fabricmc.api.ModInitializer;
@@ -206,6 +207,9 @@ public class UniversalMobWarMod implements ModInitializer {
 
 		// OPTIMIZATION: Register cache cleanup for entity query system (every 5 seconds)
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			// Execute scheduled extra_shot follow-up cycles (projectiles only).
+			ScalingSystem.processExtraShotQueue(server);
+
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
 				TargetingUtil.cleanupCache();
 				OperationScheduler.cleanup(); // Also cleanup operation scheduler

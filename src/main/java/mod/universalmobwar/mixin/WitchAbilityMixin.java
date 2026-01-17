@@ -2,7 +2,6 @@ package mod.universalmobwar.mixin;
 
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
-import mod.universalmobwar.system.ScalingSystem;
 import mod.universalmobwar.system.WitchAbilityHelper;
 import mod.universalmobwar.system.WitchAbilityHelper.ThrowStats;
 import net.minecraft.entity.Entity;
@@ -50,9 +49,7 @@ public abstract class WitchAbilityMixin extends MobEntity {
         ThrowStats stats = WitchAbilityHelper.resolveThrowStats(witch, data);
         WitchAbilityHelper.configureTrajectory(potion, witch, target, stats, 0.0f);
 
-        int extraProjectiles = ScalingSystem.handleRangedAbilities(witch, data, target, serverWorld.getTime());
         boolean spawned = serverWorld.spawnEntity(potion);
-        WitchAbilityHelper.spawnAdditionalShots(serverWorld, witch, resolvedStack, target, stats, extraProjectiles);
         return spawned;
     }
 }

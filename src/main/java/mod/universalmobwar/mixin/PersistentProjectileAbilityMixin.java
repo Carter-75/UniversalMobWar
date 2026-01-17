@@ -64,13 +64,7 @@ public abstract class PersistentProjectileAbilityMixin extends ProjectileEntity 
             ((PersistentProjectileEntityAccessor) (Object) this).invokeSetPierceLevel((byte) Math.min(127, piercingLevel));
         }
 
-        if (this.getWorld() instanceof ServerWorld serverWorld) {
-            LivingEntity target = mob.getTarget();
-            int extraProjectiles = ScalingSystem.handleRangedAbilities(mob, data, target, serverWorld.getTime());
-            if (extraProjectiles > 0) {
-                universalmobwar$spawnExtraProjectiles(serverWorld, mob, data, extraProjectiles);
-            }
-        }
+        // Multishot + extra_shot are handled in ProjectileAbilityMixin for all projectile types.
     }
 
     @Inject(method = "onEntityHit", at = @At("TAIL"))
@@ -95,36 +89,6 @@ public abstract class PersistentProjectileAbilityMixin extends ProjectileEntity 
         }
 
         ScalingSystem.applyRangedPotionEffects(mob, data, livingTarget);
-    }
-
-    private void universalmobwar$spawnExtraProjectiles(ServerWorld world, MobEntity mob, MobWarData data, int extraProjectiles) {
-        Vec3d currentVelocity = this.getVelocity();
-        float speed = (float) currentVelocity.length();
-        if (speed < 0.05f) {
-            speed = 1.6f;
-        }
-
-        for (int i = 0; i < extraProjectiles; i++) {
-            Entity duplicateEntity = this.getType().create(world);
-            if (!(duplicateEntity instanceof PersistentProjectileEntity extra)) {
-                break;
-            }
-
-            extra.setOwner(mob);
-            extra.setPosition(this.getX(), this.getY(), this.getZ());
-            float yawOffset = universalmobwar$getYawOffset(i);
-            extra.setVelocity(mob, mob.getPitch(), mob.getYaw() + yawOffset, 0.0f, speed, 1.0f);
-            ((PersistentProjectileEntityAccessor) extra).invokeSetPierceLevel(((PersistentProjectileEntityAccessor) (Object) this).invokeGetPierceLevel());
-            extra.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
-            ((ProjectileAbilityBridge) extra).universalmobwar$setAbilitiesApplied(true);
-            world.spawnEntity(extra);
-        }
-    }
-
-    private float universalmobwar$getYawOffset(int index) {
-        int pair = index / 2 + 1;
-        float base = 6.0f + pair * 2.5f;
-        return (index % 2 == 0) ? base : -base;
     }
 
     private MobWarData universalmobwar$getData(MobEntity mob) {
