@@ -46,6 +46,17 @@ public class MobWarCommand {
                 .then(CommandManager.literal("forceboss")
                     .executes(MobWarCommand::executeForceRaidBoss)))
             .executes(MobWarCommand::executeHelp)
+
+        );
+
+        // Alias command requested: /universalmobwar reload
+        dispatcher.register(CommandManager.literal("universalmobwar")
+            .then(CommandManager.literal("help")
+                .executes(MobWarCommand::executeHelp))
+            .then(CommandManager.literal("reload")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(MobWarCommand::executeReload))
+            .executes(MobWarCommand::executeHelp)
         );
     }
     
@@ -255,13 +266,37 @@ public class MobWarCommand {
     
     private static int executeReload(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
-        
-        ModConfig.getInstance(); // Ensure holder initialized
-        ModConfig.save(); // This will create a new config if it doesn't exist
-        
-        source.sendFeedback(() -> 
-            Text.literal("Configuration reloaded successfully!")
-                .styled(style -> style.withColor(Formatting.GREEN)), true);
+
+        ModConfig config = ModConfig.reload();
+
+        source.sendFeedback(() -> Text.literal("Universal Mob War config reloaded from disk.")
+            .styled(style -> style.withColor(Formatting.GREEN).withBold(true)), true);
+
+        // Echo key settings so you can confirm the reload took effect immediately.
+        int overrideDay = config != null ? config.manualWorldDayOverride : -1;
+        boolean debugUpgradeLog = config != null && config.debugUpgradeLog;
+        boolean debugLogging = config != null && config.debugLogging;
+        boolean scalingEnabled = config == null || config.isScalingActive();
+
+        source.sendFeedback(() -> Text.literal("  manualWorldDayOverride: ")
+            .styled(style -> style.withColor(Formatting.GRAY))
+            .append(Text.literal(String.valueOf(overrideDay))
+                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
+
+        source.sendFeedback(() -> Text.literal("  scalingEnabled: ")
+            .styled(style -> style.withColor(Formatting.GRAY))
+            .append(Text.literal(String.valueOf(scalingEnabled))
+                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
+
+        source.sendFeedback(() -> Text.literal("  debugUpgradeLog: ")
+            .styled(style -> style.withColor(Formatting.GRAY))
+            .append(Text.literal(String.valueOf(debugUpgradeLog))
+                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
+
+        source.sendFeedback(() -> Text.literal("  debugLogging: ")
+            .styled(style -> style.withColor(Formatting.GRAY))
+            .append(Text.literal(String.valueOf(debugLogging))
+                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
         
         return 1;
     }

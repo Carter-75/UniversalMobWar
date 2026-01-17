@@ -397,7 +397,7 @@ public class ScalingSystem {
     private static final double HORDE_NEARBY_RADIUS = 50.0;
     private static final double DEFAULT_DAILY_POINTS = 0.1d;
     private static final DayRange[] DEFAULT_DAILY_SCALING = new DayRange[] {
-        new DayRange(1, 10, 0.1d, 0),
+        new DayRange(0, 10, 0.1d, 0),
         new DayRange(11, 15, 0.5d, 1),
         new DayRange(16, 20, 1.0d, 2),
         new DayRange(21, 25, 1.5d, 3),
@@ -425,6 +425,7 @@ public class ScalingSystem {
     private static final String NBT_EQUIPMENT_PRIMED = "umw_equipment_primed";
     private static final String NBT_NEXT_UPGRADE_TICK = "umw_next_upgrade_tick";
     private static final String NBT_UPGRADE_PENDING = "umw_upgrade_pending";
+    private static final String NBT_SPAWN_BURST_PENDING = "umw_spawn_burst_pending";
     private static final String NBT_NEXT_BUDGET_CHECK_TICK = "umw_next_budget_check_tick";
     private static final String NBT_TOTAL_POINT_CACHE = "umw_total_point_cache";
     private static final String NBT_LAST_ACCOUNTED_DAY = "umw_last_accounted_day";
@@ -434,8 +435,17 @@ public class ScalingSystem {
     private static final long DAILY_UPGRADE_INTERVAL_TICKS = 24000L;
     private static final long BUDGET_RECHECK_INTERVAL_TICKS = 200L;
 
+    private static long getUpgradeIntervalTicks(ModConfig modConfig) {
+        if (modConfig == null) {
+            return DAILY_UPGRADE_INTERVAL_TICKS;
+        }
+        return modConfig.getUpgradeIntervalTicks();
+    }
+
     private static final Object UPGRADE_SCHEDULER_LOCK = new Object();
+    private static final Object SPAWN_UPGRADE_SCHEDULER_LOCK = new Object();
     private static long NEXT_UPGRADE_SLOT_TICK = 0L;
+    private static long NEXT_SPAWN_UPGRADE_SLOT_TICK = 0L;
     private static final Map<UUID, EquipmentSnapshot> PENDING_EQUIPMENT_SNAPSHOTS = new ConcurrentHashMap<>();
     
     // List of all available mob config files (loaded dynamically)
@@ -1137,7 +1147,7 @@ public class ScalingSystem {
         NbtCompound skillData = data.getSkillData();
         boolean firstCycle = skillData == null || !skillData.contains(NBT_LAST_UPGRADE_MARKER);
         long currentTick = world.getTime();
-        boolean cooldownElapsed = hasUpgradeCooldownElapsed(skillData, currentTick);
+        boolean cooldownElapsed = hasUpgradeCooldownElapsed(skillData, currentTick, modConfig);
 
         if (firstCycle || cooldownElapsed) {
             processMobTick(mob, world, data, true);
@@ -1259,7 +1269,8 @@ public class ScalingSystem {
         int budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
 
         long currentTick = world.getTime();
-        int currentTimeOfDay = getCurrentTimeOfDay(world);
+        long upgradeIntervalTicks = getUpgradeIntervalTicks(modConfig);
+        int currentTimeOfDay = getCurrentUpgradeMarker(world, upgradeIntervalTicks);
         UUID mobUuid = mob.getUuid();
 
         Registry<Enchantment> enchantRegistry = null;
@@ -1296,7 +1307,7 @@ public class ScalingSystem {
         }
 
         boolean firstUpgradeCycle = !skillData.contains(NBT_LAST_UPGRADE_MARKER);
-        boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay, currentTick);
+        boolean readyForNextCycle = isUpgradeWindowOpen(skillData, currentTimeOfDay, currentTick, upgradeIntervalTicks);
         boolean shouldRequestUpgrade = firstUpgradeCycle || readyForNextCycle;
         boolean upgradePending = skillData.getBoolean(NBT_UPGRADE_PENDING);
         boolean windowApproved = skillData.getBoolean(NBT_WINDOW_APPROVED);
@@ -1318,44 +1329,10 @@ public class ScalingSystem {
 
         boolean forceUpgradePass = forceImmediateUpgrade && shouldRequestUpgrade && !upgradePending;
         if (forceUpgradePass && affordableUpgradeAvailable) {
-            ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
-            boolean handled = false;
-            if (asyncEnabled) {
-                handled = submitUpgradeJob(
-                    mob,
-                    data,
-                    config,
-                    mobType,
-                    skillData,
-                    modConfig,
-                    configSnapshot,
-                    currentTick,
-                    budget,
-                    totalPoints,
-                    spentPoints,
-                    killCount,
-                    true
-                );
-            } else {
-                handled = executeUpgradeNow(
-                    mob,
-                    data,
-                    config,
-                    mobType,
-                    currentTick,
-                    currentTimeOfDay,
-                    budget,
-                    totalPoints,
-                    spentPoints,
-                    configSnapshot,
-                    killCount
-                );
-            }
-            if (handled) {
-                clearBudgetProbeThrottle(skillData);
-                MobWarData.save(mob, data);
-                return;
-            }
+            scheduleSpawnBurstUpgradePass(skillData, currentTick);
+            clearBudgetProbeThrottle(skillData);
+            MobWarData.save(mob, data);
+            return;
         }
 
         if (readyForNextCycle && upgradePending && !windowApproved) {
@@ -1380,7 +1357,7 @@ public class ScalingSystem {
         boolean needsEquipmentSync = canSyncEquipment && requiresEquipmentSync(mob, skillData);
 
         if (upgradeScheduleReady && !readyForNextCycle && !windowApproved) {
-            long windowDelayTicks = Math.max(1L, computeTicksUntilUpgradeWindow(skillData, currentTimeOfDay, currentTick));
+            long windowDelayTicks = Math.max(1L, computeTicksUntilUpgradeWindow(skillData, currentTimeOfDay, currentTick, upgradeIntervalTicks));
             skillData.putBoolean(NBT_WINDOW_APPROVED, false);
             deferUpgradePass(skillData, currentTick, windowDelayTicks);
             upgradeScheduleReady = false;
@@ -1396,32 +1373,70 @@ public class ScalingSystem {
             if (asyncEnabled) {
                 boolean jobActive = scheduler.isJobActive(mobUuid) || PENDING_EQUIPMENT_SNAPSHOTS.containsKey(mobUuid);
                 if (!jobActive) {
-                    ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
-                    boolean started = submitUpgradeJob(
-                        mob,
-                        data,
-                        config,
-                        mobType,
-                        skillData,
-                        modConfig,
-                        configSnapshot,
-                        currentTick,
-                        budget,
-                        totalPoints,
-                        spentPoints,
-                        killCount,
-                        false
-                    );
-                    if (!started) {
-                        int maxConcurrentJobs = Math.max(1, modConfig.getMaxConcurrentUpgradeJobs());
-                        int activeJobs = scheduler.getActiveJobCount();
-                        long delayTicks = computeConcurrencyBackoffTicks(modConfig, activeJobs, maxConcurrentJobs);
-                        deferUpgradePass(skillData, currentTick, delayTicks);
+                    boolean spawnBurst = skillData.getBoolean(NBT_SPAWN_BURST_PENDING);
+                    boolean preferSync = spawnBurst && modConfig != null && modConfig.forceSyncSpawnUpgrade;
+
+                    if (preferSync) {
+                        ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig).forSpawnBurst(modConfig);
+                        boolean applied = executeUpgradeNow(
+                            mob,
+                            data,
+                            config,
+                            mobType,
+                            currentTick,
+                            currentTimeOfDay,
+                            budget,
+                            totalPoints,
+                            spentPoints,
+                            configSnapshot,
+                            killCount
+                        );
+                        if (applied) {
+                            skillData = data.getSkillData();
+                            spentPoints = data.getSpentPoints();
+                            budget = (int)Math.max(0, Math.floor(totalPoints - spentPoints));
+                            stateChanged = true;
+                            appliedEquipment = true;
+                        }
                         upgradeScheduleReady = false;
+                    } else {
+                        ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
+                        if (spawnBurst) {
+                            configSnapshot = configSnapshot.forSpawnBurst(modConfig);
+                        }
+                        boolean started = submitUpgradeJob(
+                            mob,
+                            data,
+                            config,
+                            mobType,
+                            skillData,
+                            modConfig,
+                            configSnapshot,
+                            currentTick,
+                            budget,
+                            totalPoints,
+                            spentPoints,
+                            killCount,
+                            false
+                        );
+                        if (!started) {
+                            if (spawnBurst) {
+                                deferUpgradePass(skillData, currentTick, 1L);
+                            } else {
+                                int maxConcurrentJobs = Math.max(1, modConfig.getMaxConcurrentUpgradeJobs());
+                                int activeJobs = scheduler.getActiveJobCount();
+                                long delayTicks = computeConcurrencyBackoffTicks(modConfig, activeJobs, maxConcurrentJobs);
+                                deferUpgradePass(skillData, currentTick, delayTicks);
+                            }
+                            upgradeScheduleReady = false;
+                        }
                     }
                 }
             } else {
                 ModConfigSnapshot configSnapshot = ModConfigSnapshot.capture(modConfig);
+                if (skillData.getBoolean(NBT_SPAWN_BURST_PENDING)) {
+                    configSnapshot = configSnapshot.forSpawnBurst(modConfig);
+                }
                 boolean applied = executeUpgradeNow(
                     mob,
                     data,
@@ -1468,7 +1483,7 @@ public class ScalingSystem {
     }
 
     private static double calculateWorldAgePointsThroughDay(int worldDays, JsonObject config, ModConfig modConfig) {
-        if (worldDays <= 0) {
+        if (worldDays < 0) {
             return 0.0;
         }
 
@@ -1489,13 +1504,13 @@ public class ScalingSystem {
         if (endDay < startDay) {
             return 0.0;
         }
-        int safeStart = Math.max(1, startDay);
-        int safeEnd = Math.max(1, endDay);
+        int safeStart = Math.max(0, startDay);
+        int safeEnd = Math.max(0, endDay);
         if (safeEnd < safeStart) {
             return 0.0;
         }
         double endTotal = calculateWorldAgePointsThroughDay(safeEnd, config, modConfig);
-        double startTotal = calculateWorldAgePointsThroughDay(safeStart - 1, config, modConfig);
+        double startTotal = safeStart <= 0 ? 0.0 : calculateWorldAgePointsThroughDay(safeStart - 1, config, modConfig);
         return Math.max(0.0, endTotal - startTotal);
     }
 
@@ -1526,7 +1541,7 @@ public class ScalingSystem {
             }
             try {
                 JsonObject range = element.getAsJsonObject();
-                int minDay = Math.max(1, range.has("days_min") ? range.get("days_min").getAsInt() : 1);
+                int minDay = Math.max(0, range.has("days_min") ? range.get("days_min").getAsInt() : 0);
                 int maxDayRaw = range.has("days_max") ? range.get("days_max").getAsInt() : -1;
                 int maxDay = maxDayRaw < 0 ? Integer.MAX_VALUE : Math.max(minDay, maxDayRaw);
                 double pointsPerDay = range.has("points_per_day")
@@ -1545,7 +1560,7 @@ public class ScalingSystem {
         ranges.sort(Comparator.comparingInt(DayRange::minDay).thenComparingInt(DayRange::order));
 
         double total = 0.0d;
-        int currentDay = 1;
+        int currentDay = 0;
 
         for (DayRange range : ranges) {
             if (currentDay > worldDays) {
@@ -1585,20 +1600,21 @@ public class ScalingSystem {
         return accumulateSegment(startDay, endDay, DEFAULT_DAILY_POINTS);
     }
 
-    private static int getCurrentTimeOfDay(World world) {
+    private static int getCurrentUpgradeMarker(World world, long upgradeIntervalTicks) {
         if (world == null) {
             return 0;
         }
-        long timeOfDay = world.getTimeOfDay();
-        return (int) Math.floorMod(timeOfDay, 24000L);
+        long interval = Math.max(1L, upgradeIntervalTicks);
+        long tick = Math.max(0L, world.getTime());
+        return (int) Math.floorMod(tick, interval);
     }
 
-    private static boolean isUpgradeWindowOpen(NbtCompound skillData, int currentTimeOfDay, long currentTick) {
+    private static boolean isUpgradeWindowOpen(NbtCompound skillData, int currentTimeOfDay, long currentTick, long upgradeIntervalTicks) {
         if (skillData == null || !skillData.contains(NBT_LAST_UPGRADE_MARKER)) {
             return true;
         }
 
-        if (hasUpgradeCooldownElapsed(skillData, currentTick)) {
+        if (hasUpgradeCooldownElapsed(skillData, currentTick, upgradeIntervalTicks)) {
             skillData.putBoolean(NBT_UPGRADE_WRAP_STATE, true);
             return true;
         }
@@ -1612,7 +1628,11 @@ public class ScalingSystem {
         return wrapped && currentTimeOfDay >= marker;
     }
 
-    private static boolean hasUpgradeCooldownElapsed(NbtCompound skillData, long currentTick) {
+    private static boolean hasUpgradeCooldownElapsed(NbtCompound skillData, long currentTick, ModConfig modConfig) {
+        return hasUpgradeCooldownElapsed(skillData, currentTick, getUpgradeIntervalTicks(modConfig));
+    }
+
+    private static boolean hasUpgradeCooldownElapsed(NbtCompound skillData, long currentTick, long upgradeIntervalTicks) {
         if (skillData == null) {
             return true;
         }
@@ -1624,7 +1644,7 @@ public class ScalingSystem {
             return true;
         }
         long elapsed = currentTick - lastTick;
-        return elapsed >= DAILY_UPGRADE_INTERVAL_TICKS;
+        return elapsed >= Math.max(1L, upgradeIntervalTicks);
     }
 
     private static int resolveConfiguredWorldDays(World world, ModConfig modConfig) {
@@ -1656,6 +1676,17 @@ public class ScalingSystem {
         skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
     }
 
+    private static void scheduleSpawnBurstUpgradePass(NbtCompound skillData, long currentTick) {
+        if (skillData == null) {
+            return;
+        }
+        long scheduled = reserveSpawnUpgradeSlot(currentTick);
+        skillData.putBoolean(NBT_SPAWN_BURST_PENDING, true);
+        skillData.putBoolean(NBT_UPGRADE_PENDING, true);
+        skillData.putBoolean(NBT_WINDOW_APPROVED, true);
+        skillData.putLong(NBT_NEXT_UPGRADE_TICK, scheduled);
+    }
+
     private static void deferUpgradePass(NbtCompound skillData, long currentTick, long delayTicks) {
         if (skillData == null) {
             return;
@@ -1674,6 +1705,15 @@ public class ScalingSystem {
                 ? Math.max(currentTick, NEXT_UPGRADE_SLOT_TICK)
                 : Math.max(preferredTick, NEXT_UPGRADE_SLOT_TICK);
             NEXT_UPGRADE_SLOT_TICK = scheduled + spacing;
+            return scheduled;
+        }
+    }
+
+    private static long reserveSpawnUpgradeSlot(long currentTick) {
+        synchronized (SPAWN_UPGRADE_SCHEDULER_LOCK) {
+            long scheduled = Math.max(currentTick + 1L, NEXT_SPAWN_UPGRADE_SLOT_TICK);
+            // One spawn-burst upgrade per tick (100 mobs => ~5 seconds worst-case)
+            NEXT_SPAWN_UPGRADE_SLOT_TICK = scheduled + 1L;
             return scheduled;
         }
     }
@@ -1699,13 +1739,13 @@ public class ScalingSystem {
         return baseDelay + (overload * step);
     }
 
-    private static long computeTicksUntilUpgradeWindow(NbtCompound skillData, int currentTimeOfDay, long currentTick) {
+    private static long computeTicksUntilUpgradeWindow(NbtCompound skillData, int currentTimeOfDay, long currentTick, long upgradeIntervalTicks) {
         if (skillData == null || !skillData.contains(NBT_LAST_UPGRADE_MARKER)) {
             return 0L;
         }
 
         if (!skillData.contains(NBT_LAST_UPGRADE_TICK)) {
-            return computeLegacyTicksUntilUpgradeWindow(skillData, currentTimeOfDay);
+            return computeLegacyTicksUntilUpgradeWindow(skillData, currentTimeOfDay, upgradeIntervalTicks);
         }
 
         long lastTick = skillData.getLong(NBT_LAST_UPGRADE_TICK);
@@ -1713,16 +1753,17 @@ public class ScalingSystem {
             return 0L;
         }
         long elapsed = currentTick - lastTick;
-        if (elapsed >= DAILY_UPGRADE_INTERVAL_TICKS) {
+        long interval = Math.max(1L, upgradeIntervalTicks);
+        if (elapsed >= interval) {
             return 0L;
         }
-        return DAILY_UPGRADE_INTERVAL_TICKS - elapsed;
+        return interval - elapsed;
     }
 
-    private static long computeLegacyTicksUntilUpgradeWindow(NbtCompound skillData, int currentTimeOfDay) {
+    private static long computeLegacyTicksUntilUpgradeWindow(NbtCompound skillData, int currentTimeOfDay, long upgradeIntervalTicks) {
         int marker = skillData.getInt(NBT_LAST_UPGRADE_MARKER);
         boolean wrapped = skillData.getBoolean(NBT_UPGRADE_WRAP_STATE);
-        int ticksPerDay = (int) DAILY_UPGRADE_INTERVAL_TICKS;
+        int ticksPerDay = (int) Math.max(1L, upgradeIntervalTicks);
 
         if (!wrapped) {
             int ticksToMidnight = Math.max(0, ticksPerDay - currentTimeOfDay);
@@ -1750,6 +1791,7 @@ public class ScalingSystem {
         }
         skillData.putBoolean(NBT_UPGRADE_PENDING, false);
         skillData.putBoolean(NBT_WINDOW_APPROVED, false);
+        skillData.putBoolean(NBT_SPAWN_BURST_PENDING, false);
         skillData.remove(NBT_NEXT_UPGRADE_TICK);
     }
 
@@ -2380,9 +2422,8 @@ public class ScalingSystem {
 
     private static boolean hasAffordableUpgradeAvailable(UUID mobUuid, JsonObject config, String mobType,
             Registry<Enchantment> enchantRegistry, NbtCompound skillData, int budget) {
-        if (budget <= 0) {
-            return false;
-        }
+        // Budget can be 0 when configs contain 0-cost bootstrap upgrades (e.g., base weapons).
+        // We still want those to be discovered so mobs can equip immediately on spawn.
         // Use the exact same logic as getAffordableUpgrades, but stop as soon as one option is discovered.
         try {
             collectAffordableUpgrades(mobUuid, config, mobType, enchantRegistry, skillData, budget, new EarlyExitUpgradeCollector());
@@ -5268,6 +5309,18 @@ public class ScalingSystem {
                 save,
                 config.getMaxUpgradeIterations(),
                 config.debugUpgradeLog
+            );
+        }
+
+        ModConfigSnapshot forSpawnBurst(ModConfig config) {
+            if (config == null || !config.forceSpendAllOnSpawn) {
+                return this;
+            }
+            return new ModConfigSnapshot(
+                1.0,
+                0.0,
+                config.getMaxSpawnUpgradeIterations(),
+                this.debugLogging
             );
         }
     }

@@ -142,6 +142,20 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 3)
     public int manualWorldDayOverride = -1; // -1 = use actual world time
 
+    @ConfigEntry.BoundedDiscrete(min = 20, max = 480000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int upgradeIntervalTicks = 24000; // Default: once per in-game day (24000 ticks)
+
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public boolean forceSpendAllOnSpawn = true;
+
+    @ConfigEntry.BoundedDiscrete(min = MIN_UPGRADE_ITERATIONS, max = 20000)
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public int maxSpawnUpgradeIterations = 5000;
+
+    @ConfigEntry.Gui.Tooltip(count = 4)
+    public boolean forceSyncSpawnUpgrade = true;
+
     @ConfigEntry.Gui.Tooltip(count = 5)
     public boolean allowModdedEnchantments = true;
 
@@ -386,6 +400,22 @@ public class ModConfig implements ConfigData {
         return holder.getConfig();
     }
 
+    /**
+     * Force reload config values from disk immediately.
+     * Useful for applying settings like manualWorldDayOverride without restarting.
+     */
+    public static ModConfig reload() {
+        if (holder == null) {
+            holder = AutoConfig.getConfigHolder(ModConfig.class);
+        }
+        try {
+            holder.load();
+        } catch (Exception ignored) {
+            // Best-effort: keep current config instance if reload fails.
+        }
+        return holder.getConfig();
+    }
+
     public static void save() {
         if (holder != null) holder.save();
     }
@@ -438,6 +468,14 @@ public class ModConfig implements ConfigData {
     
     public double getSaveChance() {
         return saveChancePercent / 100.0;
+    }
+
+    public long getUpgradeIntervalTicks() {
+        return Math.max(20L, Math.min(480000L, (long) upgradeIntervalTicks));
+    }
+
+    public int getMaxSpawnUpgradeIterations() {
+        return Math.max(MIN_UPGRADE_ITERATIONS, Math.min(20000, maxSpawnUpgradeIterations));
     }
 
     public int getMaxUpgradeIterations() {

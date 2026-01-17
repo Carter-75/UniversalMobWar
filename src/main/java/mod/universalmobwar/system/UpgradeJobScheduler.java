@@ -8,9 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Centralized async executor for upgrade jobs.
@@ -22,7 +23,6 @@ public final class UpgradeJobScheduler {
     private final ScheduledThreadPoolExecutor executor;
     private final ConcurrentMap<UUID, Future<?>> activeJobs = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, ScalingSystem.UpgradeJobResult> completedResults = new ConcurrentHashMap<>();
-    private final AtomicInteger activeCount = new AtomicInteger();
 
     private UpgradeJobScheduler() {
         int cores = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
@@ -45,7 +45,11 @@ public final class UpgradeJobScheduler {
             return;
         }
 
-        Future<?> future = executor.submit(() -> {
+        // Use a FutureTask so we can register it in the map before it can run.
+        // This avoids races where a job finishes before tracking is established,
+        // and ensures old jobs can't remove newer jobs for the same mob.
+        final FutureTask<Void>[] holder = new FutureTask[1];
+        FutureTask<Void> task = new FutureTask<>(() -> {
             try {
                 ScalingSystem.UpgradeJobResult result = callable.call();
                 if (result != null) {
@@ -54,16 +58,28 @@ public final class UpgradeJobScheduler {
             } catch (Exception ex) {
                 UniversalMobWarMod.LOGGER.error("[UpgradeJobScheduler] Upgrade job failed for {}: {}", mobId, ex.getMessage());
             } finally {
-                activeJobs.remove(mobId);
-                activeCount.decrementAndGet();
+                FutureTask<Void> self = holder[0];
+                if (self != null) {
+                    activeJobs.remove(mobId, self);
+                } else {
+                    activeJobs.remove(mobId);
+                }
             }
+            return null;
         });
+        holder[0] = task;
 
-        Future<?> previous = activeJobs.put(mobId, future);
+        Future<?> previous = activeJobs.put(mobId, task);
         if (previous != null) {
             previous.cancel(true);
         }
-        activeCount.incrementAndGet();
+
+        try {
+            executor.execute(task);
+        } catch (RejectedExecutionException ex) {
+            activeJobs.remove(mobId, task);
+            UniversalMobWarMod.LOGGER.error("[UpgradeJobScheduler] Upgrade job rejected for {}: {}", mobId, ex.getMessage());
+        }
     }
 
     public ScalingSystem.UpgradeJobResult pollResult(UUID mobId) {
@@ -82,11 +98,11 @@ public final class UpgradeJobScheduler {
     }
 
     public boolean isIdle() {
-        return activeCount.get() == 0 && completedResults.isEmpty();
+        return activeJobs.isEmpty() && completedResults.isEmpty();
     }
 
     public int getActiveJobCount() {
-        return activeCount.get();
+        return activeJobs.size();
     }
 
     public void cancel(UUID mobId) {
@@ -96,7 +112,6 @@ public final class UpgradeJobScheduler {
         Future<?> future = activeJobs.remove(mobId);
         if (future != null) {
             future.cancel(true);
-            activeCount.updateAndGet(value -> Math.max(0, value - 1));
         }
         completedResults.remove(mobId);
     }
