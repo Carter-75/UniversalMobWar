@@ -73,6 +73,25 @@
     "leggings": {},
     "boots": {},
 
-    "special_abilities": {}
+    "special_abilities": {
+      "ranged_potion_mastery": [
+        { "level": 1, "cost": 10, "chance": 0.20, "effects": [{ "type": "slowness", "level": 1, "duration": 10 }] },
+        { "level": 2, "cost": 15, "chance": 0.40, "effects": [{ "type": "slowness", "level": 2, "duration": 15 }, { "type": "weakness", "level": 1, "duration": 10 }] },
+        { "level": 3, "cost": 20, "chance": 0.60, "effects": [{ "type": "poison", "level": 1, "duration": 10 }, { "type": "weakness", "level": 1, "duration": 15 }] },
+        { "level": 4, "cost": 25, "chance": 0.80, "effects": [{ "type": "poison", "level": 2, "duration": 15 }, { "type": "instant_damage", "level": 1 }] },
+        { "level": 5, "cost": 30, "chance": 1.00, "effects": [{ "type": "poison", "level": 2, "duration": 20 }, { "type": "instant_damage", "level": 2 }, { "type": "wither", "level": 1, "duration": 10 }] }
+      ],
+      "extra_shot": [
+        { "level": 1, "cost": 20 },
+        { "level": 2, "cost": 30 },
+        { "level": 3, "cost": 40 },
+        { "level": 4, "cost": 50 }
+      ],
+      "multishot": [
+        { "level": 1, "cost": 15, "extra_projectiles": 1 },
+        { "level": 2, "cost": 25, "extra_projectiles": 2 },
+        { "level": 3, "cost": 35, "extra_projectiles": 3 }
+      ]
+    }
   }
 }
