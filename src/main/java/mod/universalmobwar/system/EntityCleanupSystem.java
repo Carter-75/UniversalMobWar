@@ -9,6 +9,9 @@ import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Periodic cleanup of high-volume entities that can accumulate and cause lag.
  *
@@ -31,35 +34,57 @@ public final class EntityCleanupSystem {
 		int removedTotal = 0;
 		for (ServerWorld world : server.getWorlds()) {
 			int removedThisWorld = 0;
-			for (Entity entity : world.iterateEntities()) {
+			List<PersistentProjectileEntity> candidates = new ArrayList<>();
+			try {
+				for (Entity entity : world.iterateEntities()) {
+					if (maxPerWorld > 0 && candidates.size() >= maxPerWorld) {
+						break;
+					}
+
+					if (!(entity instanceof PersistentProjectileEntity projectile)) {
+						continue;
+					}
+
+					if (projectile.isRemoved()) {
+						continue;
+					}
+
+					// Keep any player-shot/thrown projectiles.
+					Entity owner = projectile.getOwner();
+					if (owner instanceof PlayerEntity) {
+						continue;
+					}
+
+					if (projectile.age < minAgeTicks) {
+						continue;
+					}
+
+					// Only delete when the projectile is resting (in-ground). This avoids impacting combat.
+					boolean inGround;
+					try {
+						inGround = ((PersistentProjectileEntityAccessor) projectile).universalmobwar$isInGround();
+					} catch (Throwable t) {
+						// If mappings ever change and the accessor fails, fall back to a conservative check.
+						inGround = projectile.isOnGround();
+					}
+
+					if (!inGround) {
+						continue;
+					}
+
+					candidates.add(projectile);
+				}
+			} catch (RuntimeException ex) {
+				UniversalMobWarMod.LOGGER.warn("Entity cleanup skipped in world {} due to iterator failure", world.getRegistryKey().getValue(), ex);
+				continue;
+			}
+
+			for (PersistentProjectileEntity projectile : candidates) {
 				if (maxPerWorld > 0 && removedThisWorld >= maxPerWorld) {
 					break;
 				}
 
-				if (!(entity instanceof PersistentProjectileEntity projectile)) {
-					continue;
-				}
-
-				// Keep any player-shot/thrown projectiles.
-				Entity owner = projectile.getOwner();
-				if (owner instanceof PlayerEntity) {
-					continue;
-				}
-
-				if (projectile.age < minAgeTicks) {
-					continue;
-				}
-
-				// Only delete when the projectile is resting (in-ground). This avoids impacting combat.
-				boolean inGround;
-				try {
-					inGround = ((PersistentProjectileEntityAccessor) projectile).universalmobwar$isInGround();
-				} catch (Throwable t) {
-					// If mappings ever change and the accessor fails, fall back to a conservative check.
-					inGround = projectile.isOnGround();
-				}
-
-				if (!inGround) {
+				if (projectile.isRemoved()) {
 					continue;
 				}
 
