@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -31,54 +32,56 @@ public abstract class PotionEntityMixin extends ThrownItemEntity {
 
     @Inject(method = "onCollision", at = @At("TAIL"))
     private void universalmobwar$applyRangedPotionEffects(HitResult hitResult, CallbackInfo ci) {
-        if (this.getWorld().isClient()) {
-            return;
-        }
-
-        if (!(hitResult instanceof EntityHitResult entityHitResult)) {
-            return;
-        }
-
-        Entity owner = this.getOwner();
-        if (!(owner instanceof MobEntity mobOwner)) {
-            return;
-        }
-
-        Entity hit = entityHitResult.getEntity();
-        if (!(hit instanceof LivingEntity livingTarget)) {
-            return;
-        }
-
-        MobWarData data;
-        if (mobOwner instanceof IMobWarDataHolder holder) {
-            data = holder.getMobWarData();
-        } else {
-            data = MobWarData.get(mobOwner);
-        }
-
-        if (data == null) {
-            return;
-        }
-
-        ScalingSystem.applyRangedPotionEffects(mobOwner, data, livingTarget);
-
-        int piercing = ScalingSystem.getPiercingLevel(mobOwner, data);
-        if (piercing <= 0) {
-            return;
-        }
-
-        World world = this.getWorld();
-        List<LivingEntity> nearby = world.getEntitiesByClass(LivingEntity.class,
-            hit.getBoundingBox().expand(2.5),
-            entity -> entity != livingTarget && entity != mobOwner && entity.isAlive());
-
-        int applied = 0;
-        for (LivingEntity extraTarget : nearby) {
-            ScalingSystem.applyRangedPotionEffects(mobOwner, data, extraTarget);
-            applied++;
-            if (applied >= piercing) {
-                break;
+        UniversalMobWarMod.runSafely("PotionEntityMixin#applyRangedPotionEffects", () -> {
+            if (this.getWorld().isClient()) {
+                return;
             }
-        }
+
+            if (!(hitResult instanceof EntityHitResult entityHitResult)) {
+                return;
+            }
+
+            Entity owner = this.getOwner();
+            if (!(owner instanceof MobEntity mobOwner)) {
+                return;
+            }
+
+            Entity hit = entityHitResult.getEntity();
+            if (!(hit instanceof LivingEntity livingTarget)) {
+                return;
+            }
+
+            MobWarData data;
+            if (mobOwner instanceof IMobWarDataHolder holder) {
+                data = holder.getMobWarData();
+            } else {
+                data = MobWarData.get(mobOwner);
+            }
+
+            if (data == null) {
+                return;
+            }
+
+            ScalingSystem.applyRangedPotionEffects(mobOwner, data, livingTarget);
+
+            int piercing = ScalingSystem.getPiercingLevel(mobOwner, data);
+            if (piercing <= 0) {
+                return;
+            }
+
+            World world = this.getWorld();
+            List<LivingEntity> nearby = world.getEntitiesByClass(LivingEntity.class,
+                hit.getBoundingBox().expand(2.5),
+                entity -> entity != livingTarget && entity != mobOwner && entity.isAlive());
+
+            int applied = 0;
+            for (LivingEntity extraTarget : nearby) {
+                ScalingSystem.applyRangedPotionEffects(mobOwner, data, extraTarget);
+                applied++;
+                if (applied >= piercing) {
+                    break;
+                }
+            }
+        });
     }
 }

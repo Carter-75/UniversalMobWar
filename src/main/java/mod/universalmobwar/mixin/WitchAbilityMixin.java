@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.WitchAbilityHelper;
@@ -29,27 +30,32 @@ public abstract class WitchAbilityMixin extends MobEntity {
 
     @Redirect(method = "shootAt(Lnet/minecraft/entity/LivingEntity;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
     private boolean universalmobwar$augmentPotionThrows(World world, Entity entity, LivingEntity target, float pullProgress) {
-        if (!(world instanceof ServerWorld serverWorld) || !(entity instanceof PotionEntity potion)) {
+        try {
+            if (!(world instanceof ServerWorld serverWorld) || !(entity instanceof PotionEntity potion)) {
+                return world.spawnEntity(entity);
+            }
+
+            MobEntity witch = (MobEntity) (Object) this;
+            if (!(witch instanceof IMobWarDataHolder holder)) {
+                return world.spawnEntity(entity);
+            }
+
+            MobWarData data = holder.getMobWarData();
+            if (data == null) {
+                return world.spawnEntity(entity);
+            }
+
+            ItemStack resolvedStack = WitchAbilityHelper.resolvePotionStack(witch, data, potion.getStack().copy(), witch.getRandom());
+            potion.setItem(resolvedStack);
+
+            ThrowStats stats = WitchAbilityHelper.resolveThrowStats(witch, data);
+            WitchAbilityHelper.configureTrajectory(potion, witch, target, stats, 0.0f);
+
+            boolean spawned = serverWorld.spawnEntity(potion);
+            return spawned;
+        } catch (Throwable t) {
+            UniversalMobWarMod.LOGGER.error("[WitchAbilityMixin] Potion throw augmentation failed", t);
             return world.spawnEntity(entity);
         }
-
-        MobEntity witch = (MobEntity) (Object) this;
-        if (!(witch instanceof IMobWarDataHolder holder)) {
-            return world.spawnEntity(entity);
-        }
-
-        MobWarData data = holder.getMobWarData();
-        if (data == null) {
-            return world.spawnEntity(entity);
-        }
-
-        ItemStack resolvedStack = WitchAbilityHelper.resolvePotionStack(witch, data, potion.getStack().copy(), witch.getRandom());
-        potion.setItem(resolvedStack);
-
-        ThrowStats stats = WitchAbilityHelper.resolveThrowStats(witch, data);
-        WitchAbilityHelper.configureTrajectory(potion, witch, target, stats, 0.0f);
-
-        boolean spawned = serverWorld.spawnEntity(potion);
-        return spawned;
     }
 }

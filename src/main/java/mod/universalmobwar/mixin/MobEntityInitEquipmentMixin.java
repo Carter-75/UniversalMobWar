@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.mob.MobEntity;
@@ -30,19 +31,21 @@ public abstract class MobEntityInitEquipmentMixin {
 
     @Inject(method = "initEquipment", at = @At("HEAD"), cancellable = true)
     private void universalmobwar$disableVanillaEquipment(Random random, LocalDifficulty difficulty, CallbackInfo ci) {
-        if (!ModConfig.getInstance().modEnabled) {
-            return;
-        }
-
-        MobEntity self = (MobEntity)(Object)this;
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
-            if (!CLEARED_SLOTS.contains(slot)) {
-                continue;
+        UniversalMobWarMod.runSafely("MobEntityInitEquipmentMixin#disableVanillaEquipment", () -> {
+            if (!ModConfig.getInstance().modEnabled) {
+                return;
             }
-            self.equipStack(slot, ItemStack.EMPTY);
-            self.setEquipmentDropChance(slot, 0.0f);
-        }
 
-        ci.cancel();
+            MobEntity self = (MobEntity)(Object)this;
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                if (!CLEARED_SLOTS.contains(slot)) {
+                    continue;
+                }
+                self.equipStack(slot, ItemStack.EMPTY);
+                self.setEquipmentDropChance(slot, 0.0f);
+            }
+
+            ci.cancel();
+        });
     }
 }

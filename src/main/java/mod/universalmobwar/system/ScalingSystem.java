@@ -256,7 +256,13 @@ public class ScalingSystem {
                 }
 
                 world.spawnEntity(projectile);
-            } catch (Exception ignored) {
+            } catch (Throwable t) {
+                UniversalMobWarMod.LOGGER.error(
+                    "[ScalingSystem] Failed extra-shot spawn for projectile {} in world {}",
+                    spawn != null ? spawn.projectileTypeId : null,
+                    spawn != null ? spawn.worldKey : null,
+                    t
+                );
             }
         }
     }

@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -32,114 +33,118 @@ public abstract class ProjectileAbilityMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void universalmobwar$applyProjectileAbilities(CallbackInfo ci) {
-        ProjectileEntity self = (ProjectileEntity) (Object) this;
-        World world = self.getWorld();
-        if (world.isClient() || universalmobwar$abilitiesApplied) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("ProjectileAbilityMixin#applyProjectileAbilities", () -> {
+            ProjectileEntity self = (ProjectileEntity) (Object) this;
+            World world = self.getWorld();
+            if (world.isClient() || universalmobwar$abilitiesApplied) {
+                return;
+            }
 
-        universalmobwar$abilitiesApplied = true;
+            universalmobwar$abilitiesApplied = true;
 
-        if (self.getCommandTags().contains(ScalingSystem.MULTISHOT_CHILD_TAG)
-            || self.getCommandTags().contains(ScalingSystem.EXTRA_SHOT_CHILD_TAG)) {
-            return;
-        }
+            if (self.getCommandTags().contains(ScalingSystem.MULTISHOT_CHILD_TAG)
+                || self.getCommandTags().contains(ScalingSystem.EXTRA_SHOT_CHILD_TAG)) {
+                return;
+            }
 
-        Entity owner = self.getOwner();
-        if (!(owner instanceof MobEntity mob)) {
-            return;
-        }
+            Entity owner = self.getOwner();
+            if (!(owner instanceof MobEntity mob)) {
+                return;
+            }
 
-        MobWarData data = universalmobwar$getData(mob);
-        if (data == null) {
-            return;
-        }
+            MobWarData data = universalmobwar$getData(mob);
+            if (data == null) {
+                return;
+            }
 
-        if (!(world instanceof ServerWorld serverWorld)) {
-            return;
-        }
+            if (!(world instanceof ServerWorld serverWorld)) {
+                return;
+            }
 
-        LivingEntity target = mob.getTarget();
+            LivingEntity target = mob.getTarget();
 
-        // Extra-shot follow-up cycles (scheduled between natural cycles).
-        long serverTick = serverWorld.getServer().getTicks();
-        ScalingSystem.onMobFiredProjectileForExtraShot(mob, data, self, serverWorld, serverTick);
+            // Extra-shot follow-up cycles (scheduled between natural cycles).
+            long serverTick = serverWorld.getServer().getTicks();
+            ScalingSystem.onMobFiredProjectileForExtraShot(mob, data, self, serverWorld, serverTick);
 
-        // Multishot extra projectiles (immediate duplicates).
-        int extraProjectiles = ScalingSystem.handleRangedAbilities(mob, data, target, serverTick);
-        if (extraProjectiles <= 0) {
-            return;
-        }
+            // Multishot extra projectiles (immediate duplicates).
+            int extraProjectiles = ScalingSystem.handleRangedAbilities(mob, data, target, serverTick);
+            if (extraProjectiles <= 0) {
+                return;
+            }
 
-        universalmobwar$spawnMultishotProjectiles(serverWorld, mob, data, self, extraProjectiles);
+            universalmobwar$spawnMultishotProjectiles(serverWorld, mob, data, self, extraProjectiles);
+        });
     }
 
     @Unique
     private void universalmobwar$spawnMultishotProjectiles(ServerWorld world, MobEntity mob, MobWarData data, ProjectileEntity original, int extraProjectiles) {
-        final boolean isExplosive = original instanceof ExplosiveProjectileEntity;
+        UniversalMobWarMod.runSafely("ProjectileAbilityMixin#spawnMultishotProjectiles", () -> {
+            final boolean isExplosive = original instanceof ExplosiveProjectileEntity;
 
-        double baseSpeed;
-        Vec3d baseDir;
+            double baseSpeed;
+            Vec3d baseDir;
 
-        if (isExplosive) {
-            double accel = 0.1;
-            try {
-                accel = ((ExplosiveProjectileEntityAccessor) (Object) original).universalmobwar$getAccelerationPower();
-            } catch (Throwable ignored) {
-            }
-            baseSpeed = Math.max(0.05, accel);
-            Vec3d v = original.getVelocity();
-            baseDir = v.lengthSquared() > 1.0E-6 ? v.normalize() : mob.getRotationVec(1.0F);
-        } else {
-            Vec3d v = original.getVelocity();
-            baseSpeed = Math.max(0.05, v.length());
-            baseDir = v.lengthSquared() > 1.0E-6 ? v.normalize() : mob.getRotationVec(1.0F);
-        }
-
-        // Use small variance: ~5-10% speed and small angle jitter.
-        // This keeps it basically the same shot with slight imperfection.
-        final float maxAngleDeg = 4.0f;
-        final double minSpeedMul = 0.90;
-        final double maxSpeedMul = 1.10;
-
-        int piercingLevel = Math.max(0, ScalingSystem.getPiercingLevel(mob, data));
-
-        for (int i = 0; i < extraProjectiles; i++) {
-            Entity duplicate = original.getType().create(world);
-            if (!(duplicate instanceof ProjectileEntity projectile)) {
-                continue;
-            }
-
-            projectile.setOwner(mob);
-            projectile.setPosition(original.getX(), original.getY(), original.getZ());
-            projectile.addCommandTag(ScalingSystem.MULTISHOT_CHILD_TAG);
-
-            if (original instanceof ThrownItemEntity thrown && projectile instanceof ThrownItemEntity thrownCopy) {
-                thrownCopy.setItem(thrown.getStack().copy());
-            }
-
-            Vec3d dirJittered = universalmobwar$jitterDirection(baseDir, mob.getRandom().nextFloat() * 2f - 1f, mob.getRandom().nextFloat() * 2f - 1f, maxAngleDeg);
-            double speedMul = minSpeedMul + mob.getRandom().nextDouble() * (maxSpeedMul - minSpeedMul);
-            double speed = baseSpeed * speedMul;
-            Vec3d velocity = dirJittered.multiply(speed);
-            projectile.setVelocity(velocity);
-
-            if (projectile instanceof ExplosiveProjectileEntity explosiveCopy) {
+            if (isExplosive) {
+                double accel = 0.1;
                 try {
-                    ((ExplosiveProjectileEntityAccessor) (Object) explosiveCopy).universalmobwar$setAccelerationPower(speed);
+                    accel = ((ExplosiveProjectileEntityAccessor) (Object) original).universalmobwar$getAccelerationPower();
                 } catch (Throwable ignored) {
                 }
+                baseSpeed = Math.max(0.05, accel);
+                Vec3d v = original.getVelocity();
+                baseDir = v.lengthSquared() > 1.0E-6 ? v.normalize() : mob.getRotationVec(1.0F);
+            } else {
+                Vec3d v = original.getVelocity();
+                baseSpeed = Math.max(0.05, v.length());
+                baseDir = v.lengthSquared() > 1.0E-6 ? v.normalize() : mob.getRotationVec(1.0F);
             }
 
-            if (projectile instanceof PersistentProjectileEntity persistentCopy) {
-                persistentCopy.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
-                if (piercingLevel > 0) {
-                    ((PersistentProjectileEntityAccessor) (Object) persistentCopy).invokeSetPierceLevel((byte) Math.min(127, piercingLevel));
+            // Use small variance: ~5-10% speed and small angle jitter.
+            // This keeps it basically the same shot with slight imperfection.
+            final float maxAngleDeg = 4.0f;
+            final double minSpeedMul = 0.90;
+            final double maxSpeedMul = 1.10;
+
+            int piercingLevel = Math.max(0, ScalingSystem.getPiercingLevel(mob, data));
+
+            for (int i = 0; i < extraProjectiles; i++) {
+                Entity duplicate = original.getType().create(world);
+                if (!(duplicate instanceof ProjectileEntity projectile)) {
+                    continue;
                 }
-            }
 
-            world.spawnEntity(projectile);
-        }
+                projectile.setOwner(mob);
+                projectile.setPosition(original.getX(), original.getY(), original.getZ());
+                projectile.addCommandTag(ScalingSystem.MULTISHOT_CHILD_TAG);
+
+                if (original instanceof ThrownItemEntity thrown && projectile instanceof ThrownItemEntity thrownCopy) {
+                    thrownCopy.setItem(thrown.getStack().copy());
+                }
+
+                Vec3d dirJittered = universalmobwar$jitterDirection(baseDir, mob.getRandom().nextFloat() * 2f - 1f, mob.getRandom().nextFloat() * 2f - 1f, maxAngleDeg);
+                double speedMul = minSpeedMul + mob.getRandom().nextDouble() * (maxSpeedMul - minSpeedMul);
+                double speed = baseSpeed * speedMul;
+                Vec3d velocity = dirJittered.multiply(speed);
+                projectile.setVelocity(velocity);
+
+                if (projectile instanceof ExplosiveProjectileEntity explosiveCopy) {
+                    try {
+                        ((ExplosiveProjectileEntityAccessor) (Object) explosiveCopy).universalmobwar$setAccelerationPower(speed);
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+                if (projectile instanceof PersistentProjectileEntity persistentCopy) {
+                    persistentCopy.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
+                    if (piercingLevel > 0) {
+                        ((PersistentProjectileEntityAccessor) (Object) persistentCopy).invokeSetPierceLevel((byte) Math.min(127, piercingLevel));
+                    }
+                }
+
+                world.spawnEntity(projectile);
+            }
+        });
     }
 
     @Unique

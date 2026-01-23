@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -40,26 +41,38 @@ public final class RegistryEntryEncodingFixMixin {
         try {
             return iterable.getRawIdOrThrow(value);
         } catch (IllegalArgumentException original) {
-            if (!(value instanceof RegistryEntry.Reference<?> reference)) {
-                throw original;
-            }
-
-            RegistryKey<?> key;
             try {
-                key = reference.getKey().orElse(null);
-            } catch (Exception ignored) {
-                key = null;
-            }
-            if (key == null) {
-                throw original;
-            }
+                if (!(value instanceof RegistryEntry.Reference<?> reference)) {
+                    throw original;
+                }
 
-            RegistryEntry.Reference<?> resolved = tryResolveReference(iterable, key);
-            if (resolved == null) {
-                throw original;
-            }
+                RegistryKey<?> key;
+                try {
+                    key = reference.getKey().orElse(null);
+                } catch (Exception ignored) {
+                    key = null;
+                }
+                if (key == null) {
+                    throw original;
+                }
 
-            return iterable.getRawIdOrThrow(resolved);
+                RegistryEntry.Reference<?> resolved = tryResolveReference(iterable, key);
+                if (resolved == null) {
+                    throw original;
+                }
+
+                return iterable.getRawIdOrThrow(resolved);
+            } catch (Throwable t) {
+                UniversalMobWarMod.LOGGER.error("[RegistryEntryEncodingFixMixin] Raw id resolution failed", t);
+                try {
+                    return iterable.getRawIdOrThrow(value);
+                } catch (Throwable ignored) {
+                    return 0;
+                }
+            }
+        } catch (Throwable t) {
+            UniversalMobWarMod.LOGGER.error("[RegistryEntryEncodingFixMixin] Raw id resolution failed", t);
+            return 0;
         }
     }
 

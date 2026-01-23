@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -33,45 +34,49 @@ public abstract class DragonFireballAbilityMixin extends ExplosiveProjectileEnti
 
     @Inject(method = "<init>(Lnet/minecraft/world/World;Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/util/math/Vec3d;)V", at = @At("TAIL"))
     private void universalmobwar$configureBombardment(World world, LivingEntity owner, Vec3d direction, CallbackInfo ci) {
-        if (!(world instanceof ServerWorld serverWorld)) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("DragonFireballAbilityMixin#configureBombardment", () -> {
+            if (!(world instanceof ServerWorld serverWorld)) {
+                return;
+            }
 
-        if (!(owner instanceof EnderDragonEntity dragon)) {
-            return;
-        }
+            if (!(owner instanceof EnderDragonEntity dragon)) {
+                return;
+            }
 
-        MobWarData data = universalmobwar$getData(dragon);
-        if (!universalmobwar$hasVoidBombardment(data)) {
-            return;
-        }
+            MobWarData data = universalmobwar$getData(dragon);
+            if (!universalmobwar$hasVoidBombardment(data)) {
+                return;
+            }
 
-        ScalingSystem.handleVoidBombardment(dragon, data, serverWorld, (DragonFireballEntity) (Object) this, serverWorld.getTime());
+            ScalingSystem.handleVoidBombardment(dragon, data, serverWorld, (DragonFireballEntity) (Object) this, serverWorld.getTime());
+        });
     }
 
     @Inject(method = "onCollision", at = @At("TAIL"))
     private void universalmobwar$applyBombardmentEffects(HitResult hitResult, CallbackInfo ci) {
-        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("DragonFireballAbilityMixin#applyBombardmentEffects", () -> {
+            if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+                return;
+            }
 
-        MobEntity owner = universalmobwar$getOwner();
-        if (owner == null) {
-            return;
-        }
+            MobEntity owner = universalmobwar$getOwner();
+            if (owner == null) {
+                return;
+            }
 
-        MobWarData data = universalmobwar$getData(owner);
-        if (!universalmobwar$hasVoidBombardment(data)) {
-            return;
-        }
+            MobWarData data = universalmobwar$getData(owner);
+            if (!universalmobwar$hasVoidBombardment(data)) {
+                return;
+            }
 
-        LivingEntity directHit = null;
-        if (hitResult instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living) {
-            directHit = living;
-        }
+            LivingEntity directHit = null;
+            if (hitResult instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living) {
+                directHit = living;
+            }
 
-        Vec3d impactPos = hitResult.getPos();
-        ScalingSystem.applyVoidBombardmentEffects(owner, data, serverWorld, impactPos, directHit);
+            Vec3d impactPos = hitResult.getPos();
+            ScalingSystem.applyVoidBombardmentEffects(owner, data, serverWorld, impactPos, directHit);
+        });
     }
 
     @Unique

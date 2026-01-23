@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -21,26 +22,28 @@ public abstract class LivingEntityDamageMixin {
 
     @Inject(method = "damage", at = @At("TAIL"))
     private void universalmobwar$handleDamageAbilities(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ()) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("LivingEntityDamageMixin#handleDamageAbilities", () -> {
+            if (!cir.getReturnValueZ()) {
+                return;
+            }
 
-        if (!((Object) this instanceof MobEntity mobEntity)) {
-            return;
-        }
+            if (!((Object) this instanceof MobEntity mobEntity)) {
+                return;
+            }
 
-        MobWarData data = ((IMobWarDataHolder) mobEntity).getMobWarData();
+            MobWarData data = ((IMobWarDataHolder) mobEntity).getMobWarData();
 
-        ScalingSystem.handleCriticalGlow(mobEntity, source);
+            ScalingSystem.handleCriticalGlow(mobEntity, source);
 
-        if (data == null) {
-            return;
-        }
+            if (data == null) {
+                return;
+            }
 
-        long currentTick = mobEntity.getWorld().getTime();
-        ScalingSystem.handleDamageAbilities(mobEntity, data, currentTick);
-        if (mobEntity.getWorld() instanceof ServerWorld serverWorld) {
-            ScalingSystem.handleHordeSummon(mobEntity, data, serverWorld, currentTick);
-        }
+            long currentTick = mobEntity.getWorld().getTime();
+            ScalingSystem.handleDamageAbilities(mobEntity, data, currentTick);
+            if (mobEntity.getWorld() instanceof ServerWorld serverWorld) {
+                ScalingSystem.handleHordeSummon(mobEntity, data, serverWorld, currentTick);
+            }
+        });
     }
 }

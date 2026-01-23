@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
 import mod.universalmobwar.system.ScalingSystem;
@@ -32,38 +33,44 @@ public abstract class EndermanAbilityMixin extends HostileEntity {
 
     @Inject(method = "teleportTo(DDD)Z", at = @At("HEAD"))
     private void universalmobwar$rememberTeleportOrigin(double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
-        this.universalmobwar$lastTeleportFrom = this.getBlockPos();
+        UniversalMobWarMod.runSafely("EndermanAbilityMixin#rememberTeleportOrigin", () -> {
+            this.universalmobwar$lastTeleportFrom = this.getBlockPos();
+        });
     }
 
     @Inject(method = "teleportTo(DDD)Z", at = @At("RETURN"))
     private void universalmobwar$triggerShadowStep(double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ()) {
-            return;
-        }
-        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
-            return;
-        }
-        MobWarData data = universalmobwar$getData();
-        if (data == null) {
-            return;
-        }
-        ScalingSystem.handleShadowStep((MobEntity) (Object) this, data, serverWorld, universalmobwar$lastTeleportFrom, serverWorld.getTime());
+        UniversalMobWarMod.runSafely("EndermanAbilityMixin#triggerShadowStep", () -> {
+            if (!cir.getReturnValueZ()) {
+                return;
+            }
+            if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+                return;
+            }
+            MobWarData data = universalmobwar$getData();
+            if (data == null) {
+                return;
+            }
+            ScalingSystem.handleShadowStep((MobEntity) (Object) this, data, serverWorld, universalmobwar$lastTeleportFrom, serverWorld.getTime());
+        });
     }
 
     @Inject(method = "tickMovement", at = @At("TAIL"))
     private void universalmobwar$handleVoidGrasp(CallbackInfo ci) {
-        if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
-            return;
-        }
-        // Run roughly every 10 ticks per Enderman to avoid constant scanning.
-        if ((serverWorld.getTime() + this.getId()) % 10 != 0) {
-            return;
-        }
-        MobWarData data = universalmobwar$getData();
-        if (data == null) {
-            return;
-        }
-        ScalingSystem.handleVoidGrasp((MobEntity) (Object) this, data, serverWorld, serverWorld.getTime());
+        UniversalMobWarMod.runSafely("EndermanAbilityMixin#handleVoidGrasp", () -> {
+            if (!(this.getWorld() instanceof ServerWorld serverWorld)) {
+                return;
+            }
+            // Run roughly every 10 ticks per Enderman to avoid constant scanning.
+            if ((serverWorld.getTime() + this.getId()) % 10 != 0) {
+                return;
+            }
+            MobWarData data = universalmobwar$getData();
+            if (data == null) {
+                return;
+            }
+            ScalingSystem.handleVoidGrasp((MobEntity) (Object) this, data, serverWorld, serverWorld.getTime());
+        });
     }
 
     private MobWarData universalmobwar$getData() {

@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
@@ -54,17 +55,21 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
 
     @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
     private void onWriteNbt(NbtCompound nbt, CallbackInfo ci) {
-        if (universalMobWarData != null) {
-            nbt.put("UniversalMobWarData", universalMobWarData.writeNbt());
-        }
+        UniversalMobWarMod.runSafely("MobDataMixin#writeCustomDataToNbt", () -> {
+            if (universalMobWarData != null) {
+                nbt.put("UniversalMobWarData", universalMobWarData.writeNbt());
+            }
+        });
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
     private void onReadNbt(NbtCompound nbt, CallbackInfo ci) {
-        if (nbt.contains("UniversalMobWarData")) {
-            universalMobWarData = new MobWarData();
-            universalMobWarData.readNbt(nbt.getCompound("UniversalMobWarData"));
-        }
+        UniversalMobWarMod.runSafely("MobDataMixin#readCustomDataFromNbt", () -> {
+            if (nbt.contains("UniversalMobWarData")) {
+                universalMobWarData = new MobWarData();
+                universalMobWarData.readNbt(nbt.getCompound("UniversalMobWarData"));
+            }
+        });
     }
     
     /**
@@ -80,26 +85,30 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
      */
     @Inject(method = "mobTick", at = @At("HEAD"))
     private void universalmobwar$onMobTick(CallbackInfo ci) {
-        if (!ModConfig.getInstance().modEnabled) {
-            return;
-        }
-        MobEntity self = (MobEntity)(Object)this;
-        ScalingSystem.monitorEquipmentState(self, universalMobWarData);
-        ScalingSystem.processMobTick(self, self.getWorld(), universalMobWarData);
+        UniversalMobWarMod.runSafely("MobDataMixin#onMobTick", () -> {
+            if (!ModConfig.getInstance().modEnabled) {
+                return;
+            }
+            MobEntity self = (MobEntity)(Object)this;
+            ScalingSystem.monitorEquipmentState(self, universalMobWarData);
+            ScalingSystem.processMobTick(self, self.getWorld(), universalMobWarData);
+        });
     }
 
     @Inject(method = "tryAttack(Lnet/minecraft/entity/Entity;)Z", at = @At("TAIL"))
     private void universalmobwar$handleMeleeAbilities(Entity target, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ() || !(target instanceof LivingEntity livingTarget)) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("MobDataMixin#handleMeleeAbilities", () -> {
+            if (!cir.getReturnValueZ() || !(target instanceof LivingEntity livingTarget)) {
+                return;
+            }
 
-        MobEntity self = (MobEntity)(Object)this;
-        if (universalMobWarData == null) {
-            return;
-        }
+            MobEntity self = (MobEntity)(Object)this;
+            if (universalMobWarData == null) {
+                return;
+            }
 
-        ScalingSystem.handleMeleeAttackAbilities(self, universalMobWarData, livingTarget, self.getWorld().getTime());
+            ScalingSystem.handleMeleeAttackAbilities(self, universalMobWarData, livingTarget, self.getWorld().getTime());
+        });
     }
     
     // Strip ALL equipment from every mob immediately on spawn (AFTER vanilla equipment)
@@ -112,35 +121,37 @@ public abstract class MobDataMixin extends LivingEntity implements IMobWarDataHo
         net.minecraft.entity.EntityData entityData,
         org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<net.minecraft.entity.EntityData> cir
     ) {
-        if (!ModConfig.getInstance().modEnabled) {
-            return; // Leave vanilla gear untouched when mod is disabled
-        }
-        MobEntity self = (MobEntity)(Object)this;
-        
-        // Tag spawn eggs so they aren't blocked by natural spawn blocker
-        if (spawnReason == net.minecraft.entity.SpawnReason.SPAWN_EGG) {
-            self.addCommandTag("umw_player_spawned");
-        }
+        UniversalMobWarMod.runSafely("MobDataMixin#stripAllEquipmentOnSpawn", () -> {
+            if (!ModConfig.getInstance().modEnabled) {
+                return; // Leave vanilla gear untouched when mod is disabled
+            }
+            MobEntity self = (MobEntity)(Object)this;
+            
+            // Tag spawn eggs so they aren't blocked by natural spawn blocker
+            if (spawnReason == net.minecraft.entity.SpawnReason.SPAWN_EGG) {
+                self.addCommandTag("umw_player_spawned");
+            }
 
-        // Tag spawner spawns so they're excluded from natural spawn caps.
-        if (spawnReason == net.minecraft.entity.SpawnReason.SPAWNER) {
-            self.addCommandTag("umw_spawner_spawned");
-        }
+            // Tag spawner spawns so they're excluded from natural spawn caps.
+            if (spawnReason == net.minecraft.entity.SpawnReason.SPAWNER) {
+                self.addCommandTag("umw_spawner_spawned");
+            }
 
-        // Tag natural spawns so we can apply a cap only to natural spawning.
-        if (spawnReason == net.minecraft.entity.SpawnReason.NATURAL) {
-            self.addCommandTag("umw_natural_spawned");
-        }
-        
-        // Remove armor (head, chest, legs, boots)
-        self.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);
-        self.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
-        self.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.item.ItemStack.EMPTY);
-        self.equipStack(net.minecraft.entity.EquipmentSlot.FEET, net.minecraft.item.ItemStack.EMPTY);
-        // Remove weapons/tools
-        self.equipStack(net.minecraft.entity.EquipmentSlot.MAINHAND, net.minecraft.item.ItemStack.EMPTY);
-        self.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, net.minecraft.item.ItemStack.EMPTY);
+            // Tag natural spawns so we can apply a cap only to natural spawning.
+            if (spawnReason == net.minecraft.entity.SpawnReason.NATURAL) {
+                self.addCommandTag("umw_natural_spawned");
+            }
+            
+            // Remove armor (head, chest, legs, boots)
+            self.equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.FEET, net.minecraft.item.ItemStack.EMPTY);
+            // Remove weapons/tools
+            self.equipStack(net.minecraft.entity.EquipmentSlot.MAINHAND, net.minecraft.item.ItemStack.EMPTY);
+            self.equipStack(net.minecraft.entity.EquipmentSlot.OFFHAND, net.minecraft.item.ItemStack.EMPTY);
 
-        ScalingSystem.handleSpawnBootstrap(self, spawnReason, universalMobWarData);
+            ScalingSystem.handleSpawnBootstrap(self, spawnReason, universalMobWarData);
+        });
     }
 }

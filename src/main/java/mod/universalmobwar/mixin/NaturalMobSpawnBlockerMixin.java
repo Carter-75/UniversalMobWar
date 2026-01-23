@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import mod.universalmobwar.system.NaturalSpawnLimiter;
 import net.minecraft.entity.mob.MobEntity;
@@ -22,48 +23,50 @@ public abstract class NaturalMobSpawnBlockerMixin {
      */
     @Inject(method = "spawnEntity", at = @At("HEAD"), cancellable = true)
     private void onSpawnEntity(net.minecraft.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        ModConfig config = ModConfig.getInstance();
-        if (!(entity instanceof MobEntity)) return;
-        
-        // Check if mob has special tags indicating it was spawned by player/mod/command
-        MobEntity mob = (MobEntity) entity;
+        UniversalMobWarMod.runSafely("NaturalMobSpawnBlockerMixin#onSpawnEntity", () -> {
+            ModConfig config = ModConfig.getInstance();
+            if (!(entity instanceof MobEntity)) return;
+            
+            // Check if mob has special tags indicating it was spawned by player/mod/command
+            MobEntity mob = (MobEntity) entity;
 
-        // Hard block mode (existing behavior)
-        if (config.disableNaturalMobSpawns) {
+            // Hard block mode (existing behavior)
+            if (config.disableNaturalMobSpawns) {
+                if (mob.getCommandTags().contains("umw_player_spawned")) return;
+                if (mob.getCommandTags().contains("umw_spawner_spawned")) return;
+                if (mob.getCommandTags().contains("umw_horde_reinforcement")) return;
+                if (mob.getCommandTags().contains("umw_summoned")) return;
+                if (entity.hasCustomName()) return;
+                cir.setReturnValue(false);
+                return;
+            }
+
+            // Soft cap mode: only applies to NATURAL spawns (not spawners, eggs, commands, etc.)
+            if (!config.limitNaturalMobSpawns) return;
+            if (!mob.getCommandTags().contains("umw_natural_spawned")) return;
+
+            // Safety allowlist
             if (mob.getCommandTags().contains("umw_player_spawned")) return;
             if (mob.getCommandTags().contains("umw_spawner_spawned")) return;
             if (mob.getCommandTags().contains("umw_horde_reinforcement")) return;
             if (mob.getCommandTags().contains("umw_summoned")) return;
             if (entity.hasCustomName()) return;
-            cir.setReturnValue(false);
-            return;
-        }
 
-        // Soft cap mode: only applies to NATURAL spawns (not spawners, eggs, commands, etc.)
-        if (!config.limitNaturalMobSpawns) return;
-        if (!mob.getCommandTags().contains("umw_natural_spawned")) return;
+            if (!(((Object) this) instanceof ServerWorld world)) return;
+            MinecraftServer server = world.getServer();
+            if (server == null) return;
 
-        // Safety allowlist
-        if (mob.getCommandTags().contains("umw_player_spawned")) return;
-        if (mob.getCommandTags().contains("umw_spawner_spawned")) return;
-        if (mob.getCommandTags().contains("umw_horde_reinforcement")) return;
-        if (mob.getCommandTags().contains("umw_summoned")) return;
-        if (entity.hasCustomName()) return;
+            int simulationDistance = getSimulationDistance(server);
+            int cap = Math.max(0, config.naturalSpawnCapPerSimulationDistance) * Math.max(0, simulationDistance);
+            if (cap <= 0) {
+                return;
+            }
 
-        if (!(((Object) this) instanceof ServerWorld world)) return;
-        MinecraftServer server = world.getServer();
-        if (server == null) return;
-
-        int simulationDistance = getSimulationDistance(server);
-        int cap = Math.max(0, config.naturalSpawnCapPerSimulationDistance) * Math.max(0, simulationDistance);
-        if (cap <= 0) {
-            return;
-        }
-
-        int currentNatural = NaturalSpawnLimiter.getNaturalMobCount(world);
-        if (currentNatural >= cap) {
-            cir.setReturnValue(false);
-        }
+            int currentNatural = NaturalSpawnLimiter.getNaturalMobCount(world);
+            if (currentNatural >= cap) {
+                cir.setReturnValue(false);
+            }
+        });
     }
 
     private static int getSimulationDistance(MinecraftServer server) {

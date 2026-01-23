@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.util.SummonerTracker;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityData;
@@ -35,30 +36,32 @@ public abstract class UniversalSummonerTrackingMixin {
         EntityData entityData,
         CallbackInfoReturnable<EntityData> cir
     ) {
-        MobEntity self = (MobEntity)(Object)this;
-        
-        // Only track if this mob was summoned AND we're in a ServerWorld
-        if ((spawnReason == SpawnReason.MOB_SUMMONED || spawnReason == SpawnReason.EVENT) 
-            && world instanceof ServerWorld serverWorld) {
-            // Try to find the summoner by looking for nearby mobs that could have summoned this one
-            // Common summoners: Evoker, Illusioner, Warlord, etc.
+        UniversalMobWarMod.runSafely("UniversalSummonerTrackingMixin#trackSummonedMob", () -> {
+            MobEntity self = (MobEntity)(Object)this;
             
-            // Look for potential summoners within 16 blocks
-            MobEntity closestSummoner = serverWorld.getEntitiesByClass(
-                MobEntity.class,
-                self.getBoundingBox().expand(16.0),
-                entity -> entity != self && 
-                         entity.isAlive() &&
-                         entity.squaredDistanceTo(self) < 256.0 && // Within 16 blocks
-                         couldSummon(entity)
-            ).stream()
-                .min((a, b) -> Double.compare(a.squaredDistanceTo(self), b.squaredDistanceTo(self)))
-                .orElse(null);
-            
-            if (closestSummoner != null) {
-                SummonerTracker.registerSummoned(self.getUuid(), closestSummoner.getUuid());
+            // Only track if this mob was summoned AND we're in a ServerWorld
+            if ((spawnReason == SpawnReason.MOB_SUMMONED || spawnReason == SpawnReason.EVENT) 
+                && world instanceof ServerWorld serverWorld) {
+                // Try to find the summoner by looking for nearby mobs that could have summoned this one
+                // Common summoners: Evoker, Illusioner, Warlord, etc.
+                
+                // Look for potential summoners within 16 blocks
+                MobEntity closestSummoner = serverWorld.getEntitiesByClass(
+                    MobEntity.class,
+                    self.getBoundingBox().expand(16.0),
+                    entity -> entity != self && 
+                             entity.isAlive() &&
+                             entity.squaredDistanceTo(self) < 256.0 && // Within 16 blocks
+                             couldSummon(entity)
+                ).stream()
+                    .min((a, b) -> Double.compare(a.squaredDistanceTo(self), b.squaredDistanceTo(self)))
+                    .orElse(null);
+                
+                if (closestSummoner != null) {
+                    SummonerTracker.registerSummoned(self.getUuid(), closestSummoner.getUuid());
+                }
             }
-        }
+        });
     }
     
     /**

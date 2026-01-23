@@ -43,26 +43,26 @@ public abstract class RaidSpawningMixin {
      */
     @Inject(method = "spawnNextWave", at = @At("TAIL"))
     private void universalmobwar$spawnWarlordBoss(BlockPos pos, CallbackInfo ci) {
-        // Check if warlord system is enabled
-        ModConfig config = ModConfig.getInstance();
-        if (!config.isWarlordActive()) return;
-        
-        // Only spawn on final waves (configurable minimum raid level)
-        if (this.wavesSpawned < config.warlordMinRaidLevel) return;
-        
-        // Check if force spawn is active (from command)
-        boolean forceSpawn = RaidBossSpawnCommand.shouldForceSpawn();
-        
-        // Check if always spawn on final wave is enabled
-        if (config.alwaysSpawnWarlordOnFinalWave) {
-            forceSpawn = true;
-        }
-        
-        // Configurable spawn chance (default 25%) OR forced by command
-        double spawnChance = config.warlordSpawnChance / 100.0;
-        if (!forceSpawn && Math.random() > spawnChance) return;
-        
-        try {
+        UniversalMobWarMod.runSafely("RaidSpawningMixin#spawnWarlordBoss", () -> {
+            // Check if warlord system is enabled
+            ModConfig config = ModConfig.getInstance();
+            if (!config.isWarlordActive()) return;
+            
+            // Only spawn on final waves (configurable minimum raid level)
+            if (this.wavesSpawned < config.warlordMinRaidLevel) return;
+            
+            // Check if force spawn is active (from command)
+            boolean forceSpawn = RaidBossSpawnCommand.shouldForceSpawn();
+            
+            // Check if always spawn on final wave is enabled
+            if (config.alwaysSpawnWarlordOnFinalWave) {
+                forceSpawn = true;
+            }
+            
+            // Configurable spawn chance (default 25%) OR forced by command
+            double spawnChance = config.warlordSpawnChance / 100.0;
+            if (!forceSpawn && Math.random() > spawnChance) return;
+            
             // Find suitable spawn position near raid center
             BlockPos spawnPos = findSuitableSpawnPos(this.center);
             if (spawnPos == null) return;
@@ -108,9 +108,7 @@ public abstract class RaidSpawningMixin {
                 
                 UniversalMobWarMod.LOGGER.info("Mob Warlord spawned in raid at {}", spawnPos);
             }
-        } catch (Exception e) {
-            UniversalMobWarMod.LOGGER.error("Failed to spawn Mob Warlord in raid", e);
-        }
+        });
     }
     
     /**

@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.config.ModConfig;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
@@ -21,23 +22,25 @@ public abstract class NeutralMobBehaviorMixin {
      */
     @Inject(method = "tick", at = @At("HEAD"))
     private void universalmobwar$forceAggressive(CallbackInfo ci) {
-        MobEntity self = (MobEntity)(Object)this;
-        
-        if (self.getWorld().isClient()) return;
-        if (!(self.getWorld() instanceof ServerWorld serverWorld)) return;
-        
-        // Only affect mobs with anger system (neutral mobs)
-        if (!(self instanceof Angerable angerable)) return;
-        
-        boolean neutralAggressive = ModConfig.getInstance().neutralMobsAlwaysAggressive;
-        if (!neutralAggressive) return;
-        
-        // Keep anger high when they have a target
-        if (angerable.getAngryAt() == null && self.getTarget() != null) {
-            // Set anger target to current target
-            angerable.setAngryAt(self.getTarget().getUuid());
-            angerable.setAngerTime(600); // 30 seconds
-        }
+        UniversalMobWarMod.runSafely("NeutralMobBehaviorMixin#forceAggressive", () -> {
+            MobEntity self = (MobEntity)(Object)this;
+            
+            if (self.getWorld().isClient()) return;
+            if (!(self.getWorld() instanceof ServerWorld serverWorld)) return;
+            
+            // Only affect mobs with anger system (neutral mobs)
+            if (!(self instanceof Angerable angerable)) return;
+            
+            boolean neutralAggressive = ModConfig.getInstance().neutralMobsAlwaysAggressive;
+            if (!neutralAggressive) return;
+            
+            // Keep anger high when they have a target
+            if (angerable.getAngryAt() == null && self.getTarget() != null) {
+                // Set anger target to current target
+                angerable.setAngryAt(self.getTarget().getUuid());
+                angerable.setAngerTime(600); // 30 seconds
+            }
+        });
     }
 }
 

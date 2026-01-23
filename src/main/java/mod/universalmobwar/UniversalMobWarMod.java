@@ -133,100 +133,115 @@ public class UniversalMobWarMod implements ModInitializer {
 
 		// Send welcome message to players when they join
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			// If the client doesn't have this mod installed, they won't advertise our payload,
-			// and we reject the connection with a clear message.
-			if (!ServerPlayNetworking.canSend(handler.player, UmwRequiredClientPayload.ID)) {
-				handler.disconnect(Text.literal("Universal Mob War is required to join this server."));
-				return;
-			}
+			runSafely("JOIN welcome message", () -> {
+				// If the client doesn't have this mod installed, they won't advertise our payload,
+				// and we reject the connection with a clear message.
+				if (!ServerPlayNetworking.canSend(handler.player, UmwRequiredClientPayload.ID)) {
+					handler.disconnect(Text.literal("Universal Mob War is required to join this server."));
+					return;
+				}
 
-			handler.player.sendMessage(Text.literal(""), false);
-			handler.player.sendMessage(
-				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("    UNIVERSAL MOB WAR").styled(style -> style.withColor(Formatting.RED).withBold(true))
-					,
-				false
-			);
-			handler.player.sendMessage(
-				Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
-				false
-			);
+				handler.player.sendMessage(Text.literal(""), false);
+				handler.player.sendMessage(
+					Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
+					false
+				);
+				handler.player.sendMessage(
+					Text.literal("    UNIVERSAL MOB WAR").styled(style -> style.withColor(Formatting.RED).withBold(true))
+						,
+					false
+				);
+				handler.player.sendMessage(
+					Text.literal("═══════════════════════════════════════════════════").styled(style -> style.withColor(Formatting.GOLD).withBold(true)),
+					false
+				);
+			});
 		});
 
 		// Attach our targeting goal to every MobEntity when it loads into a server world.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
-			// Track naturally spawned mobs for spawn limiting.
-			if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
-				NaturalSpawnLimiter.onMobLoaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
-			}
+			runSafely(
+				"ENTITY_LOAD for " + entity.getType().getTranslationKey(),
+				() -> {
+					// Track naturally spawned mobs for spawn limiting.
+					if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
+						NaturalSpawnLimiter.onMobLoaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
+					}
 
-			if (!(entity instanceof MobEntity mob)) return;
+					if (!(entity instanceof MobEntity mob)) return;
 
-			// Evolution System now handled globally via MobDataMixin + ScalingSystem
-			// Each mob automatically inherits progression logic from its JSON config
+					// Evolution System now handled globally via MobDataMixin + ScalingSystem
+					// Each mob automatically inherits progression logic from its JSON config
 
-			// Check if the mod is enabled
-			if (!ModConfig.getInstance().isTargetingActive()) return;
+					// Check if the mod is enabled
+					if (!ModConfig.getInstance().isTargetingActive()) return;
 
-			// Check if this mob type is excluded
-			String mobId = mob.getType().getTranslationKey();
-			if (ModConfig.getInstance().isMobExcluded(mobId)) return;
+					// Check if this mob type is excluded
+					String mobId = mob.getType().getTranslationKey();
+					if (ModConfig.getInstance().isMobExcluded(mobId)) return;
 
-			GoalSelector targetSelector = ((MobEntityAccessor) mob).getTargetSelector();
-			GoalSelector goalSelector = ((MobEntityAccessor) mob).getGoalSelector();
+					GoalSelector targetSelector = ((MobEntityAccessor) mob).getTargetSelector();
+					GoalSelector goalSelector = ((MobEntityAccessor) mob).getGoalSelector();
 
-			// Check if our goal is already added to prevent duplicates on chunk reload
-			boolean alreadyHasGoal = targetSelector.getGoals().stream()
-				.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
+					// Check if our goal is already added to prevent duplicates on chunk reload
+					boolean alreadyHasGoal = targetSelector.getGoals().stream()
+						.anyMatch(goal -> goal.getGoal() instanceof UniversalTargetGoal);
 
-			if (!alreadyHasGoal) {
-				Supplier<ModConfig> configSupplier = ModConfig::getInstance;
-				// Add targeting goal
-				targetSelector.add(2, new UniversalTargetGoal(
-					mob,
-					() -> configSupplier.get().isTargetingActive(),
-					() -> configSupplier.get().ignoreSameSpecies,
-					() -> configSupplier.get().targetPlayers,
-					() -> configSupplier.get().isAllianceActive(),
-					() -> configSupplier.get().getRangeMultiplier()
-				));
-				
-				// Add stalemate breaker goal (Priority 0 to ensure it always runs)
-				goalSelector.add(0, new StalemateBreakerGoal(mob));
-			}
+					if (!alreadyHasGoal) {
+						Supplier<ModConfig> configSupplier = ModConfig::getInstance;
+						// Add targeting goal
+						targetSelector.add(2, new UniversalTargetGoal(
+							mob,
+							() -> configSupplier.get().isTargetingActive(),
+							() -> configSupplier.get().ignoreSameSpecies,
+							() -> configSupplier.get().targetPlayers,
+							() -> configSupplier.get().isAllianceActive(),
+							() -> configSupplier.get().getRangeMultiplier()
+						));
+						
+						// Add stalemate breaker goal (Priority 0 to ensure it always runs)
+						goalSelector.add(0, new StalemateBreakerGoal(mob));
+					}
+				}
+			);
 		});
 
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
-			if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
-				NaturalSpawnLimiter.onMobUnloaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
-			}
+			runSafely(
+				"ENTITY_UNLOAD for " + entity.getType().getTranslationKey(),
+				() -> {
+					if (world instanceof ServerWorld serverWorld && entity instanceof MobEntity mob) {
+						NaturalSpawnLimiter.onMobUnloaded(serverWorld, mob.getCommandTags().contains("umw_natural_spawned"));
+					}
+				}
+			);
 		});
 
 		// OPTIMIZATION: Register cache cleanup for entity query system (every 5 seconds)
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			// Execute scheduled extra_shot follow-up cycles (projectiles only).
-			ScalingSystem.processExtraShotQueue(server);
+			runSafely("END_SERVER_TICK extra shot queue", () -> ScalingSystem.processExtraShotQueue(server));
 
 			if (server.getTicks() % 100 == 0) { // Every 5 seconds
-				TargetingUtil.cleanupCache();
-				OperationScheduler.cleanup(); // Also cleanup operation scheduler
+				runSafely("END_SERVER_TICK cache cleanup", () -> {
+					TargetingUtil.cleanupCache();
+					OperationScheduler.cleanup(); // Also cleanup operation scheduler
+				});
 			}
 
 			// PERFORMANCE: Clean up non-player ground projectiles (arrows/tridents) on an interval.
 			int intervalSeconds = Math.max(5, ModConfig.getInstance().cleanupNonPlayerGroundProjectilesIntervalSeconds);
 			int intervalTicks = intervalSeconds * 20;
 			if (server.getTicks() % intervalTicks == 0) {
-				EntityCleanupSystem.cleanupNonPlayerGroundProjectiles(server);
+				runSafely("END_SERVER_TICK projectile cleanup", () -> EntityCleanupSystem.cleanupNonPlayerGroundProjectiles(server));
 			}
 			
 			// MEMORY LEAK FIX: Clean up dead mob UUIDs from AllianceSystem (every 60 seconds)
 			if (server.getTicks() % 1200 == 0) {
-				for (ServerWorld world : server.getWorlds()) {
-					AllianceSystem.cleanupDeadMobs(world);
-				}
+				runSafely("END_SERVER_TICK alliance cleanup", () -> {
+					for (ServerWorld world : server.getWorlds()) {
+						AllianceSystem.cleanupDeadMobs(world);
+					}
+				});
 			}
 		});
 
@@ -255,6 +270,18 @@ public class UniversalMobWarMod implements ModInitializer {
 		GameRules.BooleanRule neutralAggressiveRule = server.getGameRules().get(NEUTRAL_MOBS_AGGRESSIVE_RULE);
 		if (neutralAggressiveRule.get() != config.neutralMobsAlwaysAggressive) {
 			neutralAggressiveRule.set(config.neutralMobsAlwaysAggressive, server);
+		}
+	}
+
+	public static void runSafely(String context, Runnable action) {
+		if (action == null) {
+			return;
+		}
+		try {
+			action.run();
+		} catch (Throwable t) {
+			String safeContext = context == null ? "Unknown" : context;
+			LOGGER.error("[UMW] {} failed", safeContext, t);
 		}
 	}
 

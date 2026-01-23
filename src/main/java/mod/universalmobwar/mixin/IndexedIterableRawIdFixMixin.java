@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -34,38 +35,40 @@ public interface IndexedIterableRawIdFixMixin {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Inject(method = "getRawIdOrThrow(Ljava/lang/Object;)I", at = @At("HEAD"), cancellable = true)
     private void umw$fixForeignRegistryEntry(Object value, CallbackInfoReturnable<Integer> cir) {
-        IndexedIterable self = (IndexedIterable) (Object) this;
+        UniversalMobWarMod.runSafely("IndexedIterableRawIdFixMixin#fixForeignRegistryEntry", () -> {
+            IndexedIterable self = (IndexedIterable) (Object) this;
 
-        // Fast path: if this iterable can already resolve it, do nothing.
-        Integer rawId = tryGetRawId(self, value);
-        if (rawId != null && rawId.intValue() >= 0) {
-            cir.setReturnValue(rawId);
-            return;
-        }
+            // Fast path: if this iterable can already resolve it, do nothing.
+            Integer rawId = tryGetRawId(self, value);
+            if (rawId != null && rawId.intValue() >= 0) {
+                cir.setReturnValue(rawId);
+                return;
+            }
 
-        if (!(value instanceof RegistryEntry.Reference<?> reference)) {
-            return;
-        }
+            if (!(value instanceof RegistryEntry.Reference<?> reference)) {
+                return;
+            }
 
-        RegistryKey<?> key;
-        try {
-            key = reference.getKey().orElse(null);
-        } catch (Exception ignored) {
-            key = null;
-        }
-        if (key == null) {
-            return;
-        }
+            RegistryKey<?> key;
+            try {
+                key = reference.getKey().orElse(null);
+            } catch (Exception ignored) {
+                key = null;
+            }
+            if (key == null) {
+                return;
+            }
 
-        RegistryEntry.Reference<?> resolved = tryResolveReference(self, key);
-        if (resolved == null) {
-            return;
-        }
+            RegistryEntry.Reference<?> resolved = tryResolveReference(self, key);
+            if (resolved == null) {
+                return;
+            }
 
-        Integer resolvedRawId = tryGetRawId(self, resolved);
-        if (resolvedRawId != null && resolvedRawId.intValue() >= 0) {
-            cir.setReturnValue(resolvedRawId);
-        }
+            Integer resolvedRawId = tryGetRawId(self, resolved);
+            if (resolvedRawId != null && resolvedRawId.intValue() >= 0) {
+                cir.setReturnValue(resolvedRawId);
+            }
+        });
     }
 
     @SuppressWarnings({"rawtypes"})

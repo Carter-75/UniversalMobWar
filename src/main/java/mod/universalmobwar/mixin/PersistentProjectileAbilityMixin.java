@@ -1,5 +1,6 @@
 package mod.universalmobwar.mixin;
 
+import mod.universalmobwar.UniversalMobWarMod;
 import mod.universalmobwar.bridge.ProjectileAbilityBridge;
 import mod.universalmobwar.data.IMobWarDataHolder;
 import mod.universalmobwar.data.MobWarData;
@@ -41,54 +42,58 @@ public abstract class PersistentProjectileAbilityMixin extends ProjectileEntity 
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void universalmobwar$applyProjectileAbilities(CallbackInfo ci) {
-        if (this.getWorld().isClient() || universalmobwar$abilitiesApplied) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("PersistentProjectileAbilityMixin#applyProjectileAbilities", () -> {
+            if (this.getWorld().isClient() || universalmobwar$abilitiesApplied) {
+                return;
+            }
 
-        Entity owner = this.getOwner();
-        if (!(owner instanceof MobEntity mob)) {
+            Entity owner = this.getOwner();
+            if (!(owner instanceof MobEntity mob)) {
+                universalmobwar$abilitiesApplied = true;
+                return;
+            }
+
+            MobWarData data = universalmobwar$getData(mob);
+            if (data == null) {
+                universalmobwar$abilitiesApplied = true;
+                return;
+            }
+
             universalmobwar$abilitiesApplied = true;
-            return;
-        }
 
-        MobWarData data = universalmobwar$getData(mob);
-        if (data == null) {
-            universalmobwar$abilitiesApplied = true;
-            return;
-        }
+            int piercingLevel = Math.max(0, ScalingSystem.getPiercingLevel(mob, data));
+            if (piercingLevel > 0) {
+                ((PersistentProjectileEntityAccessor) (Object) this).invokeSetPierceLevel((byte) Math.min(127, piercingLevel));
+            }
 
-        universalmobwar$abilitiesApplied = true;
-
-        int piercingLevel = Math.max(0, ScalingSystem.getPiercingLevel(mob, data));
-        if (piercingLevel > 0) {
-            ((PersistentProjectileEntityAccessor) (Object) this).invokeSetPierceLevel((byte) Math.min(127, piercingLevel));
-        }
-
-        // Multishot + extra_shot are handled in ProjectileAbilityMixin for all projectile types.
+            // Multishot + extra_shot are handled in ProjectileAbilityMixin for all projectile types.
+        });
     }
 
     @Inject(method = "onEntityHit", at = @At("TAIL"))
     private void universalmobwar$applyPotionMastery(EntityHitResult hitResult, CallbackInfo ci) {
-        if (this.getWorld().isClient()) {
-            return;
-        }
+        UniversalMobWarMod.runSafely("PersistentProjectileAbilityMixin#applyPotionMastery", () -> {
+            if (this.getWorld().isClient()) {
+                return;
+            }
 
-        Entity owner = this.getOwner();
-        if (!(owner instanceof MobEntity mob)) {
-            return;
-        }
+            Entity owner = this.getOwner();
+            if (!(owner instanceof MobEntity mob)) {
+                return;
+            }
 
-        Entity hit = hitResult.getEntity();
-        if (!(hit instanceof LivingEntity livingTarget)) {
-            return;
-        }
+            Entity hit = hitResult.getEntity();
+            if (!(hit instanceof LivingEntity livingTarget)) {
+                return;
+            }
 
-        MobWarData data = universalmobwar$getData(mob);
-        if (data == null) {
-            return;
-        }
+            MobWarData data = universalmobwar$getData(mob);
+            if (data == null) {
+                return;
+            }
 
-        ScalingSystem.applyRangedPotionEffects(mob, data, livingTarget);
+            ScalingSystem.applyRangedPotionEffects(mob, data, livingTarget);
+        });
     }
 
     private MobWarData universalmobwar$getData(MobEntity mob) {
