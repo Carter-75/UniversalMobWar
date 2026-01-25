@@ -51,6 +51,12 @@ import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
+
 public class UniversalMobWarMod implements ModInitializer {
 
 	public static final String MODID = "universalmobwar";
@@ -99,6 +105,10 @@ public class UniversalMobWarMod implements ModInitializer {
 		new SpawnEggItem(MOB_WARLORD, 0x334E4C, 0x51A03E, new Item.Settings())
 	);
 
+	// Safety net payload ID for global receiver
+	public static final net.minecraft.network.packet.CustomPayload.Id<net.minecraft.network.packet.CustomPayload> UMW_SAFETYNET_ID =
+		new net.minecraft.network.packet.CustomPayload.Id<>(Identifier.of(MODID, "umw_safetynet"));
+
 	@Override
 	public void onInitialize() {
 		// Register an empty S2C payload solely so the server can verify the client has this mod.
@@ -108,6 +118,15 @@ public class UniversalMobWarMod implements ModInitializer {
 		} catch (IllegalArgumentException alreadyRegistered) {
 			// Tolerate double-init in dev / hot reload scenarios.
 		}
+
+		// SAFETY NET: Register a global handler for unknown or malformed payloads to prevent hard disconnects
+		ServerPlayNetworking.registerGlobalReceiver(UMW_SAFETYNET_ID, (payload, context) -> {
+			runSafely("SAFETY_NET_PAYLOAD", () -> {
+				// Just read and ignore any unknown payloads
+				// Optionally, log the event for debugging
+				LOGGER.warn("[UMW] Ignored unknown or malformed network payload from {}.", context.player().getName().getString());
+			});
+		});
 
 		// Register and load config
 		AutoConfig.register(ModConfig.class, GsonConfigSerializer::new);
@@ -248,6 +267,7 @@ public class UniversalMobWarMod implements ModInitializer {
 		LOGGER.info("Universal Mob War initialized successfully!");
 	}
 
+
 	private static GameRules.Key<GameRules.BooleanRule> registerBooleanRule(
 		String name,
 		GameRules.Category category,
@@ -284,6 +304,7 @@ public class UniversalMobWarMod implements ModInitializer {
 			LOGGER.error("[UMW] {} failed", safeContext, t);
 		}
 	}
+
 
 }
 

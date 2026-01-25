@@ -494,32 +494,53 @@ class UniversalBuildSystem:
     def validate_java_syntax(self):
         """Check Java code for 1.21.1 compatibility"""
         info("Validating Java syntax and 1.21.1 API usage...")
-        
+
         java_files = list(self.root.glob("src/main/java/**/*.java"))
-        
-        # Check for old Identifier constructor
+
+        # Only flag truly deprecated Identifier usage (e.g., new Identifier(int, int) or new Identifier(String) with colon)
         old_identifier_count = 0
         for java_file in java_files:
             try:
                 with open(java_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    if "new Identifier(" in content and "import" in content:
-                        error(f"{java_file.name}: Uses old 'new Identifier()' constructor")
-                        self.errors.append(f"{java_file.name}: Old API detected")
-                        old_identifier_count += 1
+                    # Flag new Identifier with a single argument (deprecated in modern MC)
+                    for match in re.finditer(r'new\s+Identifier\s*\(([^,)]*)\)', content):
+                        arg = match.group(1).strip()
+                        # If only one argument and it's a string literal with a colon, that's deprecated
+                        if re.match(r'"[^"]*:[^"]*"', arg):
+                            error(f"{java_file.name}: Uses deprecated 'new Identifier(\"namespace:path\")' constructor")
+                            self.errors.append(f"{java_file.name}: Old API detected")
+                            old_identifier_count += 1
+                    # Flag new Identifier with two integer arguments (very old MC)
+                    for match in re.finditer(r'new\s+Identifier\s*\(([^,]+),([^,]+)\)', content):
+                        arg1 = match.group(1).strip()
+                        arg2 = match.group(2).strip()
+                        if arg1.isdigit() and arg2.isdigit():
+                            error(f"{java_file.name}: Uses deprecated 'new Identifier(int, int)' constructor")
+                            self.errors.append(f"{java_file.name}: Old API detected")
+                            old_identifier_count += 1
             except UnicodeDecodeError:
                 try:
                     with open(java_file, 'r', encoding='latin-1') as f:
                         content = f.read()
-                        if "new Identifier(" in content and "import" in content:
-                            error(f"{java_file.name}: Uses old 'new Identifier()' constructor")
-                            self.errors.append(f"{java_file.name}: Old API detected")
-                            old_identifier_count += 1
+                        for match in re.finditer(r'new\s+Identifier\s*\(([^,)]*)\)', content):
+                            arg = match.group(1).strip()
+                            if re.match(r'"[^"]*:[^"]*"', arg):
+                                error(f"{java_file.name}: Uses deprecated 'new Identifier(\"namespace:path\")' constructor")
+                                self.errors.append(f"{java_file.name}: Old API detected")
+                                old_identifier_count += 1
+                        for match in re.finditer(r'new\s+Identifier\s*\(([^,]+),([^,]+)\)', content):
+                            arg1 = match.group(1).strip()
+                            arg2 = match.group(2).strip()
+                            if arg1.isdigit() and arg2.isdigit():
+                                error(f"{java_file.name}: Uses deprecated 'new Identifier(int, int)' constructor")
+                                self.errors.append(f"{java_file.name}: Old API detected")
+                                old_identifier_count += 1
                 except Exception as e:
                     warning(f"Could not read {java_file.name}: {e}")
-        
+
         if old_identifier_count == 0:
-            success("All code uses 1.21.1 APIs (Identifier.of)")
+            success("All code uses correct 1.21.1 Identifier API")
     
     def validate_mixins(self):
         """Verify mixins exist"""
