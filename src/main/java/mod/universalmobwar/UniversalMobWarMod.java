@@ -56,8 +56,20 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.RegistryByteBuf;
 
 public class UniversalMobWarMod implements ModInitializer {
+
+	// Codec for an empty payload (for safety net)
+	private static final PacketCodec<RegistryByteBuf, CustomPayload> EMPTY_PAYLOAD_CODEC =
+		PacketCodec.ofStatic((payload, buf) -> {}, buf -> new CustomPayload() {
+			@Override
+			public Id<? extends CustomPayload> getId() {
+				return UMW_SAFETYNET_ID;
+			}
+		});
 
 	public static final String MODID = "universalmobwar";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
@@ -115,6 +127,13 @@ public class UniversalMobWarMod implements ModInitializer {
 		// This makes "server has mod, client doesn't" a hard-fail join (as requested).
 		try {
 			PayloadTypeRegistry.playS2C().register(UmwRequiredClientPayload.ID, UmwRequiredClientPayload.CODEC);
+		} catch (IllegalArgumentException alreadyRegistered) {
+			// Tolerate double-init in dev / hot reload scenarios.
+		}
+
+		// Register the C2S payload type for the safety net (required in 1.21+)
+		try {
+			PayloadTypeRegistry.playC2S().register(UMW_SAFETYNET_ID, EMPTY_PAYLOAD_CODEC);
 		} catch (IllegalArgumentException alreadyRegistered) {
 			// Tolerate double-init in dev / hot reload scenarios.
 		}
