@@ -266,38 +266,76 @@ public class MobWarCommand {
     
     private static int executeReload(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
-
         ModConfig config = ModConfig.reload();
 
         source.sendFeedback(() -> Text.literal("Universal Mob War config reloaded from disk.")
             .styled(style -> style.withColor(Formatting.GREEN).withBold(true)), true);
 
-        // Echo key settings so you can confirm the reload took effect immediately.
-        int overrideDay = config != null ? config.manualWorldDayOverride : -1;
-        boolean debugUpgradeLog = config != null && config.debugUpgradeLog;
-        boolean debugLogging = config != null && config.debugLogging;
-        boolean scalingEnabled = config == null || config.isScalingActive();
+        // Print all config fields (excluding lists for brevity)
+        if (config != null) {
+            source.sendFeedback(() -> Text.literal("--- Universal Mob War Config ---")
+                .styled(style -> style.withColor(Formatting.AQUA)), false);
 
-        source.sendFeedback(() -> Text.literal("  manualWorldDayOverride: ")
-            .styled(style -> style.withColor(Formatting.GRAY))
-            .append(Text.literal(String.valueOf(overrideDay))
-                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
+            source.sendFeedback(() -> Text.literal("modEnabled: ").append(Text.literal(String.valueOf(config.modEnabled)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("targetingEnabled: ").append(Text.literal(String.valueOf(config.targetingEnabled)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("targetPlayers: ").append(Text.literal(String.valueOf(config.targetPlayers)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("ignoreSameSpecies: ").append(Text.literal(String.valueOf(config.ignoreSameSpecies)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("neutralMobsAlwaysAggressive: ").append(Text.literal(String.valueOf(config.neutralMobsAlwaysAggressive)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("disableNaturalMobSpawns: ").append(Text.literal(String.valueOf(config.disableNaturalMobSpawns)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("limitNaturalMobSpawns: ").append(Text.literal(String.valueOf(config.limitNaturalMobSpawns)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("naturalSpawnCapPerSimulationDistance: ").append(Text.literal(String.valueOf(config.naturalSpawnCapPerSimulationDistance)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("rangeMultiplierPercent: ").append(Text.literal(String.valueOf(config.rangeMultiplierPercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("allianceEnabled: ").append(Text.literal(String.valueOf(config.allianceEnabled)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("weakAllianceDurationMs: ").append(Text.literal(String.valueOf(config.weakAllianceDurationMs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("strongAllianceDurationMs: ").append(Text.literal(String.valueOf(config.strongAllianceDurationMs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("allianceBreakChancePercent: ").append(Text.literal(String.valueOf(config.allianceBreakChancePercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("strongAllianceBreakChancePercent: ").append(Text.literal(String.valueOf(config.strongAllianceBreakChancePercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("scalingEnabled: ").append(Text.literal(String.valueOf(config.scalingEnabled)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("dayScalingMultiplierPercent: ").append(Text.literal(String.valueOf(config.dayScalingMultiplierPercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("killScalingMultiplierPercent: ").append(Text.literal(String.valueOf(config.killScalingMultiplierPercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("buyChancePercent: ").append(Text.literal(String.valueOf(config.buyChancePercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("saveChancePercent: ").append(Text.literal(String.valueOf(config.saveChancePercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("maxUpgradeIterations: ").append(Text.literal(String.valueOf(config.maxUpgradeIterations)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("allowBossScaling: ").append(Text.literal(String.valueOf(config.allowBossScaling)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("scaleMobXpDropsWithSpentPoints: ").append(Text.literal(String.valueOf(config.scaleMobXpDropsWithSpentPoints)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("spentPointsPerXpBonusStep: ").append(Text.literal(String.valueOf(config.spentPointsPerXpBonusStep)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("xpBonusPercentPerStep: ").append(Text.literal(String.valueOf(config.xpBonusPercentPerStep)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("manualWorldDayOverride: ").append(Text.literal(String.valueOf(config.manualWorldDayOverride)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("upgradeIntervalTicks: ").append(Text.literal(String.valueOf(config.upgradeIntervalTicks)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("forceSpendAllOnSpawn: ").append(Text.literal(String.valueOf(config.forceSpendAllOnSpawn)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("maxSpawnUpgradeIterations: ").append(Text.literal(String.valueOf(config.maxSpawnUpgradeIterations)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("forceSyncSpawnUpgrade: ").append(Text.literal(String.valueOf(config.forceSyncSpawnUpgrade)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("logSpawnPointSummary: ").append(Text.literal(String.valueOf(config.logSpawnPointSummary)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("allowModdedEnchantments: ").append(Text.literal(String.valueOf(config.allowModdedEnchantments)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordEnabled: ").append(Text.literal(String.valueOf(config.warlordEnabled)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("alwaysSpawnWarlordOnFinalWave: ").append(Text.literal(String.valueOf(config.alwaysSpawnWarlordOnFinalWave)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordSpawnChance: ").append(Text.literal(String.valueOf(config.warlordSpawnChance)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordMinRaidLevel: ").append(Text.literal(String.valueOf(config.warlordMinRaidLevel)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordMinionCount: ").append(Text.literal(String.valueOf(config.warlordMinionCount)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordHealthMultiplierPercent: ").append(Text.literal(String.valueOf(config.warlordHealthMultiplierPercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("warlordDamageMultiplierPercent: ").append(Text.literal(String.valueOf(config.warlordDamageMultiplierPercent)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("performanceMode: ").append(Text.literal(String.valueOf(config.performanceMode)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("enableBatching: ").append(Text.literal(String.valueOf(config.enableBatching)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("enableAsyncTasks: ").append(Text.literal(String.valueOf(config.enableAsyncTasks)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("maxConcurrentUpgradeJobs: ").append(Text.literal(String.valueOf(config.maxConcurrentUpgradeJobs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("upgradeProcessingTimeMs: ").append(Text.literal(String.valueOf(config.upgradeProcessingTimeMs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("targetingCacheMs: ").append(Text.literal(String.valueOf(config.targetingCacheMs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("targetingMaxQueriesPerTick: ").append(Text.literal(String.valueOf(config.targetingMaxQueriesPerTick)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("mobDataSaveDebounceMs: ").append(Text.literal(String.valueOf(config.mobDataSaveDebounceMs)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("cleanupNonPlayerGroundProjectiles: ").append(Text.literal(String.valueOf(config.cleanupNonPlayerGroundProjectiles)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("cleanupNonPlayerGroundProjectilesIntervalSeconds: ").append(Text.literal(String.valueOf(config.cleanupNonPlayerGroundProjectilesIntervalSeconds)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("cleanupNonPlayerGroundProjectilesMinAgeTicks: ").append(Text.literal(String.valueOf(config.cleanupNonPlayerGroundProjectilesMinAgeTicks)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("cleanupNonPlayerGroundProjectilesMaxPerWorldPerRun: ").append(Text.literal(String.valueOf(config.cleanupNonPlayerGroundProjectilesMaxPerWorldPerRun)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("showTargetLines: ").append(Text.literal(String.valueOf(config.showTargetLines)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("showLevelParticles: ").append(Text.literal(String.valueOf(config.showLevelParticles)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("disableParticles: ").append(Text.literal(String.valueOf(config.disableParticles)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("minFpsForVisuals: ").append(Text.literal(String.valueOf(config.minFpsForVisuals)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("maxParticlesPerConnection: ").append(Text.literal(String.valueOf(config.maxParticlesPerConnection)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("maxDrawnMinionConnections: ").append(Text.literal(String.valueOf(config.maxDrawnMinionConnections)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("debugUpgradeLog: ").append(Text.literal(String.valueOf(config.debugUpgradeLog)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+            source.sendFeedback(() -> Text.literal("debugLogging: ").append(Text.literal(String.valueOf(config.debugLogging)).styled(s -> s.withColor(Formatting.YELLOW))), false);
+        }
 
-        source.sendFeedback(() -> Text.literal("  scalingEnabled: ")
-            .styled(style -> style.withColor(Formatting.GRAY))
-            .append(Text.literal(String.valueOf(scalingEnabled))
-                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
-
-        source.sendFeedback(() -> Text.literal("  debugUpgradeLog: ")
-            .styled(style -> style.withColor(Formatting.GRAY))
-            .append(Text.literal(String.valueOf(debugUpgradeLog))
-                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
-
-        source.sendFeedback(() -> Text.literal("  debugLogging: ")
-            .styled(style -> style.withColor(Formatting.GRAY))
-            .append(Text.literal(String.valueOf(debugLogging))
-                .styled(style -> style.withColor(Formatting.YELLOW).withBold(true))), false);
-        
         return 1;
     }
     
